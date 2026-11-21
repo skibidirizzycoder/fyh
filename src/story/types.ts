@@ -26,6 +26,19 @@ export interface PresentChange {
   effects: Effects;
 }
 
+/** A newspaper front page. */
+export interface Article {
+  headline: string;
+  article: string;
+}
+
+/** Text for the present-day newspaper. The LLM writes it; these are the facts and fallbacks. */
+export interface NewsContent {
+  brief: string; // instructions for the LLM
+  unchangedFact: string; // what the paper reports when no change is active
+  offline: Record<string, Article>; // "default" plus one per change id, shown when the LLM is unavailable
+}
+
 export interface StoryContent {
   intro: string;
   travelLines: Record<string, string>;
@@ -34,4 +47,5 @@ export interface StoryContent {
   actions: PastAction[];
   changes: PresentChange[];
   ending: string;
+  news: NewsContent;
 }

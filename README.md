@@ -18,6 +18,9 @@ npx playwright install chromium    # headless browser for the smoke test
 npm run dev                        # play at the printed localhost URL
 ```
 
+To get AI-written newspapers, fill in `.env` (see [Snowflake newspaper](#snowflake-newspaper)).
+Without it, the game still works and prints the offline edition.
+
 Controls: **W/S** walk, **A/D** turn, **E** or click to use, **Q** flip the phone (change era), **Enter** start.
 
 ## The loop
@@ -29,6 +32,7 @@ This project uses a "game dev harness": small verified steps, where done means *
 | `npm run check` | `tsc --noEmit`, ESLint and Vitest unit tests |
 | `npm run smoke` | builds production, serves it with `vite preview` and plays the demo in headless Chromium |
 | `npm run gate` | check, then smoke |
+| `npm run snowflake:ping` | **manual**: asks the real Snowflake API for one headline |
 
 For every task:
 
@@ -59,6 +63,40 @@ __game.state()                      // scene, era, flags, present, player, camer
 
 The shipped production build does not include it. The smoke test checks this.
 
+## Snowflake newspaper
+
+Each time you travel back to the present, a newspaper shows a headline and a short
+article about *your* timeline. Snowflake Cortex writes them.
+
+- The browser sends only the timeline flags to `/api/headline`. The **server** checks them
+  (`replayFlags` in `timeline.ts`), builds the prompt from facts in the story, calls Cortex and
+  returns `{ headline, article }`. The browser never sees the key or the prompt.
+- The LLM only writes text. What is true in the present is still decided by `timeline.ts`.
+- Replies are cached per flag set. If the server fails or takes more than 3 s, the game prints
+  the pre-written text from `content.json` (`news.offline`) with an "offline edition" label.
+- `npm run gate` never calls the network: unit tests use a fake `fetch`, and the smoke test
+  fakes `/api/headline` in the browser, blanks the Snowflake variables and fails on any request
+  that leaves localhost.
+
+### Environment variables
+
+Copy `.env.example` to `.env` (it is gitignored) and fill in:
+
+| Variable | Required | What it is |
+|---|---|---|
+| `SNOWFLAKE_ACCOUNT` | yes | Account identifier, e.g. `myorg-myaccount` (the part before `.snowflakecomputing.com`) |
+| `SNOWFLAKE_TOKEN` | yes | A programmatic access token (PAT) for a user whose role can use Cortex |
+| `SNOWFLAKE_MODEL` | no | Cortex model; default `mistral-large2` (`src/tuning.ts`) |
+| `SNOWFLAKE_TOKEN_TYPE` | no | `PROGRAMMATIC_ACCESS_TOKEN` (default), `OAUTH` or `KEYPAIR_JWT` |
+
+The server reads them **only** from `process.env` and never prints them; error messages are
+redacted. `npm run dev` and `vite preview` load `.env` into `process.env` (`vite.config.ts`).
+Check that the real API works with:
+
+```sh
+npm run snowflake:ping   # prints one JSON line with a headline, or the reason it failed
+```
+
 ## Changing the story
 
 The story is data, in `src/story/content.json`:
@@ -74,6 +112,9 @@ All numbers, colours and timings are in `src/tuning.ts`.
 
 ```
 src/core/      loop, input, scene manager, facing, contrast maths
+src/news/      newspaper: browser desk (cache, timeout, offline) and reply checks
+server/        /api/headline handler and the Snowflake Cortex client (server only)
+netlify/       Netlify Function wrapper for /api/headline
 src/world/     layout (one location, two eras), mesh building, post filter, z-fight check
 src/player/    controller (pure) and avatar + follow camera
 src/story/     content.json, timeline (pure), validation
@@ -92,8 +133,12 @@ tests/         unit tests
 "Static HTML" starter workflow with `npm ci && npm run build` and the upload path set to `dist`.
 Or publish manually: `npx gh-pages -d dist`.
 
-**Netlify:** *Add new site → Import from Git*, build command `npm run build`, publish directory `dist`.
-Or drag the `dist/` folder onto the Netlify dashboard.
+**Netlify** (recommended, because it also runs the newspaper endpoint): *Add new site → Import from Git*.
+`netlify.toml` sets the build command, `dist` and `netlify/functions`. Add `SNOWFLAKE_ACCOUNT` and
+`SNOWFLAKE_TOKEN` under *Site configuration → Environment variables*. Never put them in the repo.
+
+GitHub Pages and dragging `dist/` onto Netlify serve static files only. There is no
+`/api/headline` there, so players always get the offline edition.
 
 Run `npm run gate` before every deploy.
 

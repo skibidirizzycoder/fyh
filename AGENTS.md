@@ -67,9 +67,21 @@ Never start the next task on top of untested code. `npm run gate` = check + smok
 | Scenes (title, play, ending) and game rules | `src/game.ts` |
 | Debug API (dev and test builds only) | `src/debug.ts` |
 | Smoke test | `scripts/smoke.ts` |
+| Newspaper endpoint (server only) | `server/headline.ts`, `server/cortex.ts` |
+| Newspaper in the browser (cache, timeout, offline) | `src/news/desk.ts` |
 
 - Story lives in `content.json`; every gameplay number lives in `tuning.ts`. No magic numbers in code.
 - The present is a **pure function** of past flags. No hidden state.
+
+## Network, secrets and the LLM
+
+- `npm run gate` never calls the network. Fake every endpoint (inject `fetchFn` in unit tests,
+  `context.route` in smoke). Real APIs get their own manual script (`npm run snowflake:ping`).
+- Secrets live only in `.env` (gitignored) and reach code only via `process.env`, on the server.
+  Never print, log or return them; redact error text. The browser never sees a key.
+- The LLM only writes text. Story truth comes from `timeline.ts`; the server builds prompts from
+  facts and never forwards browser text. Show LLM text with `textContent`, never `innerHTML`.
+- Every network feature has a timeout and a plain on-screen fallback (e.g. "offline edition").
 
 ## Assets and code
 

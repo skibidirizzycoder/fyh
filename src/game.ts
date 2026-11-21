@@ -3,6 +3,7 @@
 
 import { createSceneManager, type SceneManager } from './core/scenes.ts';
 import type { Input } from './core/input.ts';
+import type { NewsDesk } from './news/desk.ts';
 import { pickTarget, startPlayer, stepPlayer, type PlayerState, type Target } from './player/controller.ts';
 import { actionForObject, causesOf, doAction, presentState, propOverrides, type Flags } from './story/timeline.ts';
 import type { PastAction, StoryContent } from './story/types.ts';
@@ -50,7 +51,7 @@ function freshState(frame: number): GameState {
 }
 
 /** Creates the game. */
-export function createGame(content: StoryContent, input: Input): Game {
+export function createGame(content: StoryContent, input: Input, news?: NewsDesk): Game {
   const state = freshState(0);
 
   function say(line: string): void {
@@ -97,6 +98,7 @@ export function createGame(content: StoryContent, input: Input): Game {
   function setEra(era: Era): void {
     state.era = era;
     state.target = null;
+    if (era === 'present') news?.request(state.flags); // the LLM only writes text about these flags
     const changed = content.changes.filter((c) => present()[c.id]);
     if (era === 'present' && changed.length > 0) {
       say(changed.map((c) => c.line).join(' '));
@@ -127,7 +129,10 @@ export function createGame(content: StoryContent, input: Input): Game {
 
   const scenes = createSceneManager<SceneName, null>({
     title: {
-      enter: () => Object.assign(state, freshState(state.frame)),
+      enter: () => {
+        Object.assign(state, freshState(state.frame));
+        news?.clear();
+      },
       update: () => (input.wasPressed('start') ? 'play' : null),
     },
     play: {

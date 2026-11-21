@@ -35,6 +35,12 @@ export function validateContent(content: StoryContent, props: readonly PropInfo[
     else if (!prop.eras.includes('2004')) errors.push(`action "${action.id}" uses "${prop.id}", which is not in 2004`);
   }
 
+  const changeIds = new Set(content.changes.map((c) => c.id));
+  if (!content.news.offline.default) errors.push('news.offline needs a "default" entry');
+  for (const key of Object.keys(content.news.offline)) {
+    if (key !== 'default' && !changeIds.has(key)) errors.push(`news.offline has unknown change "${key}"`);
+  }
+
   errors.push(...findCycles(content));
   return errors;
 }

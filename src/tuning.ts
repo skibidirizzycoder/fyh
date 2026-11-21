@@ -85,6 +85,21 @@ export const T = {
     endingDelaySec: 5, // time on the "because you..." card before the ending
   },
 
+  news: {
+    endpoint: 'api/headline', // relative, so it works under any base path
+    timeoutMs: 3000, // browser gives up and prints the offline edition after this
+    serverTimeoutMs: 2800, // server gives up on Snowflake a little earlier
+    pingTimeoutMs: 20000, // the manual `npm run snowflake:ping` waits longer
+    model: 'mistral-large2', // default Cortex model; override with SNOWFLAKE_MODEL
+    maxTokens: 300,
+    temperature: 0.7,
+    headlineMaxChars: 100,
+    articleMaxChars: 700,
+    paper: '#f3ecd9', // newspaper panel: light paper, dark ink
+    ink: '#1d1a14',
+    offlineInk: '#8a1c1c', // "offline edition" label
+  },
+
   limits: {
     maxDrawCalls: 60, // smoke fails above this
   },

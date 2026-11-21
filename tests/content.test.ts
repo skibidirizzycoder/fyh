@@ -47,6 +47,12 @@ describe('content.json', () => {
     expect(validateContent(c, props).some((e) => e.startsWith('requirement loop'))).toBe(true);
   });
 
+  it('catches offline news for an unknown change', () => {
+    const c = copy();
+    c.news.offline.ghost = { headline: 'H', article: 'A' };
+    expect(validateContent(c, props)).toContain('news.offline has unknown change "ghost"');
+  });
+
   it('catches duplicate ids', () => {
     const c = copy();
     if (c.actions[2]) c.actions[2].id = 'take_cd';

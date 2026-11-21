@@ -69,3 +69,19 @@ export function propOverrides(content: StoryContent, flags: Flags): { shown: Set
   content.changes.filter((c) => isChangeActive(c, flags)).forEach((c) => apply(c.effects));
   return { shown, hidden };
 }
+
+/**
+ * Checks a flag list from outside (e.g. a network request): every id must be a
+ * known action and the list must replay in order. Returns the flags, or null.
+ */
+export function replayFlags(content: StoryContent, value: unknown): Flags | null {
+  if (!Array.isArray(value) || value.length > content.actions.length) return null;
+  let flags: Flags = [];
+  for (const id of value) {
+    if (typeof id !== 'string') return null;
+    const result = doAction(content, flags, id);
+    if (!result.ok) return null;
+    flags = result.flags;
+  }
+  return flags;
+}

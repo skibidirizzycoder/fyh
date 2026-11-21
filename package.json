@@ -10,7 +10,8 @@
     "check": "tsc --noEmit && eslint . --max-warnings=0 && vitest run",
     "smoke": "node scripts/smoke.ts",
     "gate": "npm run check && npm run smoke",
-    "prepare": "git config core.hooksPath .githooks || echo \"prepare: not a git repository, so the pre-commit hook was not installed\""
+    "prepare": "git config core.hooksPath .githooks || echo \"prepare: not a git repository, so the pre-commit hook was not installed\"",
+    "snowflake:ping": "node scripts/snowflake-ping.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

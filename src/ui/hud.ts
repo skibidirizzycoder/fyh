@@ -3,6 +3,7 @@
 // Colours come from tuning.ts via CSS variables.
 
 import type { Game } from '../game.ts';
+import type { NewsDesk } from '../news/desk.ts';
 import type { StoryContent } from '../story/types.ts';
 import { T } from '../tuning.ts';
 
@@ -11,7 +12,7 @@ export interface Hud {
 }
 
 /** Creates the HUD elements inside `root`. */
-export function createHud(root: HTMLElement, content: StoryContent): Hud {
+export function createHud(root: HTMLElement, content: StoryContent, news: NewsDesk): Hud {
   setCssColours();
   root.insertAdjacentHTML('beforeend', `
     <div id="title" class="overlay panel">
@@ -28,6 +29,12 @@ export function createHud(root: HTMLElement, content: StoryContent): Hud {
       <ol id="card-causes"></ol>
       <p id="card-change" class="accent"></p>
     </div>
+    <div id="news" class="paper">
+      <p class="masthead">THE CORNER GAZETTE</p>
+      <h3 id="news-headline"></h3>
+      <p id="news-article"></p>
+      <p id="news-offline">offline edition</p>
+    </div>
     <div id="ending" class="overlay panel">
       <h1>The End</h1>
       <p>${content.ending}</p>
@@ -41,6 +48,7 @@ export function createHud(root: HTMLElement, content: StoryContent): Hud {
   const parts = {
     title: el('title'), era: el('era'), prompt: el('prompt'), dialogue: el('dialogue'),
     card: el('card'), causes: el('card-causes'), change: el('card-change'), ending: el('ending'),
+    news: el('news'), headline: el('news-headline'), article: el('news-article'), offline: el('news-offline'),
   };
 
   return {
@@ -66,6 +74,13 @@ export function createHud(root: HTMLElement, content: StoryContent): Hud {
       setText(parts.change, changes.map((c) => `→ ${c.label}`).join(' '));
       const causeHtml = game.causes().map((a) => `<li>${a.label}</li>`).join('');
       if (parts.causes.innerHTML !== causeHtml) parts.causes.innerHTML = causeHtml;
+
+      // Newspaper. LLM text is untrusted, so it only ever goes in via textContent.
+      const paper = news.current();
+      show(parts.news, playing && s.era === 'present' && paper.status !== 'idle');
+      setText(parts.headline, paper.status === 'ready' ? paper.headline : 'Printing today\'s paper...');
+      setText(parts.article, paper.status === 'ready' ? paper.article : '');
+      show(parts.offline, paper.status === 'ready' && paper.offline);
     },
   };
 }
@@ -90,6 +105,9 @@ function setCssColours(): void {
   css.setProperty('--font', T.ui.fontFamily);
   css.setProperty('--era-2004', T.eras['2004'].badgeText);
   css.setProperty('--era-present', T.eras.present.badgeText);
+  css.setProperty('--paper', T.news.paper);
+  css.setProperty('--ink', T.news.ink);
+  css.setProperty('--offline-ink', T.news.offlineInk);
 }
 
 /** Replaces the page with a plain message saying why the game could not run. */

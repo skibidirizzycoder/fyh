@@ -7,6 +7,7 @@ import type { Loop } from './core/loop.ts';
 import type { Input } from './core/input.ts';
 import { forwardFromYaw } from './core/facing.ts';
 import type { Game, InteractResult } from './game.ts';
+import type { NewsDesk, NewsState } from './news/desk.ts';
 import type { Avatar } from './player/avatar.ts';
 import { T, type Era } from './tuning.ts';
 
@@ -24,6 +25,7 @@ export interface Snapshot {
   paused: boolean;
   drawCalls: number;
   visibleMeshes: string[];
+  news: NewsState & { requests: number };
 }
 
 export interface DebugApi {
@@ -51,6 +53,7 @@ export interface Runtime {
   game: Game;
   input: Input;
   loop: Loop;
+  news: NewsDesk;
   camera: THREE.PerspectiveCamera;
   avatar: Avatar;
   scene: THREE.Scene;
@@ -114,5 +117,6 @@ function snapshot(rt: Runtime): Snapshot {
     paused: rt.loop.isPaused(),
     drawCalls: rt.drawCalls(),
     visibleMeshes,
+    news: { ...rt.news.current(), requests: rt.news.requestCount() },
   };
 }

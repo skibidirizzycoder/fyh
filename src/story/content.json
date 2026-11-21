@@ -76,5 +76,19 @@
       }
     }
   ],
-  "ending": "Something old, into something modern. Press Enter to play again."
+  "ending": "Something old, into something modern. Press Enter to play again.",
+  "news": {
+    "brief": "You write the front page of the local newspaper, today. Use only the facts given; do not invent new events or names. Reply with only a JSON object: {\"headline\": \"<at most 12 words>\", \"article\": \"<2 or 3 sentences>\"}.",
+    "unchangedFact": "Hollow Records, the record shop on the corner, closed in 2004 and has been boarded up ever since.",
+    "offline": {
+      "default": {
+        "headline": "Corner Shop Still Boarded Up, Twenty Years On",
+        "article": "Hollow Records closed its doors in 2004 and nobody has opened them since. Neighbours say the street has been quieter without the music."
+      },
+      "shop_saved": {
+        "headline": "Hollow Records Celebrates Another Year of Vinyl",
+        "article": "Singer Mira bought the corner shop with money from her 2005 debut, which began with a demo CD someone played at the listening post. The shop is still open, and the noticeboard outside is still covered in gig flyers."
+      }
+    }
+  }
 }

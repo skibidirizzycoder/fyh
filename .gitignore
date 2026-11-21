@@ -27,3 +27,8 @@ dist-ssr
 dist-test
 artifacts
 *.iml
+
+# Secrets: never commit
+.env
+.env.*
+!.env.example

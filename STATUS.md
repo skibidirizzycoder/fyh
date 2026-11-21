@@ -2,24 +2,25 @@
 
 *Update this (about 200 words) at the end of every session.*
 
-**Last updated:** 2026-11-21, harness setup.
+**Last updated:** 2026-11-21, Snowflake newspaper added.
 
-**State:** `npm run gate` passes. 52 unit tests; the smoke test plays the full demo on the
-production bundle, measures text contrast and draw calls, and writes
-`artifacts/2004.png`, `artifacts/present.png` and `artifacts/smoke.json`.
+**State:** `npm run gate` passes with 84 unit tests. Smoke plays the full demo on the production
+bundle, fakes `/api/headline`, checks the 3 s offline edition, the live paper and the cache,
+and writes `artifacts/2004.png`, `artifacts/present.png` and `artifacts/smoke.json`.
 
-**What exists:** a third-person tank controller (W/S/A/D, E to use, Q for the flip phone),
-one street-corner layout with 2004 and present variants (props, sky, lighting, a colour-grade,
-grain and vignette post filter), a story that lives in data (`src/story/content.json`):
-take the CD, play it at the listening post, pin the flyer. These three actions make the
-present-day record shop open, and a "Because you..." card lists the causes. There is a
-title, play and ending scene, and `window.__game` in dev and test builds.
+**What exists:** a third-person controller, one street corner in 2004 and present variants
+(props, grade, grain), and a story in data (`content.json`): CD → listening post → flyer opens
+the record shop, with a "Because you..." card. A newspaper is shown on every return to the present.
+`server/headline.ts` turns the flags into facts, asks Snowflake Cortex and returns
+`{ headline, article }`. It runs in Vite dev/preview and as a Netlify Function.
 
-**Known gaps / next ideas:**
-- No sound yet (a third way for the eras to differ).
-- The player walks through props (it is only clamped to the ground).
-- The avatar's nose is hidden from the default camera angle; facing is shown by the camera.
-- The demo story is a placeholder. Replace `content.json` and the props in `layout.ts`.
+**Blocked on credentials:** `.env` has empty `SNOWFLAKE_ACCOUNT` and `SNOWFLAKE_TOKEN`.
+`npm run snowflake:ping` has not yet returned a real headline. Fill in `.env`, run it, and
+check `ms`: real calls over 3 s will always show the offline edition.
 
-**Next session:** read `AGENTS.md`, run `npm run gate`, pick one task with
-`docs/task-template.md`.
+**Known gaps:**
+- No sound.
+- The player walks through props.
+- GitHub Pages has no endpoint, so the paper is always the offline edition there.
+
+**Next session:** read `AGENTS.md`, run `npm run gate`, run `npm run snowflake:ping` if `.env` is set.

@@ -24,3 +24,5 @@ Every fixed bug adds a line here (and a test when possible). Newest at the botto
 - Big tangled commit — cause: no small steps — rule: small functions, clear comments, no secrets, commit each working step.
 
 ## Project lessons
+
+- Vitest crashed at start-up ("reading 'url'") — cause: a Vite plugin hook written as `(s) => s.middlewares.use(...)` returned the app, and Vite treats a returned function as a post-hook — rule: write Vite hooks with block bodies that return nothing.
