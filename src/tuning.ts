@@ -129,7 +129,7 @@ export const T = {
     blinkSec: 0.8, // one on/off cycle of the selected row's cursor
     momentTimes: { open_mic: '19:30', street_gig: '15:10', ringtone: '16:45' } as Record<string, string>, // outer screen clock in 2004
     foldedWidthPx: 96, // the closed phone
-    foldedBottomPx: 16, // the closed phone sits lower than the open one (it is short)
+    foldedBottomPx: 64, // the closed phone sits lower than the open one, clear of a host's corner badge (Netlify's is ~50 px tall)
     outerScreen: '#0d1b2a', // the closed phone's small outer screen...
     outerText: '#9be7ff', // ...blue-backlit text
     widthPx: 220, // whole phone; stays under 300 px
@@ -165,7 +165,13 @@ export const T = {
     skin: '#e9b48a',
     guitar: '#e8590c',
     banner: '#ff6b6b', // hand-painted banner behind the stage
-    crowd: ['#2b8a3e', '#d6336c', '#1971c2'], // people who stop to watch once the mic works
+    crowd: ['#2b8a3e', '#d6336c', '#1971c2', '#f59f00', '#0c8599', '#862e9c', '#e8590c', '#5c940d'], // the crowd once the mic works
+    paper: '#f8f9fa', // the dropped set list and the tip jar's label
+    paperTitle: '#e03131', // "SET LIST" scrawled in red
+    paperInk: '#212529', // the song titles
+    jarGlass: '#a5d8ff',
+    jarLid: '#495057',
+    banknote: '#69db7c', // a fiver poking out of the tip jar
   },
   mira: {
     // Mira's open mic, 14 March 2004 (props in src/world/props/mira.ts).
@@ -303,10 +309,11 @@ export const T = {
       loopSec: 8, // looping layers are this long, so repeats are hard to hear
       seed: 77,
       fadeSec: 1.5,
+      sampleRate: 24000, // scene layers are made at this rate (all below 12 kHz): half the work of 48 kHz
       layerRms: 0.25, // every layer is scaled to this loudness; its `gain` then sets how loud it is
       open_mic: { // a pub-ish evening: murmuring people and clinking glasses
         babble: { gain: 0.08, voices: 6, syllableHz: 4, lowHz: 250, highHz: 1100 },
-        clinks: { gain: 0.05, perSec: 0.7, minHz: 2600, maxHz: 5200, decaySec: 0.2 },
+        clinks: { gain: 0.05, perSec: 0.7, minHz: 2600, maxHz: 4200, decaySec: 0.2 },
       },
       street_gig: { // a busy summer street, a little chatter, an ice-cream van far away
         traffic: { gain: 0.1, carsPerSec: 0.4, lowpassHz: 350, passSec: 2.5 },

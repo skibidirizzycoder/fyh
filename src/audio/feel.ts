@@ -12,9 +12,11 @@ export const SPEAKERS = Object.keys(F.voice.speakers) as Speaker[];
 
 /** Who is talking: the event's speaker if it names one, else whoever belongs to the moment (today: the owner). */
 export function speakerFor(moment: string | null, speaker?: string | null): Speaker {
-  if (speaker && speaker in F.voice.speakers) return speaker as Speaker;
-  const byMoment: Record<string, Speaker | undefined> = F.voice.byMoment;
-  return (moment && byMoment[moment]) || 'owner';
+  // Object.hasOwn, not `in`: "toString" or "constructor" must not count as a speaker.
+  if (speaker && Object.hasOwn(F.voice.speakers, speaker)) return speaker as Speaker;
+  const byMoment: Readonly<Record<string, string>> = F.voice.byMoment;
+  const who = moment && Object.hasOwn(byMoment, moment) ? byMoment[moment] : undefined;
+  return who && Object.hasOwn(F.voice.speakers, who) ? (who as Speaker) : 'owner';
 }
 
 /** Footstep number `i`: a scuff of noise plus a low thump, cycling through a few variants, each a bit off-pitch. */

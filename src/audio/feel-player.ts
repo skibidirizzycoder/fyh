@@ -32,17 +32,21 @@ export interface Feel {
 
 const KEEP = 50;
 
-/** `play` sends a cue to the speakers (it does nothing while muted or before audio starts). */
+/** `play` sends a cue to the speakers (it does nothing while muted, suspended or before audio starts). */
 export function createFeel(play: (cue: Cue) => void): Feel {
   const played: string[] = [];
   let moment: string | null = null;
   let steps = 0;
   let walking: ReturnType<typeof setInterval> | null = null;
 
-  function sound(name: string, cue: Cue): void {
+  function sound(name: string, make: () => Cue): void {
     played.push(name);
     if (played.length > KEEP) played.shift();
-    play(cue);
+    try {
+      play(make());
+    } catch {
+      // a feel sound must never break the game: it just doesn't play
+    }
   }
   function stopWalking(): void {
     if (walking !== null) clearInterval(walking);
@@ -57,19 +61,19 @@ export function createFeel(play: (cue: Cue) => void): Feel {
     walk(moving) {
       if (!moving) return stopWalking();
       if (walking !== null) return;
-      sound('step', footstepCue(steps++)); // the first step lands at once
-      walking = setInterval(() => sound('step', footstepCue(steps++)), T.audio.feel.step.stepSec * 1000);
+      sound('step', () => footstepCue(steps++)); // the first step lands at once
+      walking = setInterval(() => sound('step', () => footstepCue(steps++)), T.audio.feel.step.stepSec * 1000);
     },
     dialogue(line, speaker) {
       if (!line) return;
       const who = speakerFor(moment, speaker);
-      sound(`voice:${who}`, voiceCue(line, who));
+      sound(`voice:${who}`, () => voiceCue(line, who));
     },
     panel(open) {
-      if (open) sound('paper', paperCue(played.length));
+      if (open) sound('paper', () => paperCue(played.length));
     },
     zoom(zoomIn) {
-      sound(zoomIn ? 'zoom-in' : 'zoom-out', zoomCue(zoomIn));
+      sound(zoomIn ? 'zoom-in' : 'zoom-out', () => zoomCue(zoomIn));
     },
     history: () => played,
     dispose: stopWalking,
