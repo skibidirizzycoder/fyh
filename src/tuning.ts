@@ -583,6 +583,7 @@ export const T = {
     ],
     moments: { open_mic: 'shop', street_gig: 'square', ringtone: 'bus_stop' }, // where each moment happens
     home: 'shop',
+    arrive: { x: 0, z: 3, yawDeg: 0 }, // in a past moment you arrive here (plus its area's shiftX), facing -Z: the scene's own start spot
   },
 
   // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
