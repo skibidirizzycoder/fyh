@@ -54,6 +54,9 @@ function boot(): void {
   const game = createGame(content, input, { news, events });
   const world = buildWorld();
   const avatar = createAvatar(world.scene);
+  events.on('action-done', (e) => { // the action that fixes a CD: the camera pushes in for a moment
+    if (content.cds.some((c) => c.finalAction === e.actionId)) avatar.cheer(game.state.frame);
+  });
   const particles = createParticles(world.scene); // dust, snow or pollen in the air
   const camera = new THREE.PerspectiveCamera(T.camera.fovDeg, 1, T.camera.near, T.camera.far);
   const post = createPostFilter(1, 1, msaaLimit(renderer));
@@ -79,7 +82,7 @@ function boot(): void {
     world.highlight(s.target);
     world.animate(s.frame / T.loop.stepsPerSecond);
     post.setLook(lookFor(s.era, s.moment));
-    avatar.sync(s.player, camera, s.frame); // the frame lets the camera glide by game time
+    avatar.sync(s.player, camera, s.frame, { talking: s.dialogueLeft > 0 }); // game time: the camera glides, and frames a dialogue line
     particles.update(s.era, s.moment, s.frame / T.loop.stepsPerSecond, camera); // game time: step() stays exact
     renderer.info.reset();
     post.render(renderer, world.scene, camera, s.frame);

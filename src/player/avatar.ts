@@ -4,21 +4,23 @@
 // can see — and measure — which way the player faces.
 // Draw calls: one merged body (torso, head, cap, headphones), two legs, two arms and the brim.
 // Legs and arms swing with the distance walked (not with time) and finish their step when you stop.
-// The camera glides after the player (a damped follow, per game step), and cuts after a jump.
+// The follow camera (glide, dialogue framing, the push-in when a CD is fixed) lives in camera.ts.
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { forwardFromYaw } from '../core/facing.ts';
 import { T } from '../tuning.ts';
 import { SHADE_ATTRIBUTE, celMaterial, celVertexMaterial, shadeColor } from '../world/materials.ts';
+import { createFollowCamera, type CameraMood } from './camera.ts';
 import type { PlayerState } from './controller.ts';
 
 export interface Avatar {
   root: THREE.Group;
   nose: THREE.Mesh;
   /** Moves the body and camera to match the player state. With the game `frame`, the camera glides
-   *  there by the steps since the last call; without it, it goes straight there. */
-  sync(p: PlayerState, camera: THREE.PerspectiveCamera, frame?: number): void;
+   *  there by the steps since the last call; without it, it goes straight there. `mood`: see camera.ts. */
+  sync(p: PlayerState, camera: THREE.PerspectiveCamera, frame?: number, mood?: CameraMood): void;
+  /** A CD was just fixed (at game `frame`): the camera pushes in for a moment. */
+  cheer(frame: number): void;
   /** Direction from body centre to nose, measured from the real meshes. */
   measuredFacing(): { x: number; z: number };
   dispose(): void;
@@ -101,20 +103,6 @@ export function settlePhase(phase: number, rate: number): number {
   return Math.abs(d) <= rate ? rest : phase + Math.sign(d) * rate;
 }
 
-/** Where the camera wants to be for a player state, and the point it aims at. */
-function cameraGoal(p: PlayerState): { eye: THREE.Vector3; aim: THREE.Vector3 } {
-  const f = forwardFromYaw(p.yawDeg);
-  return {
-    eye: new THREE.Vector3(p.x - f.x * T.camera.distance, T.camera.height, p.z - f.z * T.camera.distance),
-    aim: new THREE.Vector3(p.x, T.camera.lookHeight, p.z),
-  };
-}
-
-/** The part of the way to go after `steps` game steps, moving `rate` of what is left each step. */
-export function followShare(rate: number, steps: number): number {
-  return 1 - Math.pow(1 - rate, Math.max(0, steps));
-}
-
 /** Creates the avatar and adds it to the scene. */
 export function createAvatar(scene: THREE.Scene): Avatar {
   const material = celVertexMaterial(); // cel-shaded like the street
@@ -141,7 +129,7 @@ export function createAvatar(scene: THREE.Scene): Avatar {
 
   let phase = 0;
   let last: { x: number; z: number } | null = null;
-  let view: { eye: THREE.Vector3; aim: THREE.Vector3; frame: number | undefined } | null = null; // the camera now
+  const follow = createFollowCamera();
 
   /** Swings legs and arms by the distance walked since the last frame; settles them when standing still. */
   function walk(p: PlayerState): void {
@@ -157,27 +145,11 @@ export function createAvatar(scene: THREE.Scene): Avatar {
     rig.position.y = GAP + A.bobM * swing * swing;
   }
 
-  /** Glides the camera towards its spot behind the player; cuts there after a jump or with no frame. */
-  function follow(p: PlayerState, camera: THREE.PerspectiveCamera, frame: number | undefined): void {
-    const goal = cameraGoal(p);
-    const glide = view && frame !== undefined && view.frame !== undefined && view.eye.distanceTo(goal.eye) <= A.cameraSnapM;
-    if (view && glide) {
-      const steps = (frame ?? 0) - (view.frame ?? 0);
-      view.eye.lerp(goal.eye, followShare(A.cameraFollow, steps));
-      view.aim.lerp(goal.aim, followShare(A.cameraLookFollow, steps));
-      view.frame = frame;
-    } else {
-      view = { ...goal, frame };
-    }
-    camera.position.copy(view.eye);
-    camera.lookAt(view.aim);
-  }
-
-  function sync(p: PlayerState, camera: THREE.PerspectiveCamera, frame?: number): void {
+  function sync(p: PlayerState, camera: THREE.PerspectiveCamera, frame?: number, mood: CameraMood = { talking: false }): void {
     root.position.set(p.x, 0, p.z);
     root.rotation.y = (p.yawDeg * Math.PI) / 180;
     walk(p);
-    follow(p, camera, frame);
+    follow.update(p, camera, frame, mood);
   }
 
   function measuredFacing(): { x: number; z: number } {
@@ -193,5 +165,5 @@ export function createAvatar(scene: THREE.Scene): Avatar {
     scene.remove(root);
   }
 
-  return { root, nose, sync, measuredFacing, dispose };
+  return { root, nose, sync, cheer: (frame) => follow.cheer(frame), measuredFacing, dispose };
 }
