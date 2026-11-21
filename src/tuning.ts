@@ -508,6 +508,24 @@ export const T = {
     cheerTiltDeg: 4, // ...with this much tilt
   },
 
+  // Dust puffs at the player's feet when they break into a run or stop from a walk or run (src/player/puffs.ts).
+  // One Points draw, only while a puff is alive. Motes spread out, rise a little and fade over lifeSec.
+  puffs: {
+    motes: 10, // per puff
+    maxPuffs: 4, // alive at once (the oldest makes way)
+    lifeSec: 0.55,
+    spreadM: 0.4, // how far the motes spread from the feet
+    riseM: 0.16, // and rise
+    sizeM: 0.34, // a soft blob: motes overlap into a little cloud
+    color: '#d8ccb4',
+    alpha: 0.85,
+    runShare: 1.1, // a run starts when the speed passes walking speed x this...
+    stopFromShare: 0.9, // ...a stop puffs when you were going at least walking speed x this...
+    stopBelow: 0.4, // ...and the speed falls under this (m/s)
+    kickM: 0.18, // a run's puff is kicked out behind the feet, a stop's in front
+    turnPerFrame: 0.618, // radians: each puff's ring of motes is turned by its start frame times this
+  },
+
   // Round people (src/player/person.ts): capsule body and limbs, a sphere head with a face, rounded shoes.
   // Metres, soles at y = 0 (they stand T.world.surfaceGap above the ground); the player's look fits
   // inside T.player.height and T.player.radius. Each person is at most 5 draw calls (one per material).

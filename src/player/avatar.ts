@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { T } from '../tuning.ts';
 import { createFollowCamera, type CameraMood } from './camera.ts';
 import type { PlayerState } from './controller.ts';
+import { createPuffs } from './puffs.ts';
 import { advancePhase, createPerson, createPersonTextures, easePose, lookAngle, posePerson, type Person } from './person.ts';
 
 export interface Avatar {
@@ -61,6 +62,7 @@ export function createAvatar(scene: THREE.Scene): Avatar {
   let lookPoint: { x: number; z: number } | null = null;
   let cheerFrame: number | null = null; // when the last CD was fixed
   const follow = createFollowCamera();
+  const puffs = createPuffs(scene); // dust at the feet when you break into a run or stop
 
   /** Moves the stride on by the distance walked since the last frame (settles it when standing still) and poses the body. */
   function walk(p: PlayerState, frame: number | undefined): void {
@@ -81,6 +83,7 @@ export function createAvatar(scene: THREE.Scene): Avatar {
     root.position.set(p.x, 0, p.z);
     root.rotation.y = (p.yawDeg * Math.PI) / 180;
     walk(p, frame);
+    puffs.update(p, frame);
     follow.update(p, camera, frame, mood);
   }
 
@@ -97,6 +100,7 @@ export function createAvatar(scene: THREE.Scene): Avatar {
   function dispose(): void {
     person.dispose();
     textures.dispose();
+    puffs.dispose();
   }
 
   /** A CD was fixed: the camera pushes in and the player cheers, both from this game frame. */
