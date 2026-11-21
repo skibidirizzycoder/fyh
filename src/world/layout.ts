@@ -14,7 +14,10 @@ import { PROPS_STATIC } from './props/static.ts';
 import { PROPS_TODAY } from './props/today.ts';
 import { CAR, HALL_SIGN, PUB_SIGN, SCOOTER, STREET_DETAIL } from './street.ts';
 
-export type Shape = 'box' | 'cylinder';
+export type Shape = 'box' | 'cylinder' | 'person';
+
+/** A look from T.person.looks that a person prop can wear. */
+export type PersonLookName = 'npc_a' | 'npc_b';
 
 export interface Prop {
   id: string;
@@ -29,6 +32,11 @@ export interface Prop {
   decor?: boolean; // street decoration: drawn merged with other decor of its eras; the story never shows or hides it
   axis?: 'x' | 'z'; // cylinder only: lies along this axis instead of standing up (size stays width, height, depth)
   label?: string; // box only: text painted on its front (+Z) face
+  // shape 'person': a round person (src/player/person.ts) standing on the bottom of the prop's box and
+  // breathing; `size` stays the body's footprint and height (it blocks like a cylinder). A box prop with
+  // the person's id + '_head' is not drawn: the person has its own head. Optional:
+  look?: PersonLookName; // what they wear (missing: T.cel.people.looks in turn)
+  facingDeg?: number; // which way they face, degrees round +Y (missing: T.cel.people.facingDeg)
   // An image on the prop (anyone may use these in their props file):
   //   texture: a path under public/, e.g. 'textures/cover_mira.png' (relative, so any base path works);
   //            one path for every era, or one per era like `color` ({ '2004': '...' } = 2004 only).

@@ -27,7 +27,7 @@ const BULB = 0.14;
 const BULB_XS = [-3.0, -2.4, -1.8, -1.2, -0.6, 0.0];
 const bulbY = WIRE.y - WIRE.t / 2 - GAP - BULB / 2; // hanging just under the wire
 
-// --- people: a body (cylinder) and a head (box) ---
+// --- people: round people (shape 'person'; their head boxes are not drawn) ---
 const BODY_D = 0.45;
 const BODY_H = 1.6;
 const HEAD = 0.28;
@@ -59,7 +59,7 @@ function mira(at: { x: number; z: number }, suffix: string, startsHidden: boolea
   const guitarZ = mountOn(front, GUITAR_BODY[2]);
   const hidden = startsHidden ? { startsHidden: true } : {};
   return [
-    openMic({ id: `mira_${suffix}`, shape: 'cylinder', pos: [at.x, standOn(0, BODY_H), at.z], size: [BODY_D, BODY_H, BODY_D], color: C.mira, ...hidden }),
+    openMic({ id: `mira_${suffix}`, shape: 'person', pos: [at.x, standOn(0, BODY_H), at.z], size: [BODY_D, BODY_H, BODY_D], color: C.mira, ...hidden }),
     openMic({ id: `mira_${suffix}_head`, shape: 'box', pos: [at.x, headY, at.z], size: [HEAD, HEAD, HEAD], color: C.skin, ...hidden }),
     openMic({ id: `mira_${suffix}_guitar`, shape: 'box', pos: [at.x, GUITAR_Y, guitarZ], size: GUITAR_BODY, color: C.guitar, ...hidden }),
     openMic({ id: `mira_${suffix}_neck`, shape: 'box', pos: [at.x, standOn(GUITAR_Y + GUITAR_BODY[1] / 2, GUITAR_NECK[1]), guitarZ], size: GUITAR_NECK, color: C.neck, ...hidden }),
@@ -70,7 +70,7 @@ function mira(at: { x: number; z: number }, suffix: string, startsHidden: boolea
 function listeners(spots: readonly (readonly [number, number])[], kind: 'bored' | 'gathered'): Prop[] {
   return spots.flatMap(([x, z], i) => {
     const color = C.listeners[i % C.listeners.length] ?? C.mira;
-    const body = openMic({ id: `mira_${kind}_${i + 1}`, shape: 'cylinder', pos: [x, standOn(0, BODY_H), z], size: [BODY_D, BODY_H, BODY_D], color, ...(kind === 'gathered' ? { startsHidden: true } : {}) });
+    const body = openMic({ id: `mira_${kind}_${i + 1}`, shape: 'person', pos: [x, standOn(0, BODY_H), z], size: [BODY_D, BODY_H, BODY_D], color, ...(kind === 'gathered' ? { startsHidden: true } : {}) });
     if (kind === 'gathered') return [body];
     const phone = openMic({ id: `mira_bored_phone_${i + 1}`, shape: 'box', pos: [x, PHONE_Y, mountOn(z + BODY_D / 2, PHONE[2])], size: PHONE, color: C.phoneGlow });
     return [body, phone];
