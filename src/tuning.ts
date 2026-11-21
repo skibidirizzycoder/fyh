@@ -145,6 +145,23 @@ export const T = {
     banner: '#ff6b6b', // hand-painted banner behind the stage
     crowd: ['#2b8a3e', '#d6336c', '#1971c2'], // people who stop to watch once the mic works
   },
+  mira: {
+    // Mira's open mic, 14 March 2004 (props in src/world/props/mira.ts).
+    cd: '#d0d8e0', // her dropped demo CD on the bench
+    listeningPost: '#8a3fb0',
+    sign: '#ffd166', // "OPEN MIC" board on the listening post
+    flyer: '#ff5fa2',
+    micStand: '#868e96',
+    amp: '#2b2b30', // small practice amp by the window
+    wire: '#2a2a2a', // string lights' wire
+    bulbs: ['#ffe066', '#ffa94d', '#fff3bf'], // warm bulbs, repeated along the wire
+    mira: '#c2255c', // Mira's coat
+    skin: '#d9a07b',
+    guitar: '#a0522d', // acoustic guitar body
+    neck: '#5c3a1e',
+    listeners: ['#495057', '#1864ab', '#5f3dc4'], // the bored crowd
+    phoneGlow: '#a5f3fc', // their phone screens: everyone's looking down
+  },
 
   limits: {
     maxDrawCalls: 60, // smoke fails above this
