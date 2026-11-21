@@ -1,8 +1,14 @@
 {
-  "intro": "Your record shop, Hollow Records, closed in 2004. Three CDs nobody bought are still behind the counter. Your old flip phone buzzes. Press Q to open it.",
+  "intro": "Your record shop, Hollow Records, closed in 2019. Three local covers nobody bought sit by an old CD player outside: 'Lose Yourself', 'Sweet Child O' Mine' and 'Despacito'. Put one in (E) to go back to the day it was played. Your flip phone (Q) brings you home.",
   "travelLines": {
     "present": "Snap. The phone closes and it's today again.",
     "past": "{date}. {situation}"
+  },
+  "fixedSituation": "Listen: everyone is into {artist} now. You already fixed this moment.",
+  "cdPlayer": {
+    "prompt": "Put {artist}'s CD in the player",
+    "line": "Click. Whirr. {artist}'s \"{title}\" spins up, and the street starts to blur...",
+    "phoneLockedLine": "No signal for that one yet. Put its CD in the old player outside the shop."
   },
   "alreadyDoneLine": "You've already done that here.",
   "notHereLine": "There's nothing to use here right now.",
@@ -36,9 +42,9 @@
   ],
   "news": {
     "brief": "You write the front page of the local newspaper, today. Use only the facts given; do not invent new events or names. Reply with only a JSON object: {\"headline\": \"<at most 12 words>\", \"article\": \"<2 or 3 sentences>\"}.",
-    "unchangedFact": "Hollow Records, the record shop on the corner, closed in 2004 and has been boarded up ever since.",
+    "unchangedFact": "Hollow Records, the record shop on the corner, closed in 2019 and has been boarded up ever since.",
     "offline": {
-      "default": { "headline": "Corner Shop Still Boarded Up, Twenty Years On", "article": "Hollow Records closed its doors in 2004 and nobody has opened them since. Neighbours say the street has been quieter without the music." }
+      "default": { "headline": "Corner Shop Still Boarded Up, Seven Years On", "article": "Hollow Records closed its doors in 2019 and nobody has opened them since. Neighbours say the street has been quieter without the music." }
     }
   }
 }

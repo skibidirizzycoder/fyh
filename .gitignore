@@ -36,5 +36,9 @@ artifacts
 # Netlify CLI link (local only)
 .netlify
 
+# Real songs for local demos: copyrighted, never committed or deployed (src/audio/songs.ts)
+src/audio/local-songs/*
+!src/audio/local-songs/README.md
+
 # Throwaway scripts (never committed, never linted)
 *.tmp.mjs

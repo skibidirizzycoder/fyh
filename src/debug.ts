@@ -4,7 +4,7 @@
 //
 // Two kinds of helpers:
 //   shortcuts  travel(), interact(), placePlayer()   jump straight there (fast, for setup)
-//   real input walkTo(), phoneTo()                     press real keys frame by frame, like a player
+//   real input walkTo(), phoneTo(), cdTo()           press real keys frame by frame, like a player
 
 import * as THREE from 'three';
 import type { GameAudio } from './audio/audio.ts';
@@ -16,6 +16,7 @@ import type { NewsDesk, NewsState } from './news/desk.ts';
 import type { Avatar } from './player/avatar.ts';
 import type { Spot } from './player/collide.ts';
 import { findRoute, steerAlong, type Steer } from './player/path.ts';
+import { cdObjectId } from './story/cdplayer.ts';
 import { content } from './story/content.ts';
 import { fixedCds } from './story/timeline.ts';
 import { T, type Era } from './tuning.ts';
@@ -25,13 +26,15 @@ export interface Snapshot {
   era: Era;
   moment: string | null; // the 2004 moment you are in; null today
   flags: string[];
+  visited: string[]; // 2004 moments you have been to
+  inserting: string | null; // the CD going into the CD player right now (you travel when it's in)
   present: Record<string, boolean>;
   fixedCds: string[];
   reputation: number;
   target: string | null;
   dialogue: string;
   card: { visible: boolean; changes: string[]; causes: string[] };
-  phone: { open: boolean; index: number; selected: string; items: string[] };
+  phone: { open: boolean; index: number; selected: string; items: string[]; locked: string[] }; // locked: targets you can't choose now (fresh)
   audio: { lastCue: string; muted: boolean; music: string; ambience: string }; // music: what the CD music plays now, e.g. "mira:2004" ("" = none); ambience: the soundscape now
   events: string[]; // the last few game events, newest last
   player: { x: number; y: number; z: number; yawDeg: number; facing: { x: number; z: number }; measuredFacing: { x: number; z: number } };
@@ -65,10 +68,17 @@ export interface DebugApi {
   /** Shortcut: use an interactable now, wherever the player stands. */
   interact(objectId: string): InteractResult;
   placePlayer(x: number, z: number, yawDeg: number): Snapshot;
-  /** Real input: Q, then Down until `to` is selected, then E. */
+  /** Real input: Q, then Down until `to` is selected, then E. Presses nothing if `to` is locked on the phone. */
   phoneTo(to: string): Snapshot;
+  /**
+   * Real input: into a 2004 moment through the CD player. In 2004 it phones home first, then
+   * walks to that moment's CD, presses E and steps until you arrive. `frames` counts all of it.
+   */
+  cdTo(to: string): WalkResult;
   /** Real input: turn (A/D) and walk (W) to an interactable (around solid props) until it is targeted, then press E. */
   walkTo(objectId: string, maxFrames?: number): WalkResult;
+  /** Turns the ink outlines off or back on (for measuring them) and redraws the same frame. */
+  outlines(on: boolean): Snapshot;
   tuning: typeof T;
 }
 
@@ -88,10 +98,13 @@ export interface Runtime {
   avatar: Avatar;
   scene: THREE.Scene;
   drawCalls: () => number;
+  showOutlines: (on: boolean) => void;
 }
 
 const STEER_KEY: Record<Steer, string> = { walk: 'KeyW', left: 'KeyA', right: 'KeyD' };
 const WALK_KEYS = Object.values(STEER_KEY);
+const WALK_FRAMES = 20 * T.loop.stepsPerSecond; // walkTo() gives up after this many steps
+const INSERT_FRAMES = Math.round(T.cdPlayer.insertSec * T.loop.stepsPerSecond);
 
 /** Puts the debug API on window.__game. */
 export function installDebugApi(rt: Runtime): void {
@@ -134,15 +147,39 @@ export function installDebugApi(rt: Runtime): void {
       return step(0);
     },
     phoneTo: (to) => {
-      if (!rt.game.state.phone.open) tap('KeyQ');
-      const index = rt.game.state.phone.items.findIndex((i) => i.target === to);
-      while (index >= 0 && rt.game.state.phone.index !== index) tap('ArrowDown');
-      tap('KeyE');
+      phoneTo(rt, to, tap);
       return state();
     },
-    walkTo: (objectId, maxFrames = 20 * T.loop.stepsPerSecond) => walkTo(rt, objectId, maxFrames, tap),
+    cdTo: (to) => cdTo(rt, to, tap),
+    walkTo: (objectId, maxFrames = WALK_FRAMES) => walkTo(rt, objectId, maxFrames, tap),
+    outlines: (on) => {
+      rt.showOutlines(on);
+      return step(0); // redraw now
+    },
     tuning: T,
   };
+}
+
+/** Real input: Q (if closed), Down until `to` is selected, then E. Nothing if `to` is locked or not on the phone. */
+function phoneTo(rt: Runtime, to: string, tap: (code: string) => void): void {
+  const index = rt.game.phoneItems().findIndex((i) => i.target === to && !i.locked);
+  if (index < 0) return;
+  if (!rt.game.state.phone.open) tap('KeyQ');
+  for (let presses = 0; presses < rt.game.state.phone.items.length && rt.game.state.phone.index !== index; presses++) tap('ArrowDown');
+  tap('KeyE');
+}
+
+/** Real input: into a 2004 moment through the CD player (see DebugApi.cdTo). */
+function cdTo(rt: Runtime, to: string, tap: (code: string) => void): WalkResult {
+  const g = rt.game;
+  const start = g.state.frame;
+  const cd = content.cds.find((c) => c.moment === to);
+  if (!cd) return { ok: false, frames: 0, state: snapshot(rt) };
+  if (g.state.era !== 'present') phoneTo(rt, 'present', tap);
+  const walk = walkTo(rt, cdObjectId(cd.id), WALK_FRAMES, tap);
+  if (walk.ok) rt.loop.stepFrames(INSERT_FRAMES); // the CD goes in, then you arrive (draws once)
+  const s = snapshot(rt);
+  return { ok: walk.ok && s.moment === to, frames: s.frame - start, state: s };
 }
 
 /**
@@ -198,13 +235,18 @@ function snapshot(rt: Runtime): Snapshot {
     era: s.era,
     moment: s.moment,
     flags: [...s.flags],
+    visited: [...s.visited],
+    inserting: s.inserting?.cd ?? null,
     present: rt.game.present(),
     fixedCds: fixedCds(content, s.flags),
     reputation: s.reputation,
     target: s.target,
     dialogue: s.dialogueLeft > 0 ? s.dialogue : '',
     card: { visible: playing && s.era === 'present' && changes.length > 0 && !s.phone.open, changes, causes: rt.game.causes().map((a) => a.id) },
-    phone: { open: s.phone.open, index: s.phone.index, selected: s.phone.items[s.phone.index]?.target ?? '', items: s.phone.items.map((i) => i.target) },
+    phone: {
+      open: s.phone.open, index: s.phone.index, selected: s.phone.items[s.phone.index]?.target ?? '', items: s.phone.items.map((i) => i.target),
+      locked: rt.game.phoneItems().filter((i) => i.locked).map((i) => i.target),
+    },
     audio: { lastCue: rt.audio.lastCue() ?? '', muted: rt.audio.isMuted(), music: nowPlaying(rt.audio), ambience: rt.audio.soundscape() },
     events: rt.game.events.recent(),
     player: { x: s.player.x, y: 0, z: s.player.z, yawDeg: s.player.yawDeg, facing: forwardFromYaw(s.player.yawDeg), measuredFacing: rt.avatar.measuredFacing() },

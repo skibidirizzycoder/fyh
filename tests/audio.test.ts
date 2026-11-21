@@ -14,9 +14,11 @@ function silentAudio(makeContext: () => AudioContext | null = () => null) {
 }
 
 /** The events this table covers, by name (so new events in GameEvents don't break this file). */
-type Covered = 'game-start' | 'mute' | 'travel' | 'action-done' | 'action-locked' | 'phone-open' | 'phone-close' | 'phone-move' | 'phone-select' | 'reputation';
+type Covered = 'game-start' | 'title' | 'cd-insert' | 'mute' | 'travel' | 'action-done' | 'action-locked' | 'phone-open' | 'phone-close' | 'phone-move' | 'phone-select' | 'reputation';
 const PAYLOADS: { [K in Covered]: GameEvents[K] } = {
   'game-start': {},
+  title: {},
+  'cd-insert': { cd: 'mira' },
   mute: {},
   travel: { to: 'ringtone', era: '2004', moment: 'ringtone' },
   'action-done': { actionId: 'mira_take_cd', cd: 'mira' },

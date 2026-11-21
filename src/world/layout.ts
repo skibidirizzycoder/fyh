@@ -8,6 +8,7 @@ import { T, type Era } from '../tuning.ts';
 import { BOTH, DOOR_DEPTH, NOW, PAST, WALL_FRONT_Z, mountOn, standOn } from './props/helpers.ts';
 import { KBIT_PROPS } from './props/kbit.ts';
 import { PROPS_MIRA } from './props/mira.ts';
+import { PROPS_PLAYER } from './props/player.ts';
 import { PROPS_STATIC } from './props/static.ts';
 import { PROPS_TODAY } from './props/today.ts';
 import { CAR, SCOOTER, STREET_DETAIL } from './street.ts';
@@ -83,7 +84,7 @@ const STREET: readonly Prop[] = [
 ];
 
 /** Every prop in the game. */
-export const PROPS: readonly Prop[] = [...STREET, ...PROPS_MIRA, ...PROPS_STATIC, ...KBIT_PROPS, ...PROPS_TODAY];
+export const PROPS: readonly Prop[] = [...STREET, ...PROPS_MIRA, ...PROPS_STATIC, ...KBIT_PROPS, ...PROPS_TODAY, ...PROPS_PLAYER];
 
 /** Colour of a prop in an era. */
 export function propColor(prop: Prop, era: Era): string {
