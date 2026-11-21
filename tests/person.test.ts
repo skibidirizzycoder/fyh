@@ -5,8 +5,10 @@ import { inflateSync } from 'node:zlib';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import {
-  advancePhase, createPerson, createPersonTextures, easePose, gaitBlend, headGeometry, posePerson, strideLength, type Gait, type Person, type PersonImage,
+  advancePhase, cheerAmount, createPerson, createPersonTextures, easePose, gaitBlend, lookAngle, headGeometry, posePerson, strideLength, type Gait, type Person, type PersonImage,
 } from '../src/player/person.ts';
+import { forwardFromYaw } from '../src/core/facing.ts';
+import { createAvatar } from '../src/player/avatar.ts';
 import { T } from '../src/tuning.ts';
 
 const P = T.person;
@@ -322,3 +324,82 @@ describe('round people\'s faces, skin and clothes', () => {
     expect(disposed).toBe(own.size + 1);
   });
 });
+
+describe('where round people look', () => {
+  /** The head's turn relative to the person's root, as a quaternion. */
+  function headTurn(person: Person): THREE.Quaternion {
+    person.root.updateMatrixWorld(true);
+    const head = person.bones.head.getWorldQuaternion(new THREE.Quaternion());
+    return person.root.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(head);
+  }
+
+  it('keep the head level and facing ahead while the body walks, runs, sways, twists and leans', () => {
+    const person = made();
+    for (const g of [gait(0.7), gait(2, RUN), gait(4, WALK, T.player.turnSpeedDeg), gait(1, 0, 0, 2)]) {
+      posePerson(person, g);
+      expect(headTurn(person).angleTo(new THREE.Quaternion()), JSON.stringify(g)).toBeLessThan(1e-6);
+    }
+    posePerson(person, { ...gait(1, RUN, -80), look: 0.5 });
+    expect(headTurn(person).angleTo(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.5))).toBeLessThan(1e-6);
+    person.dispose();
+  });
+
+  it('turn the head towards a point, left or right, at most lookMaxDeg; straight ahead with nothing to look at', () => {
+    const at = { x: 0, z: 0, yawDeg: 0 }; // facing -Z: left is -X
+    expect(lookAngle(at, null)).toBe(0);
+    expect(lookAngle(at, { x: 0, z: -2 })).toBeCloseTo(0, 9);
+    expect(lookAngle(at, { x: -1, z: -3 })).toBeCloseTo(Math.atan2(1, 3), 9);
+    expect(lookAngle(at, { x: 1, z: -3 })).toBeCloseTo(-Math.atan2(1, 3), 9);
+    expect(lookAngle(at, { x: -5, z: 0 })).toBeCloseTo((P.gait.lookMaxDeg * Math.PI) / 180, 9);
+    expect(lookAngle({ x: 2, z: 2, yawDeg: 90 }, { x: 2, z: 4 })).toBeCloseTo((P.gait.lookMaxDeg * Math.PI) / 180, 9); // facing -X, the point is on its left
+  });
+
+  it('the player\'s nose still measures the facing while walking, turning and glancing at a target', () => {
+    const avatar = createAvatar(new THREE.Scene());
+    const camera = new THREE.PerspectiveCamera();
+    const step = T.player.speed / T.loop.stepsPerSecond;
+    avatar.lookAt({ x: -3, z: -3 });
+    for (let frame = 0; frame < 40; frame++) {
+      const yawDeg = 20 + frame;
+      avatar.sync({ x: 0, z: -frame * step, yawDeg, speed: frame < 30 ? RUN : 0, turnRate: 60 }, camera, frame);
+      const m = avatar.measuredFacing();
+      const f = forwardFromYaw(yawDeg);
+      expect(m.x * f.x + m.z * f.z, `frame ${frame}`).toBeGreaterThan(0.999);
+    }
+    avatar.dispose();
+  });
+});
+
+describe('round people cheer', () => {
+  it('raise both arms and hop mid-cheer, and are back to their pose before and after it', () => {
+    const person = made();
+    posePerson(person, gait(1, WALK));
+    const plain = poseOf(person);
+    for (const t of [0, 1, 1.5, -0.2]) {
+      posePerson(person, { ...gait(1, WALK), cheer: t });
+      expect(poseOf(person), `cheer at ${t}`).toEqual(plain);
+    }
+    posePerson(person, { ...gait(0, 0), cheer: 0.5 / P.gait.cheer.hops / 2 + 0.25 }); // mid-cheer, mid-hop
+    for (const arm of person.arms) expect(arm.rotation.x).toBeGreaterThan(Math.PI / 2); // above the shoulders
+    expect(person.rig.position.y).toBeGreaterThan(GAP + P.gait.cheer.hopM * 0.5);
+    expect(cheerAmount(0.5)).toBe(1);
+    expect(cheerAmount(0.01)).toBeGreaterThan(0);
+    expect(cheerAmount(0.01)).toBeLessThan(0.1); // it eases in
+    person.dispose();
+  });
+
+  it('the avatar cheers from the frame a CD is fixed, for T.avatar.cheerSec', () => {
+    const avatar = createAvatar(new THREE.Scene());
+    const camera = new THREE.PerspectiveCamera();
+    const arm = (frame: number): number => {
+      avatar.sync({ x: 0, z: 0, yawDeg: 0, speed: 0, turnRate: 0 }, camera, frame);
+      return avatar.root.getObjectByName('player_arm_l')?.rotation.x ?? NaN;
+    };
+    expect(arm(100)).toBeCloseTo(0, 6);
+    avatar.cheer(100);
+    expect(arm(100 + T.avatar.cheerSec * T.loop.stepsPerSecond * 0.5)).toBeGreaterThan(Math.PI / 2);
+    expect(arm(100 + T.avatar.cheerSec * T.loop.stepsPerSecond + 1)).toBeCloseTo(0, 6);
+    avatar.dispose();
+  });
+});
+

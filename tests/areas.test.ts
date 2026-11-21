@@ -2,7 +2,7 @@
 // data stays where teammates put it, and walking into an area announces it.
 import { describe, expect, it } from 'vitest';
 import { createEvents } from '../src/core/events.ts';
-import { createGame } from '../src/game.ts';
+import { arrivalSpot, createGame } from '../src/game.ts';
 import { createInput } from '../src/core/input.ts';
 import { startPlayer } from '../src/player/controller.ts';
 import { content } from '../src/story/content.ts';
@@ -78,5 +78,17 @@ describe('areas', () => {
     game.travel('present');
     game.update();
     expect(seen.at(-1)).toBe(`${home?.id}:${home?.title}`);
+  });
+});
+
+describe('arriving in a moment', () => {
+  it('puts you in that moment\'s own area, not at the far start of the street', () => {
+    for (const moment of Object.keys(T.areas.moments)) {
+      const spot = arrivalSpot(moment);
+      const area = areaOfMoment(moment);
+      expect(spot.x, moment).toBeGreaterThanOrEqual(area.x[0]);
+      expect(spot.x, moment).toBeLessThanOrEqual(area.x[1]);
+    }
+    expect(arrivalSpot(null)).toEqual(startPlayer());
   });
 });

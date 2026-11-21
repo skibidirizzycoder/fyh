@@ -1,6 +1,6 @@
 // person.ts — round people: a capsule body and limbs, a sphere head with a cartoon face, rounded shoes.
 // A person is one skinned mesh per material (skin, top, jeans, plain colours) sharing one skeleton
-// (body, hips, spine, thighs, shins, feet, upper arms, forearms), plus the cap's brim when they wear
+// (body, hips, spine, head, thighs, shins, feet, upper arms, forearms), plus the cap's brim when they wear
 // a cap: at most 5 draw calls. Materials are the street's cel materials (src/world/materials.ts).
 // The face image shows on the front of the head (the cel shader's front-face picture), and the head,
 // neck and hands are the image's own skin colour, so the skin has no seams.
@@ -8,6 +8,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { forwardFromYaw } from '../core/facing.ts';
 import { T } from '../tuning.ts';
 import { SHADE_ATTRIBUTE, celVertexMaterial, createMaterials, shadeColor, type TextureLoad } from '../world/materials.ts';
 
@@ -15,6 +16,7 @@ const P = T.person;
 const G = T.person.gait;
 const GAP = T.world.surfaceGap;
 const DEG = Math.PI / 180;
+const UP = new THREE.Vector3(0, 1, 0);
 
 /** One of the images in public/textures/ that people wear. */
 export type PersonImage = keyof typeof P.images;
@@ -31,7 +33,7 @@ export interface PersonLook {
 }
 
 const BONES = [
-  'body', 'hips', 'spine', 'leg_l', 'leg_r', 'shin_l', 'shin_r', 'foot_l', 'foot_r', 'arm_l', 'arm_r', 'forearm_l', 'forearm_r',
+  'body', 'hips', 'spine', 'head', 'leg_l', 'leg_r', 'shin_l', 'shin_r', 'foot_l', 'foot_r', 'arm_l', 'arm_r', 'forearm_l', 'forearm_r',
 ] as const;
 type BoneName = (typeof BONES)[number];
 const LAYERS = ['skin', 'top', 'legs', 'plain'] as const;
@@ -59,6 +61,8 @@ export interface Gait {
   speed: number; // metres per second, either way (0 = standing)
   turnRate: number; // degrees per second, + = turning left
   time: number; // seconds of game time (for breathing)
+  look?: number; // radians the head turns from straight ahead (+ = left), e.g. towards what they could use
+  cheer?: number; // how far through a cheer (0..1; none outside that)
 }
 
 /** The people's images as cel materials, each loaded once. The caller disposes it. */
@@ -154,7 +158,7 @@ function bodyPieces(): Piece[] {
     { geometry: torso.translate(0, t.bottom + half, 0), bone: 'spine', layer: 'top' },
     { geometry: hips.translate(0, h.y, 0), bone: 'hips', layer: 'legs' },
     { geometry: flatUvs(capsule(n.r, n.bottom, n.top), P.skinUv), bone: 'spine', layer: 'skin' },
-    { geometry: headGeometry(), bone: 'spine', layer: 'skin' },
+    { geometry: headGeometry(), bone: 'head', layer: 'skin' },
   ];
 }
 
@@ -197,7 +201,7 @@ function headShell(r: number, fromDeg: number, toDeg: number, arcDeg = 360): THR
   return shell.translate(0, P.head.y, 0);
 }
 
-/** Hair (a cap over the crown instead, when they wear one) and headphones: plain colours on the spine. */
+/** Hair (a cap over the crown instead, when they wear one) and headphones: plain colours on the head bone. */
 function headwearPieces(look: PersonLook): Piece[] {
   const { head, hair, cap, headphones: hp } = P;
   const hairR = head.r + hair.gapM;
@@ -212,7 +216,7 @@ function headwearPieces(look: PersonLook): Piece[] {
       shells.push(painted(cup.translate(s * (head.r + hp.cupOut), head.y, 0), look.headphones));
     }
   }
-  return shells.map((geometry) => ({ geometry, bone: 'spine', layer: 'plain' }));
+  return shells.map((geometry) => ({ geometry, bone: 'head', layer: 'plain' }));
 }
 
 /** Every piece of a person in this look. */
@@ -235,6 +239,7 @@ function boneLayout(): Record<BoneName, { parent: BoneName | null; at: [number, 
     body: { parent: null, at: [0, 0, 0] },
     hips: { parent: 'body', at: [0, P.hipY, 0] },
     spine: { parent: 'body', at: [0, P.hipY, 0] },
+    head: { parent: 'spine', at: [0, P.neck.bottom - P.hipY, 0] }, // turns at the bottom of the neck
     leg_l: { parent: 'hips', at: [-P.legX, 0, 0] },
     leg_r: { parent: 'hips', at: [P.legX, 0, 0] },
     shin_l: { parent: 'leg_l', at: [0, knee, 0] },
@@ -278,13 +283,13 @@ function layerMesh(pieces: Piece[], material: THREE.Material, name: string): THR
   return mesh;
 }
 
-/** The cap's brim: a flat oval out front, on the spine (plain colours, like the cap). */
+/** The cap's brim: a flat oval out front, on the head bone (plain colours, like the cap). */
 function makeBrim(material: THREE.Material, name: string): THREE.Mesh {
   const b = P.brim;
   const geo = painted(new THREE.CylinderGeometry(b.r, b.r, b.h, P.radialSegments * 2).scale(1, 1, b.depth), T.player.noseColor);
   const brim = new THREE.Mesh(geo, material);
   brim.name = `${name}_brim`;
-  brim.position.set(0, b.y - P.hipY, b.z); // local -Z = forward
+  brim.position.set(0, b.y - P.neck.bottom, b.z); // local -Z = forward
   return brim;
 }
 
@@ -326,7 +331,7 @@ export function createPerson(look: PersonLook, textures: PersonTextures, name = 
     mesh.bind(skeleton); // the standing pose is the bind pose
   });
   const brim = look.cap ? makeBrim(materials.plain, name) : null;
-  if (brim) bones.spine.add(brim);
+  if (brim) bones.head.add(brim);
   bones.body.position.y = GAP; // the soles stand just above the ground
   root.updateMatrixWorld(true);
   fitCullSpheres(skinned);
@@ -356,6 +361,20 @@ export function createPersonTextures(load?: TextureLoad): PersonTextures {
 }
 
 // ---------- the walk ----------
+
+/**
+ * How far to turn the head (radians, + = left) to look from someone standing at `from` (facing
+ * yawDeg) towards a point, at most T.person.gait.lookMaxDeg either way. Null point: straight ahead.
+ */
+export function lookAngle(from: { x: number; z: number; yawDeg: number }, at: { x: number; z: number } | null): number {
+  if (!at) return 0;
+  const f = forwardFromYaw(from.yawDeg);
+  const left = forwardFromYaw(from.yawDeg + 90);
+  const d = { x: at.x - from.x, z: at.z - from.z };
+  const angle = Math.atan2(d.x * left.x + d.z * left.z, d.x * f.x + d.z * f.z);
+  const max = G.lookMaxDeg * DEG;
+  return Math.max(-max, Math.min(max, angle));
+}
 
 /** Smooth 0..1 ramp of x between a and b. */
 function ramp(x: number, a: number, b: number): number {
@@ -417,7 +436,7 @@ function poseLeg(person: Person, side: 'l' | 'r', a: { thigh: number; knee: numb
 
 /** Sets an arm's bones: swing from the shoulder (+ = forward) and elbow bend (+ = hand up and forward). */
 function poseArm(person: Person, side: 'l' | 'r', swing: number, elbow: number): void {
-  person.bones[`arm_${side}`].rotation.x = swing;
+  person.bones[`arm_${side}`].rotation.set(swing, 0, (side === 'l' ? -1 : 1) * P.armOutDeg * DEG);
   person.bones[`forearm_${side}`].rotation.x = elbow;
 }
 
@@ -433,10 +452,40 @@ function poseSpine(person: Person, gait: Gait, walk: number, run: number): void 
   b.spine.position.set(G.swayM * s * walk, P.hipY + breath, 0);
 }
 
+/** How much of a cheer shows at its progress `t` (0..1): in quickly, held, out at the end; 0 outside. */
+export function cheerAmount(t: number): number {
+  const C = G.cheer;
+  if (t <= 0 || t >= 1) return 0;
+  return ramp(t, 0, C.inShare) * (1 - ramp(t, 1 - C.outShare, 1));
+}
+
+/** Cheers on top of the pose: arms go up and out (elbows nearly straight) and the body hops. */
+function poseCheer(person: Person, t: number): void {
+  const C = G.cheer;
+  const up = cheerAmount(t);
+  if (up <= 0) return;
+  const b = person.bones;
+  for (const [side, s] of [['l', -1], ['r', 1]] as const) {
+    const arm = b[`arm_${side}`];
+    arm.rotation.x += (C.armDeg * DEG - arm.rotation.x) * up;
+    arm.rotation.z = s * (P.armOutDeg + C.spreadDeg * up) * DEG;
+    const fore = b[`forearm_${side}`];
+    fore.rotation.x += (C.elbowDeg * DEG - fore.rotation.x) * up;
+  }
+  person.rig.position.y += C.hopM * Math.abs(Math.sin(Math.PI * C.hops * t)) * up;
+}
+
+/** Keeps the head level and facing ahead whatever the body does (it undoes the spine's lean, twist and tilt), then turns it by `look`. */
+function poseHead(person: Person, look: number): void {
+  const b = person.bones;
+  b.head.quaternion.copy(b.spine.quaternion).invert().multiply(new THREE.Quaternion().setFromAxisAngle(UP, look));
+}
+
 /**
  * Poses a person for a gait. Legs swing from the hips with bent knees, arms counter-swing from the
  * shoulders, the body rests on the longer leg (so it dips twice per stride and the feet stay on the
- * ground), and the upper body sways, twists, leans and breathes (poseSpine). A pure function of the
+ * ground), the upper body sways, twists, leans and breathes (poseSpine), and the head stays level and
+ * looks where `gait.look` says (poseHead); a cheer goes on top (poseCheer). A pure function of the
  * gait, which comes from eased speed and turn rate, so poses never snap.
  */
 export function posePerson(person: Person, gait: Gait): void {
@@ -452,4 +501,6 @@ export function posePerson(person: Person, gait: Gait): void {
   const drop = P.hipY - ankleY() - Math.max(legHeight(left), legHeight(right));
   person.rig.position.y = GAP - drop + G.runBounceM * run * Math.abs(Math.sin(gait.phase));
   poseSpine(person, gait, walk, run);
+  poseHead(person, gait.look ?? 0);
+  poseCheer(person, gait.cheer ?? 0);
 }

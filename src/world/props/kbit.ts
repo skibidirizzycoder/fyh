@@ -73,7 +73,7 @@ const streetLife: Prop[] = [
 ];
 
 const queue: Prop[] = QUEUE_Z.flatMap((z, i): Prop[] => [
-  { id: `kbit_person_${i + 1}`, shape: 'cylinder', eras: PAST, moments: M, pos: [SHELTER_X, standOn(0, PERSON_H), z], size: [PERSON_D, PERSON_H, PERSON_D], color: K.people[i % K.people.length] ?? K.kbitBody },
+  { id: `kbit_person_${i + 1}`, shape: 'person', eras: PAST, moments: M, pos: [SHELTER_X, standOn(0, PERSON_H), z], size: [PERSON_D, PERSON_H, PERSON_D], color: K.people[i % K.people.length] ?? K.kbitBody },
   { id: `kbit_queue_phone_${i + 1}`, shape: 'box', eras: PAST, moments: M, pos: [phoneX, 1.4, z], size: PHONE, color: K.queuePhone },
   { id: `kbit_shazam_${i + 1}`, shape: 'box', eras: PAST, moments: M, pos: [raisedX, RAISED_Y, z], size: RAISED, color: K.shazam, startsHidden: true },
 ]);
@@ -89,7 +89,7 @@ export const KBIT_PROPS: readonly Prop[] = [
   { id: 'kbit_bus_stop', shape: 'box', eras: PAST, moments: M, pos: [SIGN_X, SIGN_Y, SIGN_Z], size: SIGN, color: K.sign, interactable: true },
   { id: 'kbit_sign_band', shape: 'box', eras: PAST, moments: M, pos: [SIGN_X, SIGN_Y + 0.08, mountOn(SIGN_Z + SIGN[2] / 2, BAND[2])], size: BAND, color: K.signBand },
   { id: 'kbit_timetable', shape: 'box', eras: PAST, moments: M, pos: [SIGN_X, 1.35, mountOn(SIGN_Z + POLE_D / 2, TIMETABLE[2])], size: TIMETABLE, color: K.timetable },
-  { id: 'kbit_body', shape: 'cylinder', eras: PAST, moments: M, pos: [KBIT_X, standOn(0, KBIT_H), KBIT_Z], size: [KBIT_D, KBIT_H, KBIT_D], color: K.kbitBody },
+  { id: 'kbit_body', shape: 'person', eras: PAST, moments: M, pos: [KBIT_X, standOn(0, KBIT_H), KBIT_Z], size: [KBIT_D, KBIT_H, KBIT_D], color: K.kbitBody },
   { id: 'kbit_headphones', shape: 'box', eras: PAST, moments: M, pos: [KBIT_X, standOn(standOn(0, KBIT_H) + KBIT_H / 2, HEADPHONES[1]), KBIT_Z], size: HEADPHONES, color: K.headphones },
   { id: 'kbit_phone', shape: 'box', eras: PAST, moments: M, pos: [KBIT_X + KBIT_D / 2 + GAP + KBIT_PHONE[0] / 2, 1.2, KBIT_Z], size: KBIT_PHONE, color: K.kbitPhone, interactable: true },
 ];

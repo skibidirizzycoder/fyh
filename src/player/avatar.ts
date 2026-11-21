@@ -10,7 +10,7 @@ import * as THREE from 'three';
 import { T } from '../tuning.ts';
 import { createFollowCamera, type CameraMood } from './camera.ts';
 import type { PlayerState } from './controller.ts';
-import { advancePhase, createPerson, createPersonTextures, easePose, posePerson, type Person } from './person.ts';
+import { advancePhase, createPerson, createPersonTextures, easePose, lookAngle, posePerson, type Person } from './person.ts';
 
 export interface Avatar {
   root: THREE.Group;
@@ -20,7 +20,9 @@ export interface Avatar {
   sync(p: PlayerState, camera: THREE.PerspectiveCamera, frame?: number, mood?: CameraMood): void;
   /** A CD was just fixed (at game `frame`): the camera pushes in for a moment. */
   cheer(frame: number): void;
-  /** Direction from body centre to nose, measured from the real meshes. */
+  /** What the player could use now (its spot), or null: the head turns a little towards it. */
+  lookAt(point: { x: number; z: number } | null): void;
+  /** Direction the nose points, measured from the real meshes (head to brim), with the head's glance at a target taken out. */
   measuredFacing(): { x: number; z: number };
   dispose(): void;
 }
@@ -55,7 +57,9 @@ export function createAvatar(scene: THREE.Scene): Avatar {
 
   let phase = 0;
   let last: { x: number; z: number } | null = null;
-  let eased: { speed: number; turnRate: number; frame: number } | null = null; // what the pose follows, a little behind
+  let eased: { speed: number; turnRate: number; look: number; frame: number } | null = null; // what the pose follows, a little behind
+  let lookPoint: { x: number; z: number } | null = null;
+  let cheerFrame: number | null = null; // when the last CD was fixed
   const follow = createFollowCamera();
 
   /** Moves the stride on by the distance walked since the last frame (settles it when standing still) and poses the body. */
@@ -65,10 +69,12 @@ export function createAvatar(scene: THREE.Scene): Avatar {
     const steps = eased && frame !== undefined ? frame - eased.frame : undefined;
     const speed = easePose(eased?.speed ?? 0, gaitSpeed(p), steps);
     const turnRate = easePose(eased?.turnRate ?? 0, p.turnRate ?? 0, steps);
-    eased = frame === undefined ? null : { speed, turnRate, frame };
+    const look = easePose(eased?.look ?? 0, lookAngle(p, lookPoint), steps);
+    eased = frame === undefined ? null : { speed, turnRate, look, frame };
     if (moved > 0 && moved < A.teleportM) phase = advancePhase(phase, moved, speed);
     else phase = settlePhase(phase, A.settleRad);
-    posePerson(person, { phase, speed, turnRate, time: (frame ?? 0) / T.loop.stepsPerSecond });
+    const cheer = cheerFrame === null || frame === undefined ? 0 : (frame - cheerFrame) / (A.cheerSec * T.loop.stepsPerSecond);
+    posePerson(person, { phase, speed, turnRate, look, cheer, time: (frame ?? 0) / T.loop.stepsPerSecond });
   }
 
   function sync(p: PlayerState, camera: THREE.PerspectiveCamera, frame?: number, mood: CameraMood = { talking: false }): void {
@@ -80,10 +86,12 @@ export function createAvatar(scene: THREE.Scene): Avatar {
 
   function measuredFacing(): { x: number; z: number } {
     root.updateMatrixWorld(true);
-    const a = root.getWorldPosition(new THREE.Vector3());
+    const a = person.bones.head.getWorldPosition(new THREE.Vector3());
     const b = nose.getWorldPosition(new THREE.Vector3());
     const len = Math.hypot(b.x - a.x, b.z - a.z);
-    return { x: (b.x - a.x) / len, z: (b.z - a.z) / len };
+    const [dx, dz] = [(b.x - a.x) / len, (b.z - a.z) / len];
+    const back = -(eased?.look ?? 0); // turn the glance back (rotation about +Y)
+    return { x: dx * Math.cos(back) + dz * Math.sin(back), z: -dx * Math.sin(back) + dz * Math.cos(back) };
   }
 
   function dispose(): void {
@@ -91,5 +99,11 @@ export function createAvatar(scene: THREE.Scene): Avatar {
     textures.dispose();
   }
 
-  return { root, nose, sync, cheer: (frame) => follow.cheer(frame), measuredFacing, dispose };
+  /** A CD was fixed: the camera pushes in and the player cheers, both from this game frame. */
+  function cheer(frame: number): void {
+    follow.cheer(frame);
+    cheerFrame = frame;
+  }
+
+  return { root, nose, sync, cheer, lookAt: (point) => (lookPoint = point), measuredFacing, dispose };
 }

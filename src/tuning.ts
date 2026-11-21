@@ -123,6 +123,15 @@ export const T = {
       streetZ: 5.4, // ...and stands on one side of the road (its centre line here): the face towards it is its front
       woodDecor: ['bench_back'] as readonly string[], // decoration props made of wood
     },
+    // People in the scenes (props with shape 'person', src/world/people.ts): round people (T.person),
+    // standing still and breathing, drawn instanced: one draw call per look and material for everyone.
+    people: {
+      looks: ['npc_a', 'npc_b'] as const, // a person prop without a `look` takes these in turn
+      breathScale: 0.012, // standing: each person grows this much taller (and a little slimmer) as they breathe in...
+      breathSec: 3.6, // ...once every this many seconds...
+      breathStep: 0.37, // ...each this far (of a breath) on from the person before, so neighbours breathe out of step
+      facingDeg: 0, // a person prop without `facingDeg` faces this way (0: +Z, towards the road and the camera)
+    },
   },
 
   eras: {
@@ -157,6 +166,12 @@ export const T = {
       bloomScale: 0.5, // ... the glow is worked out at half the (chunky) resolution, added per chunky pixel
       bloomSpread: 1, // ... glow texels between blur taps: one chunky pixel is already wide
       fxaa: 1, // post filter: FXAA after the ink, only for full-resolution moments (2017)
+      scanlines: 0, // VHS scanlines (every other scene row darker), off (1988 turns them on in moments)
+      chromaBleed: 0, // VHS red/blue bleed in scene pixels, off
+      tracking: 0, // VHS tracking band: the most a row slips sideways (scene pixels), off
+      trackingSec: 7, // ... seconds of game time for the band to roll down the screen
+      trackingBand: 0.06, // ... its half height, as a share of the screen
+      blackLevel: 0, // display black level: > 0 lifts (worn tape), < 0 crushes (phone camera)
       badgeText: '#ffcf7a',
     },
     present: {
@@ -189,6 +204,12 @@ export const T = {
       bloomScale: 0.5, // ... the glow is worked out at half resolution
       bloomSpread: 2, // ... glow texels between blur taps (a soft glow about 30 px wide at 1080p)
       fxaa: 1, // post filter: FXAA after the ink, so ink lines and edges are smooth too
+      scanlines: 0, // no tape or camera effects today
+      chromaBleed: 0,
+      tracking: 0,
+      trackingSec: 7,
+      trackingBand: 0.06,
+      blackLevel: 0,
       badgeText: '#bfe6ff',
     },
   },
@@ -539,6 +560,9 @@ export const T = {
       hipTwistDeg: 8, shoulderTwistDeg: 7, // hips turn with the forward leg, shoulders the other way
       runBounceM: 0.05, // running: the body lifts off between steps (twice per stride)
       breathM: 0.006, breathSec: 3.6, // standing: the chest rises and falls this much, once every breathSec
+      // A CD fixed: a cheer over T.avatar.cheerSec (the camera's push-in): arms up and out, a couple of hops.
+      cheer: { armDeg: 160, spreadDeg: 22, elbowDeg: 25, hops: 2, hopM: 0.12, inShare: 0.15, outShare: 0.25 },
+      lookMaxDeg: 40, // the head turns at most this far towards what you could use (E)
       poseEaseSec: 0.2, // the pose follows speed and turning with this lag (game time), so stopping or turning never snaps
     },
     // Each image's plain colour (a face's skin, a fabric's average): the material colour around the image.
@@ -578,6 +602,19 @@ export const T = {
     pigeonHopHz: 5, // ...this many hops a second
     pigeonHomeMs: 0.35, // when you are gone they walk back home this fast
   },
+  dressing: { // what makes each year's street its own (street.ts yearDressing), all merged decor
+    bunting: ['#d8343b', '#f2f2ee', '#2f5fb3', '#f2c230'], // 1988: summer flags across the square
+    fordBody: '#c9a24a', fordGlass: '#3a4752', fordChrome: '#d9dde0', tyre: '#1d1d1f',
+    phoneBox: '#c4231c', phoneGlass: '#d9e6ea', phoneSign: '#f4f1e6',
+    deckchair: ['#e24c3a', '#2f8fc4', '#f0c23a'], deckFrame: '#8a6a44',
+    xmasBulbs: ['#ff4a3d', '#4cd964', '#ffd23f', '#4aa3ff'], xmasWire: '#1e2a1e', // 2002: lights on the fronts
+    xmasTree: '#1f5a32', xmasTrunk: '#5a3a22', xmasStar: '#ffd84a',
+    bin: ['#2e6b3a', '#3c4148'], binLid: '#25292e', // 2017: wheelie bins, bikes, scooters, an ad panel
+    rack: '#9aa2aa', bike: ['#c23b4a', '#2c6fb0'], escooter: '#3ad17a', escooterDeck: '#202326',
+    adFrame: '#2a2e33', adLight: '#f4f7ff',
+    basket: '#4a3b2a', flowers: ['#e0558f', '#f4d03f', '#9b59b6'], // today: baskets, café tables, a cargo bike
+    cafeTable: '#e8e4dc', cafeChair: '#2f6f64', cargoBox: '#2f7d6a', cargoFrame: '#222428',
+  },
   areas: {
     list: [
       { id: 'shop', title: 'Hollow Records', x: [-99, 7.5], shiftX: 0 },
@@ -586,6 +623,7 @@ export const T = {
     ],
     moments: { open_mic: 'shop', street_gig: 'square', ringtone: 'bus_stop' }, // where each moment happens
     home: 'shop',
+    arrive: { x: 0, z: 3, yawDeg: 0 }, // in a past moment you arrive here (plus its area's shiftX), facing -Z: the scene's own start spot
   },
 
   // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
@@ -619,11 +657,14 @@ export const T = {
     street_gig: { // 6 August 1988: bright summer afternoon on a worn VHS tape
       sky: '#f2c36b', sunColor: '#fff2cc', sunIntensity: 3.1, ambient: 1.05, tint: [1.1, 1.0, 0.8], saturation: 0.82,
       pixelHeight: 144, colorLevels: 12, grain: 0.09, vignette: 0.42,
+      // Worn VHS: faint scanlines, red/blue bleeding sideways, a tracking band rolling down, greyish blacks.
+      scanlines: 0.14, chromaBleed: 1, tracking: 2, trackingSec: 7, blackLevel: 0.07,
     },
     ringtone: { // 13 January 2017: cold grey dusk, like a phone photo (sharp, light grain; still warmer than today)
       sky: '#8791a6', fogNear: 9, fogFar: 32, sunColor: '#ffd9b0', sunIntensity: 1.4, ambient: 0.8,
-      tint: [1.0, 0.98, 0.98], saturation: 0.72, // colder, so it stays apart from open_mic with ink lines on (smoke: looks)
       pixelHeight: 0, colorLevels: 0, grain: 0.015, outlinePx: 2, // sharp like today, so today's thin ink
+      // Phone camera: a warm "filter" grade, a little extra colour, crushed blacks and a touch of lens vignette.
+      tint: [1.08, 0.99, 0.88], saturation: 0.95, blackLevel: -0.05, vignette: 0.3,
     },
   },
 
