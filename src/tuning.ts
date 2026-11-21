@@ -226,6 +226,77 @@ export const T = {
     caption: '#fff3bf',
   },
 
+  // The shared street: shop front, neighbours, kerb and road (where they stand: src/world/street.ts).
+  // A { '2004', present } pair changes with the era; a single colour is the same in both.
+  street: {
+    pavement: { '2004': '#948f87', present: '#55595e' }, // the ground in front of the shops: grey stone flags
+    road: { '2004': '#67625c', present: '#3a3e44' },
+    kerb: { '2004': '#aaa8a2', present: '#b4b7ba' },
+    roadLine: '#e9e4d8', // white centre dashes
+    yellowLine: { '2004': '#c9a23a', present: '#e3c44a' }, // double yellow lines along the kerb
+    shopWall: { '2004': '#7a4a3a', present: '#5d5f66' },
+    woodwork: { '2004': '#1f4a3c', present: '#2b3946' }, // shopfront frame, pilasters, fascia: racing green in 2004
+    stallriser: { '2004': '#173528', present: '#232d38' }, // the panel under the shop window
+    awning: { '2004': '#8c2a2a', present: '#3d4450' },
+    awningStripe: { '2004': '#efe2c4', present: '#7d8794' },
+    sign: { '2004': '#1b1410', present: '#1c1f25' }, // the shop's name board...
+    signInk: { '2004': '#e8c36a', present: '#d9e1ea' }, // ...and its painted letters
+    signText: 'HOLLOW RECORDS',
+    signFont: 'Georgia, "Times New Roman", serif', // bold
+    signFontPx: 132, // shrunk to fit the board if the text is too wide
+    signLetterSpacingPx: 10,
+    signTexturePx: [2048, 211], // canvas size: the same shape as the board (6.4 x 0.66 m)
+    door: { '2004': '#4a3022', present: '#33363d' },
+    brass: '#c9a54a', // door knob and letterbox
+    upperWall: { '2004': '#8a4f3c', present: '#7a5a4e' }, // brick flat above the shop
+    stone: { '2004': '#cfc3ad', present: '#d6d6d2' }, // cornices, sills, lintels, kerb-side posts
+    glass: { '2004': '#2b2a2e', present: '#33414f' }, // dark window panes
+    windowFrame: { '2004': '#ece3d0', present: '#eef0f2' },
+    chimney: { '2004': '#6e3b2e', present: '#6a5048' },
+    chimneyPot: '#b5652f',
+    alleyWall: { '2004': '#5a3a30', present: '#4c4f55' }, // closes the gaps between the shop and its neighbours
+    leftBuilding: { '2004': '#8a6a50', present: '#7b8087' },
+    rightBuilding: { '2004': '#6e5a4a', present: '#8d939a' },
+    farLeft: { '2004': '#5f4a3d', present: '#6c7178' }, // buildings past the edge of the walkable street
+    farRight: { '2004': '#7c6450', present: '#9aa0a6' },
+    leftShop: { '2004': '#3e5c8a', present: '#4a4f57' }, // fascia of the left neighbour's shop...
+    rightShop: { '2004': '#8c2f2f', present: '#2f6f6a' }, // ...the right neighbour's...
+    farShop: { '2004': '#6b5a2f', present: '#5a4a7a' }, // ...and the shops further along
+    shutter: '#8e949b', // the left neighbour is closed down today
+    lamp: '#2a2a2a', // lamp post, arm and head
+    lampGlass: '#fff1c2',
+    bench: { '2004': '#6a4a2a', present: '#4a4f57' },
+    car: { body: '#4a6b8a', glass: '#25313a', tyre: '#161616', chrome: '#c4c8cc', headlight: '#f6e9b8', taillight: '#b3261e' },
+    payphone: { body: '#7a7f3a', hood: '#3b3e42', panel: '#c0c4c8', handset: '#111111' },
+    charger: { body: '#e8eef2', screen: '#38d9a9', holster: '#2b2f36' },
+    scooter: { body: '#2dd4bf', tyre: '#161616', seat: '#22262b', bar: '#3a3f46' },
+    planter: '#7d8185', // concrete trough...
+    plants: '#4a7f45', // ...with a clipped hedge in it
+    tvScreen: '#20262c',
+    notices: ['#f1efe6', '#f3e39a', '#a9d3f0'], // papers pinned on the noticeboard
+  },
+
+  // The player's low-poly body (src/player/avatar.ts). Metres; it fits inside T.player.height and radius.
+  // The cap and its brim use T.player.noseColor: the brim is the "nose" that shows which way you face.
+  avatar: {
+    hoodie: '#e4e0d6', // off-white: stands out in both eras
+    hoodieTrim: '#2c8c7c', // hood, waistband and pocket
+    jeans: '#4a6390', // mid-wash denim
+    shoes: '#f0f0f0',
+    skin: '#e0ac85',
+    headphones: '#1e1e24', // also the eyes
+    hipY: 0.74, // legs hang from here (the soles end up at the ground)...
+    shoulderY: 1.24, // ...and arms from here (above the ground)
+    legX: 0.1, // centre of each leg, from the middle of the body
+    armX: 0.27, // centre of each arm, from the middle of the body
+    strideM: 1.3, // metres walked per full step cycle (left + right)
+    legSwingDeg: 28,
+    armSwingDeg: 22,
+    bobM: 0.03, // the body rises this much mid-stride
+    settleRad: 0.25, // per drawn frame: when you stop, the legs finish their step at this rate
+    teleportM: 0.5, // a jump bigger than this in one frame (travel, restart) is not walking
+  },
+
   // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
   moments: {
     open_mic: { // 14 March: evening, dusk light
