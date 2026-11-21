@@ -32,3 +32,9 @@ artifacts
 .env
 .env.*
 !.env.example
+
+# Netlify CLI link (local only)
+.netlify
+
+# Throwaway scripts (never committed, never linted)
+*.tmp.mjs

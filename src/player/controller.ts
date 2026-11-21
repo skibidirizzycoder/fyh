@@ -1,9 +1,11 @@
 // controller.ts — third-person "tank" controls, as pure functions.
 // W/S move along the facing, A/D turn. Facing comes ONLY from yawDeg
 // (see core/facing.ts), so movement, the avatar's nose and the camera agree.
+// Solid props stop the player and it slides along them (see collide.ts).
 
 import { angleToTarget, forwardFromYaw } from '../core/facing.ts';
 import { T } from '../tuning.ts';
+import { moveTo, type Footprint } from './collide.ts';
 
 export interface PlayerState {
   x: number;
@@ -23,19 +25,14 @@ export function startPlayer(): PlayerState {
   return { x: T.player.startX, z: T.player.startZ, yawDeg: T.player.startYawDeg };
 }
 
-/** Advances the player by one fixed step of `dt` seconds. */
-export function stepPlayer(p: PlayerState, input: MoveInput, dt: number): PlayerState {
+/** Advances the player by one fixed step of `dt` seconds; it stays on the ground and out of `obstacles`. */
+export function stepPlayer(p: PlayerState, input: MoveInput, dt: number, obstacles: readonly Footprint[] = []): PlayerState {
   const turn = (input.turnLeft ? 1 : 0) - (input.turnRight ? 1 : 0);
   const yawDeg = wrapDegrees(p.yawDeg + turn * T.player.turnSpeedDeg * dt);
   const move = (input.forward ? 1 : 0) - (input.back ? 1 : 0);
   const f = forwardFromYaw(yawDeg);
-  const halfW = T.world.groundWidth / 2 - T.player.radius;
-  const halfD = T.world.groundDepth / 2 - T.player.radius;
-  return {
-    x: clamp(p.x + f.x * move * T.player.speed * dt, -halfW, halfW),
-    z: clamp(p.z + f.z * move * T.player.speed * dt, -halfD, halfD),
-    yawDeg,
-  };
+  const to = { x: p.x + f.x * move * T.player.speed * dt, z: p.z + f.z * move * T.player.speed * dt };
+  return { ...moveTo(p, to, obstacles), yawDeg };
 }
 
 export interface Target {
@@ -63,8 +60,4 @@ export function pickTarget(p: PlayerState, targets: readonly Target[]): string |
 export function wrapDegrees(deg: number): number {
   const d = ((((deg + 180) % 360) + 360) % 360) - 180;
   return d === -180 ? 180 : d;
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.min(Math.max(v, lo), hi);
 }

@@ -7,9 +7,11 @@
 import type { GameEvents } from '../core/events.ts';
 import { T, type Era } from '../tuning.ts';
 import { createAmbience, type Ambience } from './ambience.ts';
-import { buildCue, cueLength, type CueName } from './cues.ts';
+import { buildCue, cueLength, type Cue, type CueName } from './cues.ts';
+import { createFeel, subscribeFeel, type FeelSource } from './feel-player.ts';
 import { createMusicDirector, type MusicDirector } from './music-director.ts';
 import { createMusicPlayer, type MusicPlayer } from './music.ts';
+import { sceneFor, type SceneId } from './soundscape.ts';
 import { makeNoiseBuffer, playCue } from './synth.ts';
 
 /** The game events sound reacts to. */
@@ -40,6 +42,10 @@ export interface GameAudio {
   unlock(): void;
   play(name: CueName): void;
   era(): Era;
+  /** Which moment's background is playing: "open_mic", "street_gig", "ringtone", "present" or "2004". */
+  soundscape(): SceneId;
+  /** The last few small "feel" sounds (footsteps, paper, camera, voices), oldest first. Never a cue. */
+  feel(): readonly string[];
   /** True once Web Audio failed; the game carries on silently. */
   failed(): boolean;
   dispose(): void;
@@ -81,17 +87,17 @@ function subscribe(events: SoundEvents, a: {
   play: (name: CueName) => void;
   unlock: () => void;
   toggleMute: () => boolean;
-  setEra: (era: Era) => void;
+  setPlace: (era: Era, moment: string | null) => void;
   music: MusicDirector;
 }): void {
-  const { play, unlock, toggleMute, setEra, music } = a;
+  const { play, unlock, toggleMute, setPlace, music } = a;
   events.on('game-start', () => {
     unlock();
     music.reset();
   });
   events.on('mute', () => toggleMute());
   events.on('travel', (e) => {
-    setEra(e.era);
+    setPlace(e.era, e.moment);
     play('whoosh');
     music.travel(e.era, e.moment);
   });
@@ -117,6 +123,7 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
   let muted = false;
   let broken = false;
   let era: Era = 'present';
+  let scene: SceneId = 'present';
   let sound: Sound | null = null;
   /** Runs some Web Audio code; if it throws, sound switches off for good instead of breaking the game. */
   function safely(fn: () => void): void {
@@ -145,6 +152,7 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
         const noise = makeNoiseBuffer(ctx, T.audio.ambience.loopSec, T.audio.ambience.seed);
         const music = createMusicPlayer(ctx, master);
         sound = { ctx, master, noise, ambience: createAmbience(ctx, master, era), music };
+        sound.ambience.setScene(scene);
         loadSongs(ctx, music);
       }
       resume();
@@ -169,11 +177,22 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
     return muted;
   }
 
-  subscribe(events, { play, unlock, toggleMute, music, setEra: (e) => {
+  subscribe(events, { play, unlock, toggleMute, music, setPlace: (e, moment) => {
     era = e;
+    scene = sceneFor(e, moment);
     const s = sound;
-    if (s) safely(() => s.ambience.setEra(e));
+    if (s) safely(() => {
+      s.ambience.setEra(e);
+      s.ambience.setScene(scene);
+    });
   } });
+
+  const feel = createFeel((cue: Cue) => {
+    const s = sound;
+    if (s && !muted) safely(() => playCue(s.ctx, s.master, cue, s.noise));
+  });
+  events.on('travel', (e) => feel.travel(e.moment));
+  subscribeFeel(events as unknown as FeelSource, feel); // events requested from Claude; harmless until sent
 
   // The browser may suspend audio (e.g. a background tab); any key or click wakes it up again.
   options.target?.addEventListener('keydown', resume);
@@ -188,9 +207,12 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
     unlock,
     play,
     era: () => era,
+    soundscape: () => scene,
+    feel: feel.history,
     failed: () => broken,
     dispose() {
       music.dispose();
+      feel.dispose();
       options.target?.removeEventListener('keydown', resume);
       options.target?.removeEventListener('pointerdown', resume);
       const s = sound;

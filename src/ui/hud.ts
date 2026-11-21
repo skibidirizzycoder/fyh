@@ -1,44 +1,106 @@
-// hud.ts — all on-screen text, as plain HTML on top of the 3D canvas.
+// hud.ts — all on-screen text, as plain HTML on top of the 3D canvas. Owner: Teammate A.
 // Each frame, render() makes the page match the game state.
-// Colours come from tuning.ts via CSS variables.
+//   #title    a 2004 phone booting up: Hollow Records, three dusty CDs, "Press Enter"
+//             (two looks, T.screens.titleVariant: 'lcd' green mono screen or 'colour' screen)
+//   #card     "Because you..." as a tabloid inside story
+//   #news     today's paper as a 2000s red-top front page
+//   #ending   a wall of framed gold discs, one per CD
+// Colours come from tuning.ts via CSS variables. Story text only ever goes in via textContent.
 
+import './hud.css';
 import type { Game } from '../game.ts';
 import type { NewsDesk } from '../news/desk.ts';
-import type { StoryContent } from '../story/types.ts';
+import type { LoadedCd, StoryContent } from '../story/types.ts';
 import { T } from '../tuning.ts';
 
 export interface Hud {
   render(game: Game): void;
 }
 
+/** Makes an element with a class and optional text (text only via textContent). */
+function make(tag: string, className: string, text?: string): HTMLElement {
+  const e = document.createElement(tag);
+  if (className) e.className = className;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+/** A CD drawn in CSS. `kind` is "dusty" (title) or "gold" (ending). */
+function disc(kind: 'dusty' | 'gold'): HTMLElement {
+  return make('span', `disc disc-${kind}`);
+}
+
+/** The boot screen: phone maker logo, the shop, three dusty CDs, a progress bar and "Press Enter". */
+export function bootScreen(cds: readonly LoadedCd[], variant: string): HTMLElement {
+  const boot = make('div', 'boot');
+  boot.dataset.variant = variant;
+  const status = make('div', 'boot-status');
+  const signal = make('span', 'boot-signal');
+  for (let i = 1; i <= 4; i++) signal.appendChild(make('i', ''));
+  const battery = make('span', 'boot-battery');
+  battery.appendChild(make('i', ''));
+  status.append(signal, make('span', 'boot-clock', '20:04'), battery);
+
+  const shelf = make('div', 'boot-cds');
+  for (const cd of cds) {
+    const item = make('figure', 'boot-cd');
+    const name = make('figcaption', '', cd.artist);
+    item.append(disc('dusty'), name);
+    shelf.appendChild(item);
+  }
+  const bar = make('div', 'boot-bar');
+  bar.appendChild(make('i', ''));
+
+  boot.append(
+    status,
+    make('h1', 'boot-maker', 'FLIP PHONE'),
+    make('p', 'boot-tagline', 'Something old, into something modern.'),
+    make('p', 'boot-shop', 'HOLLOW RECORDS'),
+    make('p', 'boot-shop-sub', `Closed since 2004. ${cds.length} CDs nobody bought.`),
+    shelf,
+    bar,
+    make('p', 'boot-start', 'Press Enter to start'),
+    make('p', 'boot-keys', 'W/S walk · A/D turn · E use · Q flip phone · M mute'),
+  );
+  return boot;
+}
+
+/** The ending: a wall of framed gold discs, one per CD, then the closing line. */
+function endingScreen(content: StoryContent): HTMLElement[] {
+  const wall = make('div', 'gold-wall');
+  for (const cd of content.cds) {
+    const item = make('figure', 'gold-frame');
+    const caption = make('figcaption', 'gold-caption');
+    caption.append(make('b', '', cd.artist), make('span', '', `"${cd.title}"`));
+    const mount = make('span', 'gold-mount');
+    mount.appendChild(disc('gold'));
+    item.append(mount, caption);
+    wall.appendChild(item);
+  }
+  return [make('h1', 'ending-title', 'GOLD'), wall, make('p', 'ending-text', content.ending)];
+}
+
 /** Creates the HUD elements inside `root`. */
 export function createHud(root: HTMLElement, content: StoryContent, news: NewsDesk): Hud {
   setCssColours();
   root.insertAdjacentHTML('beforeend', `
-    <div id="title" class="overlay panel">
-      <h1>Flip Phone</h1>
-      <p>Something old, into something modern.</p>
-      <p class="dim">W/S walk · A/D turn · E or click to use · Q flip phone · M mute</p>
-      <p class="accent">Press Enter to start</p>
-    </div>
+    <div id="title" class="screen"></div>
     <div id="era" class="panel"></div>
     <div id="prompt" class="panel"></div>
     <div id="dialogue" class="panel"></div>
-    <div id="card" class="panel">
-      <h2>Because you...</h2>
+    <div id="card" class="tabloid-card">
+      <p class="tabloid-sticker">EXCLUSIVE</p>
+      <h2 class="tabloid-head">Because you...</h2>
       <ol id="card-causes"></ol>
-      <p id="card-change" class="accent"></p>
+      <p id="card-change"></p>
     </div>
-    <div id="news" class="paper">
-      <p class="masthead">THE CORNER GAZETTE</p>
+    <div id="news" class="tabloid">
+      <p class="tabloid-masthead"><span>THE CORNER GAZETTE</span><span class="tabloid-price">25p</span></p>
       <h3 id="news-headline"></h3>
       <p id="news-article"></p>
       <p id="news-offline">offline edition</p>
     </div>
-    <div id="ending" class="overlay panel">
-      <h1>The End</h1>
-      <p>${content.ending}</p>
-    </div>
+    <div id="ending" class="screen"></div>
   `);
   const el = (id: string): HTMLElement => {
     const found = document.getElementById(id);
@@ -50,6 +112,8 @@ export function createHud(root: HTMLElement, content: StoryContent, news: NewsDe
     card: el('card'), causes: el('card-causes'), change: el('card-change'), ending: el('ending'),
     news: el('news'), headline: el('news-headline'), article: el('news-article'), offline: el('news-offline'),
   };
+  parts.title.appendChild(bootScreen(content.cds, T.screens.titleVariant));
+  parts.ending.append(...endingScreen(content));
 
   return {
     render(game) {
@@ -106,19 +170,46 @@ function setText(e: HTMLElement, text: string): void {
   if (e.textContent !== text) e.textContent = text;
 }
 
-/** Copies UI colours from tuning.ts into CSS variables. */
+/** Copies UI colours and timings from tuning.ts into CSS variables. */
 function setCssColours(): void {
   const css = document.documentElement.style;
-  css.setProperty('--panel', T.ui.panel);
-  css.setProperty('--text', T.ui.text);
-  css.setProperty('--text-dim', T.ui.textDim);
-  css.setProperty('--accent', T.ui.accent);
-  css.setProperty('--font', T.ui.fontFamily);
-  css.setProperty('--era-2004', T.eras['2004'].badgeText);
-  css.setProperty('--era-present', T.eras.present.badgeText);
-  css.setProperty('--paper', T.news.paper);
-  css.setProperty('--ink', T.news.ink);
-  css.setProperty('--offline-ink', T.news.offlineInk);
+  const S = T.screens;
+  const vars: Record<string, string> = {
+    '--panel': T.ui.panel,
+    '--text': T.ui.text,
+    '--text-dim': T.ui.textDim,
+    '--accent': T.ui.accent,
+    '--font': T.ui.fontFamily,
+    '--era-2004': T.eras['2004'].badgeText,
+    '--era-present': T.eras.present.badgeText,
+    '--paper': T.news.paper,
+    '--ink': T.news.ink,
+    '--offline-ink': T.news.offlineInk,
+    '--lcd': T.phone.lcd,
+    '--lcd-ink': T.phone.lcdInk,
+    '--boot-sec': `${S.bootSec}s`,
+    '--blink-sec': `${S.blinkSec}s`,
+    '--backdrop': S.backdrop,
+    '--bezel': S.bezel,
+    '--colour-top': S.colourTop,
+    '--colour-bottom': S.colourBottom,
+    '--colour-text': S.colourText,
+    '--colour-accent': S.colourAccent,
+    '--cd-dusty': S.cdDusty,
+    '--cd-hub': S.cdHub,
+    '--tabloid-paper': S.tabloidPaper,
+    '--tabloid-ink': S.tabloidInk,
+    '--tabloid-red': S.tabloidRed,
+    '--tabloid-red-text': S.tabloidRedText,
+    '--sticker': S.sticker,
+    '--wall': S.wall,
+    '--gold': S.gold,
+    '--gold-deep': S.goldDeep,
+    '--frame': S.frame,
+    '--mat': S.mat,
+    '--caption': S.caption,
+  };
+  for (const [name, value] of Object.entries(vars)) css.setProperty(name, value);
 }
 
 /** Replaces the page with a plain message saying why the game could not run. */

@@ -29,12 +29,27 @@ to access this endpoint", legacy `SNOWFLAKE.CORTEX.COMPLETE` is blocked for new 
 
 **Known gaps:**
 - Placeholders above, until the teammates' branches are merged.
-- The player walks through props.
 - GitHub Pages has no endpoint, so the paper is always the offline edition there.
 
-**Now (hackathon day):** all three CDs are real and merged (The Static from Teammate A). Teammates
-ship themselves (`npm run ship`, which also tags a checkpoint) and take tasks from `docs/BACKLOG.md`:
-A = Mira's moment, then the screens; B = the CD music (`docs/prompts/06-*`), then today's shop.
-Director: moment looks, collisions, the rest of `docs/prompts/05-*`, Netlify deploy. No pitch work yet.
+**Hackathon rules** (opening ceremony, slide 27). Everyone, and every agent, follow these:
+1. **Build with JetBrains Air (required).** Run your agents through Air (IntelliJ IDEA 2026.3 or the
+   Air app: Claude, Codex and Junie are built in). Take a screenshot of Air in use for the submission.
+2. Teams of up to 3 people. 3. **All project work happens today** (hacking started 11:00): no code
+   from before the event, only credited libraries and assets. 4. Any language, framework or API.
+5. MLH Code of Conduct. **Submit at mlh.link/first-year-hack**: team, project name, repo (public)
+   and demo (https://flip-phone-2004-8a09.netlify.app). Draft by 17:30, hard deadline 18:00; late
+   entries aren't judged. Judging at 18:10. Track 2 looks for "Reinventive" and "Surprising + Faithful".
+
+**Now (hackathon day, 15:00):** all three CDs, the CD music (real songs, 2004 raw -> today remix),
+each moment's look and sound, today's shop by reputation, and collisions are on `main`. Live:
+https://flip-phone-2004-8a09.netlify.app (updated by `npm run checkpoint`). Teammates ship themselves
+and take tasks from `docs/BACKLOG.md`, now including the Messenger "M" tasks
+(`docs/reference-messenger.md`). AI images: only Claude makes them (`npm run art`); ask under
+"Art requests" in your notes. Research in progress: `docs/research/abeto-techniques.md` (how
+Messenger gets its look), which adds world-lane tasks W1-W5 below. Director next: the street and
+player look (C5), props that show textures (C6), toon look (M-C1). No pitch work yet.
+
+**Claims (free tasks):**
+- F1 street life, DJ K-Bit's bus stop (`src/world/props/kbit.ts`): Teammate B, done 15:00 (bin, newspaper box, pigeons, a dog).
 
 **Next session:** read `AGENTS.md`, run `npm run gate`, run `npm run snowflake:ping` if `.env` is set.

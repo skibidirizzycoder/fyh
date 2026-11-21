@@ -23,6 +23,20 @@ export const T = {
     noseColor: '#ff8a3d', // the nose shows facing
   },
 
+  // The player bumps into solid props (src/player/collide.ts). A prop does NOT block when
+  // its top is at most stepHeight (ground, cables), its bottom is at or above player.height
+  // (signs, roofs), or its footprint is narrower than minWidth on both sides (poles, stands).
+  collide: {
+    stepHeight: 0.1, // metres: props whose top is no higher than this are walked over
+    minWidth: 0.15, // metres: props thinner than this both ways (x and z) are ignored
+    passes: 4, // push-out passes per step, so corners between two props settle
+    skin: 1e-6, // metres: overlaps smaller than this count as just touching (float rounding)
+    pathCell: 0.1, // metres between grid spots when finding a way around props (src/player/path.ts)
+    reachMargin: 0.1, // metres: a path ends this far inside the interact range, so the target gets picked
+    aimToleranceDeg: 3, // following a path: turn until facing the next point within this, then walk
+    waypointReached: 0.1, // metres: this close to a path point, head for the next one
+  },
+
   camera: {
     fovDeg: 60,
     distance: 4.5, // behind the player
@@ -162,6 +176,36 @@ export const T = {
     listeners: ['#495057', '#1864ab', '#5f3dc4'], // the bored crowd
     phoneGlow: '#a5f3fc', // their phone screens: everyone's looking down
   },
+  screens: {
+    // Title, "Because you..." card, newspaper and ending (src/ui/). Owner: Teammate A.
+    titleVariant: 'lcd' as 'lcd' | 'colour', // the team picks: artifacts/title-variants.png shows both
+    bootSec: 1.2, // the boot progress bar fills in this long (then "Press Enter" blinks)
+    blinkSec: 1.1, // one on/off cycle of "Press Enter"
+    backdrop: '#0b0b0f', // behind the title and the ending
+    // 'lcd' title: the phone's own green LCD (T.phone.lcd / lcdInk), with a dark bezel
+    bezel: '#2b2f35',
+    // 'colour' title: a 2004 colour screen
+    colourTop: '#1c4fd8',
+    colourBottom: '#0a1f5c',
+    colourText: '#ffffff',
+    colourAccent: '#ffd43b',
+    // dusty CDs on the title
+    cdDusty: '#9aa0a6',
+    cdHub: '#4b5057',
+    // tabloid: card + newspaper
+    tabloidPaper: '#ffffff',
+    tabloidInk: '#111111',
+    tabloidRed: '#c8102e', // red-top masthead (white text on it: 5.8:1)
+    tabloidRedText: '#ffffff',
+    sticker: '#ffe14d', // "EXCLUSIVE" sticker (dark text on it)
+    // ending: the wall of gold discs
+    wall: '#2a1218',
+    gold: '#ffcc33',
+    goldDeep: '#b8860b',
+    frame: '#111111',
+    mat: '#f1ece1',
+    caption: '#fff3bf',
+  },
 
   // The shared street: shop front, neighbours, kerb and road (where they stand: src/world/street.ts).
   // A { '2004', present } pair changes with the era; a single colour is the same in both.
@@ -265,6 +309,7 @@ export const T = {
     attackSec: 0.005, // every note fades in this fast (no clicks)
     releaseSec: 0.05, // ...and fades out this fast
     beep: { note: 88, sec: 0.06, gain: 0.18, wave: 'square' }, // keypad (phone-move)
+    keyClick: { sec: 0.012, gain: 0.25, hz: 4500, q: 2 }, // the plastic key itself, under beep and blip
     blip: { note: 81, toNote: 93, sec: 0.08, gain: 0.2, wave: 'square' }, // select (phone-select)
     flipOpen: { note: 52, toNote: 64, sec: 0.05, gain: 0.3, noiseSec: 0.04, noiseGain: 0.35, noiseHz: 3200 },
     flipClose: { note: 64, toNote: 45, sec: 0.06, gain: 0.35, noiseSec: 0.05, noiseGain: 0.4, noiseHz: 1800 },
@@ -296,6 +341,51 @@ export const T = {
       present: { humHz: 0, humGain: 0, noiseGain: 0.012, noiseLowpassHz: 6000, cracklePerSec: 0, crackleGain: 0 },
     },
 
+    // Game feel: small sounds for everything you do (footsteps, paper, camera, voices). Not "cues": they
+    // are never the lastCue, so they can't hide the story sounds from the checks.
+    feel: {
+      seed: 31,
+      step: { variants: 4, sec: 0.07, gain: 0.12, fromHz: 1800, toHz: 500, q: 1.2, thumpNote: 40, thumpGain: 0.09, pitchJitter: 0.12, stepSec: 0.32 },
+      paper: { rustles: 4, gapSec: 0.045, sec: 0.07, gain: 0.3, minHz: 2500, maxHz: 6500, q: 1.5 },
+      zoom: { sec: 0.45, gain: 0.25, lowHz: 300, highHz: 1600, q: 2 }, // a soft whoosh: rising in, falling out
+      voice: {
+        blipSec: 0.06, gapSec: 0.085, gain: 0.16, maxBlips: 24, // one blip per syllable-ish, at most ~2 s
+        spread: 5, // semitones up from the speaker's note, picked by each letter
+        speakers: { // base MIDI note and wave per speaker
+          mira: { note: 74, wave: 'triangle' },
+          band: { note: 62, wave: 'square' },
+          kbit: { note: 79, wave: 'square' },
+          owner: { note: 57, wave: 'triangle' },
+        },
+        byMoment: { open_mic: 'mira', street_gig: 'band', ringtone: 'kbit' }, // who talks when the event doesn't say
+      },
+    },
+
+    // Each moment's own background (on top of the era hum/crackle above). Made in code, seeded.
+    soundscape: {
+      loopSec: 8, // looping layers are this long, so repeats are hard to hear
+      seed: 77,
+      fadeSec: 1.5,
+      layerRms: 0.25, // every layer is scaled to this loudness; its `gain` then sets how loud it is
+      open_mic: { // a pub-ish evening: murmuring people and clinking glasses
+        babble: { gain: 0.08, voices: 6, syllableHz: 4, lowHz: 250, highHz: 1100 },
+        clinks: { gain: 0.05, perSec: 0.7, minHz: 2600, maxHz: 5200, decaySec: 0.2 },
+      },
+      street_gig: { // a busy summer street, a little chatter, an ice-cream van far away
+        traffic: { gain: 0.1, carsPerSec: 0.4, lowpassHz: 350, passSec: 2.5 },
+        babble: { gain: 0.035, voices: 4, syllableHz: 5, lowHz: 300, highHz: 1300 },
+        iceCream: { gain: 0.04, notes: [79, 84, 83, 79, 76, 77, 79, 72], noteSec: 0.2, startSec: 2, vibratoHz: 6, vibrato: 0.004 }, // an ORIGINAL jingle
+      },
+      ringtone: { // cold December dusk: wind, traffic, and a bus pulling in when you arrive
+        wind: { gain: 0.1, minHz: 300, maxHz: 1200, gustHz: 0.13, q: 3 },
+        traffic: { gain: 0.05, carsPerSec: 0.3, lowpassHz: 300, passSec: 3 },
+        bus: { gain: 0.16, delaySec: 1.2, sec: 3.2, engineHz: 42, hissSec: 0.7, hissGain: 0.35 },
+      },
+      present: { // today: quieter, smoother modern traffic
+        traffic: { gain: 0.04, carsPerSec: 0.25, lowpassHz: 500, passSec: 3.5 },
+      },
+    },
+
     // The CD music: in 2004 the raw/broken/ignored version, today the modern remix (+ a code beat).
     // A CD's `file` stays '' until its MP3 is in public/music/ (a missing file would log a 404).
     music: {
@@ -312,12 +402,29 @@ export const T = {
       leak: { lowpassHz: 4000, highpassHz: 1500, gain: 0.12 }, // tinny spill from K-Bit's headphones
       today: { levelGain: [0, 0.7, 0.85, 1], beatGain: [0, 0.3, 0.45, 0.6] }, // by reputation level 0-3
       beat: { kickHz: 130, kickEndHz: 45, kickSec: 0.25, kickGain: 0.9, hatSec: 0.04, hatGain: 0.22, seed: 909 },
+      // Clips are cut on a measured beat (beatOffsetSec 0). bpm was MEASURED, not heard, and the
+      // detector was unsure (see docs/notes/teammate-b.md), so the code beat is off (beat: 0)
+      // until someone confirms by ear that it plays in time; then set beat: 1.
       cds: {
-        mira: { file: '', gain: 0.9, bpm: 76, beatOffsetSec: 0, past: { silentUntil: 'mira_play_cd' } },
-        static: { file: '', gain: 0.8, bpm: 150, beatOffsetSec: 0, past: { brokenUntil: 'static_plug_amp', liveAfter: 'static_give_mic' } },
-        kbit: { file: '', gain: 0.8, bpm: 120, beatOffsetSec: 0, past: { leakUntil: 'kbit_beam_track' } },
+        mira: { file: 'music/mira.mp3', gain: 0.9, bpm: 68, beatOffsetSec: 0, beat: 0, past: { silentUntil: 'mira_play_cd' } },
+        static: { file: 'music/static.mp3', gain: 0.8, bpm: 104.5, beatOffsetSec: 0, beat: 0, past: { brokenUntil: 'static_plug_amp', liveAfter: 'static_give_mic' } },
+        kbit: { file: 'music/kbit.mp3', gain: 0.8, bpm: 163.5, beatOffsetSec: 0, beat: 0, past: { leakUntil: 'kbit_beam_track' } },
       },
     },
+  },
+
+  // --- Teammate B: today's shop at each reputation level (where props stand: src/world/props/today.ts) ---
+  today: {
+    boards: '#7d6a50', // level 0: boarded up
+    litWindow: '#9fe0ff',
+    openSign: '#ff3b6b',
+    customer: '#d9734a',
+    posters: ['#ff9f1c', '#ff5fa2', '#39ff88'], // one per artist: Mira pink, K-Bit green
+    plaque: '#2f6fdb', // the blue plaque
+    neon: '#ff4fd8', // HOLLOW RECORDS in neon, level 3
+    gold: '#ffcc33',
+    frame: '#2a2522', // empty frames wait for gold discs
+    people: ['#5a6fa8', '#a8605a', '#6a9a62', '#9a7ab8', '#c9a227'],
   },
 
   // --- Teammate B: DJ K-Bit's moment, "5 December 2004" (where props stand: src/world/props/kbit.ts) ---
@@ -334,6 +441,14 @@ export const T = {
     kbitBody: '#1e1e28',
     headphones: '#39ff88', // neon, very 2004
     kbitPhone: '#ffd23f', // K-Bit's phone: interactable
+    // street life (decoration: never glows)
+    bin: '#3a3f3a',
+    binLid: '#262a26',
+    newsBox: '#2b5fa8',
+    newsWindow: '#d8dde3',
+    pigeon: '#8a8f99',
+    dog: '#b07a45',
+    dogHead: '#8f5f33',
   },
 
   ui: {

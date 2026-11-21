@@ -4,9 +4,10 @@
 //    The test build is the same production bundle plus window.__game.
 // 2. Serves both with `vite preview`.
 // 3. Shipped build: must load with no errors and must NOT expose window.__game.
-// 4. Test build: plays the pitch route with REAL key presses (phone menu, walking,
-//    E), times it, fixes the remaining CDs, reaches the ending, then runs each
-//    teammate's checks (scripts/checks/*.ts).
+// 4. Test build: proves walking follows the facing and that solid props stop the player,
+//    plays the pitch route with REAL key presses (phone menu, walking, E), times it,
+//    fixes the remaining CDs, reaches the ending, then runs each teammate's checks
+//    (scripts/checks/*.ts).
 // The newspaper endpoint is faked in the browser, and the server's Snowflake
 // variables are blanked, so the smoke test never touches the network.
 // Any console error, page error, outside network request or missed state change fails the run.
@@ -19,6 +20,7 @@ import { build, preview, type PreviewServer } from 'vite';
 import type { Snapshot } from '../src/debug.ts';
 import { content } from '../src/story/content.ts';
 import { T } from '../src/tuning.ts';
+import { PROPS } from '../src/world/layout.ts';
 import { checkAudio } from './checks/audio.ts';
 import { checkKbit } from './checks/kbit.ts';
 import { checkMira } from './checks/mira.ts';
@@ -118,10 +120,10 @@ async function checkShippedBuild(page: Page): Promise<void> {
 
 /** Proves W moves exactly speed*time along the facing at several headings. */
 async function checkHeadings(page: Page): Promise<number> {
-  const frames = 30;
+  const frames = 30; // 1.5 m: the start spot is that clear of props in every direction (today)
   const yaws = [0, 90, 180, -90];
   for (const yaw of yaws) {
-    const before = await placePlayer(page, 0, 0, yaw);
+    const before = await placePlayer(page, T.player.startX, T.player.startZ, yaw);
     const after = await hold(page, 'KeyW', frames);
     const expected = T.player.speed * frames * STEP;
     const dx = after.player.x - before.player.x;
@@ -136,6 +138,28 @@ async function checkHeadings(page: Page): Promise<number> {
     expect((c.x * f.x + c.z * f.z) / len > 0.999, `yaw ${yaw}: camera does not look along the player's facing`);
   }
   return yaws.length;
+}
+
+/** Real keys: the shop wall stops the player one radius in front of it, and walking at it at an angle slides along it. */
+async function checkCollisions(page: Page): Promise<{ stopZ: number; slideX: number }> {
+  const wall = PROPS.find((p) => p.id === 'shop_wall');
+  expect(wall !== undefined, 'no shop_wall prop');
+  if (!wall) return { stopZ: 0, slideX: 0 };
+  const stopAt = wall.pos[2] + wall.size[2] / 2 + T.player.radius;
+  const x = 1; // between the shop window and the door: only the wall itself is in the way
+  await placePlayer(page, x, stopAt + 1, 0); // 1 m in front, facing the wall
+  const head = await hold(page, 'KeyW', T.loop.stepsPerSecond); // 1 s = 3 m of walking
+  expect(Math.abs(head.player.z - stopAt) < 1e-6 && Math.abs(head.player.x - x) < 1e-6,
+    `walking into the shop wall: player at (${head.player.x.toFixed(3)}, ${head.player.z.toFixed(3)}), expected (${x}, ${stopAt.toFixed(3)})`);
+  const frames = 10; // 0.35 m of sliding: stays clear of the door
+  const slid = await hold(page, 'KeyW', frames); // still facing the wall: nothing moves
+  expect(Math.abs(slid.player.z - stopAt) < 1e-6, 'the player went into the wall');
+  await placePlayer(page, x, stopAt, -45); // facing the wall and +X (towards the door)
+  const angled = await hold(page, 'KeyW', frames);
+  const expectedX = x + Math.SQRT1_2 * T.player.speed * frames * STEP;
+  expect(Math.abs(angled.player.z - stopAt) < 1e-6 && Math.abs(angled.player.x - expectedX) < 1e-6,
+    `sliding along the shop wall: player at (${angled.player.x.toFixed(3)}, ${angled.player.z.toFixed(3)}), expected (${expectedX.toFixed(3)}, ${stopAt.toFixed(3)})`);
+  return { stopZ: Math.round(head.player.z * 1000) / 1000, slideX: Math.round((angled.player.x - x) * 1000) / 1000 };
 }
 
 /** The endpoint is too slow: after exactly the timeout, the offline edition appears. */
@@ -298,6 +322,7 @@ async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
   expect(s.scene === 'play' && s.era === 'present', `Enter did not start play in the present (${s.scene}/${s.era})`);
   await measureContrast(page, '#dialogue', 'dialoguePresent');
   const headings = await checkHeadings(page);
+  const collisions = await checkCollisions(page);
   const offlineMs = await checkOfflineEdition(page);
   const pitch = await playPitchRoute(page);
   await checkToday(page, pitch.s);
@@ -312,7 +337,7 @@ async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
     }
   }
   const news = { headline: pitch.s.news.status === 'ready' ? pitch.s.news.headline : '', apiCalls: api.calls.length, offlineMs };
-  return { headings, pitchSec: pitch.sec, drawCalls: pitch.s.drawCalls, frames, flags: pitch.s.flags, news, looks, team };
+  return { headings, collisions, pitchSec: pitch.sec, drawCalls: pitch.s.drawCalls, frames, flags: pitch.s.flags, news, looks, team };
 }
 
 /** Runs everything and prints one JSON line. */

@@ -2,26 +2,30 @@
 
 Branch: `feat/phone-static`. Owned paths: see `docs/prompts/05-agentic-workflow.md` (Part 5).
 
-## Status (2026-11-21, 14:40)
+## Status (2026-11-21, 15:20)
 
-**Done and on `main`:** A1 (the phone's look), A2 (The Static).
-**Done, shipping now:** A3 (Mira's open mic). `npm run gate` passes: 139 unit tests (10 new in
-`tests/mira.test.ts`), smoke `"ok":true`, `pitchSec` 26.7, draw calls 19, phone contrast 10.45.
-Team block: `"mira":{"walkFrames":[43,103]}`.
-**Next:** A4, the screens (title boot screen, tabloid card + newspaper, wall of gold discs).
+**Done and on `main`:** A1 (phone), A2 (The Static), A3 (Mira's open mic, `checkpoint-2`).
+**Done, shipping now:** A4 (the screens). Gate: 139 unit tests, smoke `"ok":true`, `pitchSec` 26.7,
+`"ui":{"titleVariant":"lcd","discs":3}`. Every screen text line is measured on its own background;
+the lowest is 5.88:1 (white on the red tabloid headers), the colour title's yellow is 7.24:1.
+**Queue:** A1-A4 all done. Next: a Free task (F1 street life in my moments, or F2 playtest).
 
-**Screenshots checked:** `artifacts/mira-arrive.png` (Mira waiting by the lamp post with her
-guitar, string lights over the window, three listeners on glowing phones on the right),
-`artifacts/mira-fixed.png` and `artifacts/moment-open_mic.png` (Mira at the mic, the crowd round
-her, phones gone; she is not hidden from the pitch camera).
+**Screenshots checked:** `artifacts/title.png` (green LCD boot screen, centred, boot bar filling),
+`artifacts/title-variants.png` (both looks side by side), `artifacts/tabloid.png` (red-top paper and
+"Because you..." card with EXCLUSIVE sticker), `artifacts/ending.png` (wall of three framed gold discs).
+
+**Team decision needed:** the title look. `artifacts/title-variants.png` shows both; switch with
+`T.screens.titleVariant` (`'lcd'` green mono, the default, matches the phone; or `'colour'` blue screen).
 
 ## Requests for the director
 
-- `src/ui/hud.ts`: after an action is done, its prompt still shows (e.g. "E — Hand over the shop's
-  mic" stays up once the mic is handed over). Hide the prompt, or show `alreadyDoneLine`, when the
-  targeted object's action is already in the flags.
-- `npm install` on Windows rewrites `package-lock.json` (drops about 32 lines of other-platform
-  optional packages). I never commit it; teammates on Windows should use `npm ci`.
+- Smoke takes about 3 minutes on this laptop now (it was about 1 minute this morning); my UI check
+  is about 35 s of that. If the gate is too slow for shipping, `measureContrast` could sample fewer
+  pixels: it sends every pixel of the box from the browser as a JSON array.
+- `tools.ts` `waitForNews` polls on animation frames; `checks/ui.ts` uses its own 100 ms timer poll
+  (`waitForPaper`) after one run where the paper was ready but the wait never saw it. Consider the
+  same in `waitForNews`.
+- Windows: use `npm ci`, not `npm install` (it rewrites `package-lock.json`).
 
 ## Task 1: the phone's look
 
@@ -37,6 +41,19 @@ her, phones gone; she is not hidden from the pitch camera).
   closing plays it backwards, then sets `hidden`. `#phone[data-state]` is
   opening / open / closing / closed. Reduced-motion users get no animation.
 - All numbers and colours: `T.phone` in `src/tuning.ts`.
+
+## Task 4: the screens (`src/ui/hud.ts`, `src/ui/hud.css`, `index.html`)
+
+- **Title:** a 2004 phone booting up: signal, clock, battery, "FLIP PHONE", "HOLLOW RECORDS",
+  "Closed since 2004", one dusty CD per CD (artist names from the CD files), a stepped boot bar,
+  blinking "Press Enter", the controls. Two looks: `lcd` (the phone's green LCD) and `colour`.
+- **"Because you...":** a tabloid inside story: white page, red header, EXCLUSIVE sticker, red numbers.
+- **Newspaper:** a red-top front page: THE CORNER GAZETTE masthead with a price, huge uppercase
+  headline, article, "offline edition" label. Still `textContent` only (LLM text is untrusted).
+- **Ending:** "GOLD" over a wall of framed gold discs (artist + title), then the closing line.
+- All HUD styles moved from `index.html` into `src/ui/hud.css`; colours and timings in `T.screens`.
+- Element ids unchanged: `#title`, `#era`, `#prompt`, `#dialogue`, `#card`, `#news`,
+  `#news-offline`, `#ending`.
 
 ## Task 3: Mira's open mic (14 March 2004, `open_mic`)
 
