@@ -18,6 +18,7 @@ import { validateContent } from './story/validate.ts';
 import { T } from './tuning.ts';
 import { createHud, showFallback } from './ui/hud.ts';
 import { createTv } from './ui/tv.ts';
+import { createAreaTitle } from './ui/area.ts';
 import { buildWorld } from './world/build.ts';
 import { GROUND, PROPS } from './world/layout.ts';
 import { lookFor } from './world/look.ts';
@@ -68,6 +69,7 @@ function boot(): void {
   const phone = createPhoneView(app);
   if (import.meta.env.MODE !== 'test') createFlipTransition(app, events, content); // tests screenshot right after a jump
   const tv = createTv(app, audio, content.cds); // each CD's real song, once its moment is fixed
+  createAreaTitle(app, events); // "The Square" pops in when you walk there (A9)
   let drawCalls = 0;
 
   function resize(): void {

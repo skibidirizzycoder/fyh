@@ -1,0 +1,27 @@
+/* area.css — Messenger-style area titles (src/ui/area.ts). Upper middle, clear of the dialogue. */
+#area-title {
+  position: absolute;
+  top: var(--area-top);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  pointer-events: none;
+  white-space: nowrap;
+  font: 900 var(--area-size) / 1 var(--font, sans-serif);
+  letter-spacing: 0.04em;
+  color: var(--area-ink);
+  -webkit-text-stroke: 2px var(--area-outline);
+  paint-order: stroke fill;
+  text-shadow: 0 4px 0 var(--area-outline);
+  transition: transform var(--area-out) ease-in, opacity var(--area-out) ease-in;
+}
+#area-title[hidden] { display: none; }
+#area-title.is-out { transform: translateX(-50%) scale(0.2); opacity: 0; }
+.area-letter { display: inline-block; opacity: 0; transform: scale(0.2) translateY(20%); animation: area-pop var(--area-pop) cubic-bezier(0.3, 1.6, 0.5, 1) forwards; }
+.area-letter.is-space { width: 0.3em; }
+@keyframes area-pop { to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .area-letter { animation: none; opacity: 1; transform: none; }
+  #area-title { transition: none; }
+}
+.is-narrow #area-title { top: 20%; font-size: calc(var(--area-size) * 0.6); }

@@ -270,6 +270,8 @@ export const T = {
   phone: {
     flipSec: 0.25, // open/close animation time
     keyFlashSec: 0.15, // how long a keypad key stays pressed down after a move
+    lockedHint: 'Put the CD in the player', // A7: under a moment you can't travel to yet
+    lockedOpacity: 0.5, // A7: locked rows are greyed out
     connectSec: 0.9, // after choosing a moment: "Connecting..." with the signal bars filling...
     staticSec: 0.35, // ...then a burst of static, then the phone flips shut
     blinkSec: 0.8, // one on/off cycle of the selected row's cursor
@@ -337,6 +339,7 @@ export const T = {
     phoneGlow: '#a5f3fc', // their phone screens: everyone's looking down
   },
   screens: {
+    areaTitle: { inSec: 1.5, popSec: 0.3, holdSec: 4, outSec: 0.35, topPct: 14, sizePx: 52, ink: '#fff6dc', outline: '#1d1a14' }, // A9: like Messenger's
     // Title, "Because you..." card, newspaper and ending (src/ui/). Owner: Teammate A.
     titleVariant: 'lcd' as 'lcd' | 'colour', // the team picks: artifacts/title-variants.png shows both
     bootSec: 1.2, // the boot progress bar fills in this long (then PRESS START pulses)
