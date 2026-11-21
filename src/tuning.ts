@@ -109,6 +109,23 @@ export const T = {
   // ---- Teammate A's sections ----
   phone: {
     flipSec: 0.25, // open/close animation time
+    keyFlashSec: 0.15, // how long a keypad key stays pressed down after a move
+    widthPx: 220, // whole phone; stays under 300 px
+    rightPx: 16, // gap to the window's right edge
+    bottomPx: 104, // sits above #dialogue (bottom centre), so they never overlap
+    compactBelowPx: 680, // windows shorter than this get a smaller phone...
+    compactScale: 0.8, // ...scaled by this much
+    shellLight: '#e9ecef', // brushed-silver shell: gradient from light...
+    shellDark: '#9aa1a9', // ...to dark
+    shellEdge: '#6b7178',
+    hinge: '#2b2f35',
+    lcd: '#c7e0a3', // pale green LCD (background of all LCD text)
+    lcdInk: '#1f2a14', // dark pixel text; the selected row swaps the two
+    keyFace: '#d5d9de',
+    keyInk: '#1d2024',
+    keyLetters: '#4a5058',
+    callKey: '#2f9e44',
+    endKey: '#c92a2a',
   },
   static: {},
 
