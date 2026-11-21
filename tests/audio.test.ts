@@ -1,28 +1,30 @@
 // audio.test.ts — sound reacts to the right events with the right cues.
 // Node has no AudioContext, so these check the cue data and lastCue(), not real sound.
 import { describe, expect, it } from 'vitest';
-import { actionCue, createAudio, travelEra, type SoundEvent, type SoundEvents } from '../src/audio/audio.ts';
+import { actionCue, createAudio } from '../src/audio/audio.ts';
 import { buildCue, crackleSamples, CUE_NAMES, cueLength, maxPolyphony, noteHz } from '../src/audio/cues.ts';
+import { createEvents, type EventName, type GameEvents } from '../src/core/events.ts';
 import { T } from '../src/tuning.ts';
 
-/** A tiny event bus standing in for src/core/events.ts. */
-function fakeEvents(): SoundEvents & { emit(name: SoundEvent, payload?: unknown): void } {
-  const listeners = new Map<SoundEvent, ((p?: unknown) => void)[]>();
-  return {
-    on(name, fn) {
-      listeners.set(name, [...(listeners.get(name) ?? []), fn]);
-    },
-    emit(name, payload) {
-      (listeners.get(name) ?? []).forEach((fn) => fn(payload));
-    },
-  };
-}
-
-function silentAudio() {
-  const events = fakeEvents();
-  const audio = createAudio(events, { makeContext: () => null });
+/** Real events + audio with no AudioContext (silent, cues still recorded). */
+function silentAudio(makeContext: () => AudioContext | null = () => null) {
+  const events = createEvents();
+  const audio = createAudio(events, { makeContext });
   return { events, audio };
 }
+
+const PAYLOADS: { [K in EventName]: GameEvents[K] } = {
+  'game-start': {},
+  mute: {},
+  travel: { to: 'ringtone', era: '2004', moment: 'ringtone' },
+  'action-done': { actionId: 'mira_take_cd', cd: 'mira' },
+  'action-locked': { actionId: 'kbit_ring_bus_stop', missing: ['kbit_beam_track'] },
+  'phone-open': {},
+  'phone-close': {},
+  'phone-move': { index: 1 },
+  'phone-select': { target: 'ringtone' },
+  reputation: { level: 1 },
+};
 
 describe('cues', () => {
   it('converts MIDI notes to Hz', () => {
@@ -71,51 +73,68 @@ describe('createAudio', () => {
 
   it('maps each game event to its cue', () => {
     const { events, audio } = silentAudio();
-    const expected: [SoundEvent, string][] = [
+    const expected: [EventName, string][] = [
       ['phone-open', 'flip-open'], ['phone-move', 'beep'], ['phone-select', 'blip'], ['travel', 'whoosh'],
       ['action-done', 'chime'], ['action-locked', 'nope'], ['reputation', 'fanfare'], ['phone-close', 'flip-close'],
     ];
-    for (const [event, cue] of expected) {
-      events.emit(event, {});
-      expect(audio.lastCue(), event).toBe(cue);
+    for (const [name, cue] of expected) {
+      events.emit(name, PAYLOADS[name]);
+      expect(audio.lastCue(), name).toBe(cue);
     }
     expect(audio.history()).toHaveLength(expected.length);
   });
 
   it('plays the ringtone when the K-Bit bus stop action is done', () => {
     const { events, audio } = silentAudio();
-    events.emit('action-done', { actionId: T.audio.ringtoneActions[0] });
+    events.emit('action-done', { actionId: 'kbit_ring_bus_stop', cd: 'kbit' });
     expect(audio.lastCue()).toBe('ringtone');
+    expect(actionCue('kbit_beam_track')).toBe('chime');
   });
 
   it('travel switches the background era', () => {
     const { events, audio } = silentAudio();
-    events.emit('travel', { to: 'ringtone' });
+    events.emit('travel', PAYLOADS.travel);
     expect(audio.era()).toBe('2004');
-    events.emit('travel', { to: 'today' });
+    events.emit('travel', { to: 'present', era: 'present', moment: null });
     expect(audio.era()).toBe('present');
   });
 
-  it('M mutes and unmutes; cues are still recorded while muted', () => {
+  it('the mute event (M) mutes and unmutes; cues are still recorded while muted', () => {
     const { events, audio } = silentAudio();
-    expect(audio.toggleMute()).toBe(true);
-    events.emit('action-locked');
+    events.emit('mute', {});
+    expect(audio.isMuted()).toBe(true);
+    events.emit('action-locked', PAYLOADS['action-locked']);
     expect(audio.lastCue()).toBe('nope');
-    expect(audio.toggleMute()).toBe(false);
+    events.emit('mute', {});
+    expect(audio.isMuted()).toBe(false);
+  });
+
+  it('makes the AudioContext on game-start, never before', () => {
+    let made = 0;
+    const { events } = silentAudio(() => {
+      made++;
+      return null;
+    });
+    events.emit('travel', PAYLOADS.travel);
+    expect(made).toBe(0);
+    events.emit('game-start', {});
+    expect(made).toBe(1);
+  });
+
+  it('a broken AudioContext goes quiet instead of breaking the game', () => {
+    const { events, audio } = silentAudio(() => {
+      throw new Error('no audio device');
+    });
+    expect(() => events.emit('game-start', {})).not.toThrow();
+    expect(audio.failed()).toBe(true);
+    events.emit('action-done', PAYLOADS['action-done']);
+    expect(audio.lastCue()).toBe('chime');
   });
 });
 
-describe('event payloads', () => {
-  it('reads the travel destination from several shapes', () => {
-    expect(travelEra({ era: 'present' })).toBe('present');
-    expect(travelEra('today')).toBe('present');
-    expect(travelEra({ to: 'open_mic' })).toBe('2004');
-  });
-
-  it('reads the action id from several shapes', () => {
-    const ring = T.audio.ringtoneActions[0];
-    expect(actionCue(ring)).toBe('ringtone');
-    expect(actionCue({ id: ring })).toBe('ringtone');
-    expect(actionCue({ actionId: 'take_cd' })).toBe('chime');
+describe('tuning', () => {
+  it('the fanfare waits until the travel whoosh is nearly over', () => {
+    expect(T.audio.fanfare.delaySec).toBeGreaterThan(T.audio.whoosh.sec / 2);
+    expect(T.audio.fanfare.delaySec).toBeLessThanOrEqual(T.audio.whoosh.sec);
   });
 });

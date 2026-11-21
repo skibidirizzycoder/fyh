@@ -1,22 +1,40 @@
 // audio.ts — smoke checks for sound. Owner: Teammate B.
-// Headless Chrome plays no real sound, so we check which cue was triggered (lastCue).
-// The basics below work with the silent stub. Add the rest from your prompt
-// (docs/prompts/04-teammate-b-sound-and-dj-kbit.md).
+// Headless Chrome plays no real sound, so we check which cue each game event triggered (lastCue).
+// Keys go through the game's input (tap), the same path as a real key press.
 
 import type { Page } from 'playwright';
-import { expect, restart, state, travel } from './tools.ts';
+import { expect, interact, restart, step, tap, travel, type Check } from './tools.ts';
 
-export async function checkAudio(page: Page): Promise<Record<string, unknown>> {
-  await restart(page);
-  let s = await travel(page, 'open_mic');
-  expect(s.audio.lastCue === 'whoosh', `travelling should whoosh, got "${s.audio.lastCue}"`);
-  // Sound listens to the real keyboard for M, so press it with Playwright's keyboard.
-  await page.keyboard.press('KeyM');
-  s = await state(page);
-  expect(s.audio.muted, 'M did not mute');
-  await page.keyboard.press('KeyM');
-  s = await state(page);
-  expect(!s.audio.muted, 'M did not unmute');
-  // TODO(Teammate B): an action plays "chime", a locked action plays "nope", the phone beeps...
-  return { lastCue: s.audio.lastCue };
+/** Fails unless the last cue is `cue`. */
+function expectCue(s: { audio: { lastCue: string } }, cue: string, after: string): void {
+  expect(s.audio.lastCue === cue, `${after} should play "${cue}", got "${s.audio.lastCue}"`);
 }
+
+export const checkAudio: Check = async (page: Page) => {
+  await restart(page);
+  let s = await travel(page, 'ringtone');
+  expectCue(s, 'whoosh', 'travelling');
+
+  const locked = await interact(page, 'kbit_bus_stop'); // needs the beamed track first
+  expect(!locked.ok, 'the bus stop should be locked before the track is beamed');
+  s = await step(page, 1); // a real frame, then read the cue
+  expectCue(s, 'nope', 'a locked action');
+
+  const done = await interact(page, 'kbit_phone');
+  expect(done.ok, 'could not beam the track from K-Bit\'s phone');
+  s = await step(page, 1);
+  expectCue(s, 'chime', 'a finished action');
+
+  s = await tap(page, 'KeyQ');
+  expectCue(s, 'flip-open', 'opening the phone');
+  s = await tap(page, 'ArrowDown');
+  expectCue(s, 'beep', 'moving in the phone menu');
+  s = await tap(page, 'KeyQ');
+  expectCue(s, 'flip-close', 'closing the phone');
+
+  s = await tap(page, 'KeyM');
+  expect(s.audio.muted, 'M did not mute');
+  s = await tap(page, 'KeyM');
+  expect(!s.audio.muted, 'M did not unmute');
+  return { cues: 6, muteToggles: 2 };
+};

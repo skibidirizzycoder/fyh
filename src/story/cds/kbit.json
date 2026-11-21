@@ -5,7 +5,8 @@
     "title": "Polyphonic",
     "moment": "ringtone",
     "date": "5 December 2004",
-    "situation": "DJ K-Bit's bleepy electronic track is 'too weird for 2004', but everyone at this bus stop has a flip phone."
+    "situation": "DJ K-Bit's bleepy electronic track is 'too weird for 2004', but everyone at this bus stop has a flip phone.",
+    "today": "DJ K-Bit's 'Polyphonic' went gold as the ringtone of 2004. The shop sells the CD with a free flip phone sticker."
   },
   "actions": [
     {
@@ -17,7 +18,10 @@
       "requires": [],
       "line": "K-Bit lines his phone up with yours. 'Hold still... infrared is basically magic.' Beep. Boop. 'Polyphonic' is now your ringtone.",
       "lockedLine": "",
-      "effects": { "show": [], "hide": [] }
+      "effects": {
+        "show": [],
+        "hide": []
+      }
     },
     {
       "id": "kbit_ring_bus_stop",
@@ -25,11 +29,18 @@
       "objectId": "kbit_bus_stop",
       "label": "let it ring at the busiest bus stop in town",
       "prompt": "Let your phone ring",
-      "requires": ["kbit_beam_track"],
+      "requires": [
+        "kbit_beam_track"
+      ],
       "line": "Your phone goes off. The whole queue turns round. 'Is that... a ringtone? Where can I GET that?'",
       "lockedLine": "You wait at the bus stop. Your phone only knows one ringtone, and it's the boring one. Nobody looks up.",
       "effects": {
-        "show": ["kbit_queue_phone_1", "kbit_queue_phone_2", "kbit_queue_phone_3", "kbit_queue_phone_4"],
+        "show": [
+          "kbit_queue_phone_1",
+          "kbit_queue_phone_2",
+          "kbit_queue_phone_3",
+          "kbit_queue_phone_4"
+        ],
         "hide": []
       }
     }
