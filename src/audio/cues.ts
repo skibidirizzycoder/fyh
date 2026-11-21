@@ -80,11 +80,13 @@ function beam(): Cue {
 /** Builds the data for one cue. */
 export function buildCue(name: CueName): Cue {
   const a = T.audio;
+  const k = a.keyClick;
+  const click: NoiseBurst = { at: 0, sec: k.sec, gain: k.gain, fromHz: k.hz, toHz: k.hz, q: k.q }; // the key going down
   switch (name) {
     case 'beep':
-      return { tones: [{ at: 0, sec: a.beep.sec, note: a.beep.note, wave: a.beep.wave, gain: a.beep.gain }], noises: [] };
+      return { tones: [{ at: 0, sec: a.beep.sec, note: a.beep.note, wave: a.beep.wave, gain: a.beep.gain }], noises: [click] };
     case 'blip':
-      return { tones: [{ at: 0, sec: a.blip.sec, note: a.blip.note, toNote: a.blip.toNote, wave: a.blip.wave, gain: a.blip.gain }], noises: [] };
+      return { tones: [{ at: 0, sec: a.blip.sec, note: a.blip.note, toNote: a.blip.toNote, wave: a.blip.wave, gain: a.blip.gain }], noises: [click] };
     case 'flip-open':
       return clack(a.flipOpen);
     case 'flip-close':

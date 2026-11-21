@@ -1,7 +1,7 @@
 # Teammate B: sound, music, DJ K-Bit, today's shop
 
-**Status (2026-11-21, 14:50): B1–B6 are all done and shipped.** Last gate on `feat/sound-kbit`:
-170 unit tests, smoke `"ok":true`, `pitchSec` 26.7. Two small things need a human or Claude (below).
+**Status (2026-11-21, 15:20): B1–B6, F1 shipped; M-B1/M-B2 sounds built and shipped, waiting on four events
+from Claude to be heard (below).** Last gate: 195 unit tests, smoke `"ok":true`, `pitchSec` 26.8.
 
 ## Done
 
@@ -29,6 +29,17 @@
   hiss) when you arrive; today = quieter modern traffic. Measured mix RMS: today 0.010, plain 2004 0.025,
   open mic 0.034, street gig 0.040, ringtone 0.046 (0.054 with the bus).
 
+- **F1 street life** at the bus stop: a bin, a newspaper box, pigeons (two on the roof), a dog with the queue.
+  Draw calls on arrival: 42 (max 60). The walk to K-Bit is unchanged.
+- **M-B1 every action makes a sound** (`src/audio/feel.ts`, `feel-player.ts`): footsteps (4 variants, ±12 %
+  pitch, one every 0.32 s while walking), a plastic key click under every phone beep/blip (**live now**), a paper
+  rustle when the card or newspaper opens, a soft rising/falling whoosh when the camera moves in/out.
+- **M-B2 voice blips**: one blip per syllable while a line shows (max 24, ~2 s), same line = same tune; a pitch
+  and wave per speaker: Mira (high, soft), the band (mid, buzzy), K-Bit (highest, buzzy), the owner (low, soft).
+  The speaker comes from the event, or else from the moment (open mic = Mira, street gig = band, ringtone = K-Bit,
+  today = owner). Measured peaks: footstep 0.07, voice 0.08, paper 0.11, zoom 0.05 (beep 0.13, whoosh 0.21).
+  Feel sounds never become `lastCue`, so they can't hide the story sounds from the checks.
+
 ## Needs a human (by ear)
 
 - **The remix beat is off** (`beat: 0` per CD in `T.audio.music.cds`). Tempo was measured, not heard, and the
@@ -38,6 +49,17 @@
 
 ## Requests for Claude
 
+- **Please emit these four events** (add them to `GameEvents`; the shapes are in `src/audio/feel-player.ts`,
+  `FeelEvents`, and audio already listens for them, so nothing else is needed):
+  - `walk: { moving: boolean }` when the player starts / stops moving (footsteps).
+  - `dialogue: { line: string; speaker?: string }` from `say()` when a line appears. `speaker` is optional
+    (`mira` / `band` / `kbit` / `owner`); without it, the moment decides.
+  - `panel: { name: 'card' | 'news'; open: boolean }` when the card or the newspaper appears / goes (paper).
+  - `camera-zoom: { zoomIn: boolean }` when the dialogue camera eases in / back out.
+  Once they're in `GameEvents`, delete the `FeelEvents` cast in `audio.ts` and `subscribeFeel` types itself.
+- **`debug.ts`: please also show `audio.feel`** (`audio.feel()`, the last few feel sounds) so a smoke check
+  can walk and see `step`, talk and see `voice:kbit`.
+
 - **`debug.ts`: please show `audio.ambience`** in `state()`, read from `audio.soundscape()` (same duck-typed
   way as `nowPlaying()`). `scripts/checks/audio.ts` then asserts each moment's soundscape; until then it
   reports "not exposed by the debug API yet" instead of failing.
@@ -45,7 +67,7 @@
 
 ## Checks
 
-`scripts/checks/audio.ts`, `kbit.ts`, `music.ts`, `today.ts`; `tests/audio.test.ts`, `audio-soundscape.test.ts`,
+`scripts/checks/audio.ts`, `kbit.ts`, `music.ts`, `today.ts`; `tests/audio.test.ts`, `audio-feel.test.ts`, `audio-soundscape.test.ts`,
 `kbit.test.ts`, `music.test.ts`, `today.test.ts`.
 
 ## Smoke line (last run)
