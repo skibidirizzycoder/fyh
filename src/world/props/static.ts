@@ -2,7 +2,8 @@
 // A low stage in front of the shop with the band, a drum kit, a dead amp and a mic stand.
 // An orange cable reel sits beside the stage; the shop's outdoor socket is on the wall.
 //   static_plug_amp  shows the cable (socket -> reel) and swaps the amp's red light for green
-//   static_give_mic  shows a small crowd that stops to watch
+//   static_give_mic  shows the payoff (STATIC_FIX_SHOWS): a crowd of eight packed round the stage,
+//                    half of them with their arms up, a set list dropped by the mic and a tip jar
 // The two interactable ids must match src/story/cds/static.json.
 // Same conventions as layout.ts: centre + size in metres, ground top at y = 0,
 // standOn / mountOn keep a gap between touching surfaces (no z-fighting).
@@ -57,14 +58,51 @@ const cymbalStandTop = standOn(STAGE_TOP, CYMBAL.standH) + CYMBAL.standH / 2;
 const POLE = { z: -3.6, h: 2.6, d: 0.08, xs: [-0.7, 2.3] } as const;
 const BANNER: Prop['size'] = [2.86, 0.6, 0.04];
 
-// --- the crowd that stops to watch (hidden until the mic is handed over) ---
-// Off to both sides, so they never block the stage or stand where the player is.
+// --- the crowd that packs in once the mic works (hidden until then) ---
+// Close round the stage on both sides, leaving an aisle (x 0..1.6) from the player's start to the mic,
+// so they never block the band or stand where the player is, with room between them for a player
+// a person appears on to be pushed out (towards +Z, see collide.ts). [x, z, arms up?]
 const CROWD_H = 1.6;
-const CROWD: readonly (readonly [number, number])[] = [[-0.9, -0.8], [2.5, -0.6], [3.2, -0.2]];
+const CROWD_HEAD = 0.28;
+const CROWD: readonly (readonly [number, number, boolean])[] = [
+  [-0.9, -0.8, true], [2.5, -0.75, true], [3.2, -0.2, false], [-1.7, -0.95, false],
+  [-0.35, 0.45, true], [1.95, -0.35, false], [3.2, -1.1, true], [2.2, 0.35, false],
+];
+const ARM: Prop['size'] = [0.07, 0.7, 0.07]; // raised arms: shoulder to hands, above the head
+const ARM_X = BODY_D / 2 + GAP + ARM[0] / 2; // beside the body, never inside it
+const ARM_Y = 1.35 + ARM[1] / 2;
+
+// --- the set list the singer dropped, lying on the stage by the mic ---
+const SETLIST = { x: 1.35, z: -1.62, w: 0.21, d: 0.3, h: 0.004 } as const;
+const SETLIST_TOP = standOn(STAGE_TOP, SETLIST.h) + SETLIST.h / 2;
+const INK_H = 0.003;
+const SETLIST_LINES = [-0.04, 0.02, 0.08]; // z offsets of the scribbled song titles
+
+// --- the tip jar at the front of the stage beside the mic (seen from the aisle), a note poking out ---
+const JAR = { x: 0.3, z: -1.6, d: 0.16, h: 0.24 } as const;
+const JAR_LID: Prop['size'] = [0.17, 0.03, 0.17];
+const jarTop = standOn(STAGE_TOP, JAR.h) + JAR.h / 2;
+const lidTop = standOn(jarTop, JAR_LID[1]) + JAR_LID[1] / 2;
+const NOTE: Prop['size'] = [0.09, 0.07, 0.01];
+const JAR_LABEL: Prop['size'] = [0.1, 0.06, 0.01];
 
 /** A 2004 prop that only exists in The Static's moment. */
 function gig(p: Omit<Prop, 'eras' | 'moments'>): Prop {
   return { ...p, eras: PAST, moments: M };
+}
+
+/** One person in the crowd: body, head and, for some, both arms up. Hidden until the mic works. */
+function crowdMember(n: number, x: number, z: number, armsUp: boolean): Prop[] {
+  const id = `static_crowd_${n}`;
+  const color = C.crowd[(n - 1) % C.crowd.length] ?? C.band[0];
+  const person: Prop[] = [
+    gig({ id, shape: 'cylinder', pos: [x, standOn(0, CROWD_H), z], size: [BODY_D, CROWD_H, BODY_D], color, startsHidden: true }),
+    gig({ id: `${id}_head`, shape: 'box', pos: [x, standOn(GAP + CROWD_H, CROWD_HEAD), z], size: [CROWD_HEAD, CROWD_HEAD, CROWD_HEAD], color: C.skin, startsHidden: true }),
+  ];
+  if (armsUp) {
+    for (const side of [-1, 1]) person.push(gig({ id: `${id}_arm_${side < 0 ? 'l' : 'r'}`, shape: 'box', pos: [x + side * ARM_X, ARM_Y, z], size: ARM, color: C.skin, startsHidden: true }));
+  }
+  return person;
 }
 
 export const PROPS_STATIC: readonly Prop[] = [
@@ -98,6 +136,16 @@ export const PROPS_STATIC: readonly Prop[] = [
   ...POLE.xs.map((x, i) => gig({ id: `static_banner_pole_${i + 1}`, shape: 'cylinder', pos: [x, standOn(0, POLE.h), POLE.z], size: [POLE.d, POLE.h, POLE.d], color: C.stand })),
   gig({ id: 'static_banner', shape: 'box', pos: [(POLE.xs[0] + POLE.xs[1]) / 2, standOn(0, POLE.h) + POLE.h / 2 - 0.45, POLE.z], size: BANNER, color: C.banner }),
 
-  // The crowd that turns up once the mic works.
-  ...CROWD.map(([x, z], i) => gig({ id: `static_crowd_${i + 1}`, shape: 'cylinder', pos: [x, standOn(0, CROWD_H), z], size: [BODY_D, CROWD_H, BODY_D], color: C.crowd[i % C.crowd.length] ?? C.band[0], startsHidden: true })),
+  // The payoff once the mic works: a packed crowd, the dropped set list, the tip jar.
+  ...CROWD.flatMap(([x, z, armsUp], i) => crowdMember(i + 1, x, z, armsUp)),
+  gig({ id: 'static_setlist', shape: 'box', pos: [SETLIST.x, standOn(STAGE_TOP, SETLIST.h), SETLIST.z], size: [SETLIST.w, SETLIST.h, SETLIST.d], color: C.paper, startsHidden: true }),
+  gig({ id: 'static_setlist_title', shape: 'box', pos: [SETLIST.x, standOn(SETLIST_TOP, INK_H), SETLIST.z - 0.1], size: [0.15, INK_H, 0.04], color: C.paperTitle, startsHidden: true }),
+  ...SETLIST_LINES.map((dz, i) => gig({ id: `static_setlist_line_${i + 1}`, shape: 'box', pos: [SETLIST.x - 0.01, standOn(SETLIST_TOP, INK_H), SETLIST.z + dz], size: [0.13, INK_H, 0.015], color: C.paperInk, startsHidden: true })),
+  gig({ id: 'static_tip_jar', shape: 'cylinder', pos: [JAR.x, standOn(STAGE_TOP, JAR.h), JAR.z], size: [JAR.d, JAR.h, JAR.d], color: C.jarGlass, startsHidden: true }),
+  gig({ id: 'static_tip_jar_lid', shape: 'cylinder', pos: [JAR.x, standOn(jarTop, JAR_LID[1]), JAR.z], size: JAR_LID, color: C.jarLid, startsHidden: true }),
+  gig({ id: 'static_tip_jar_note', shape: 'box', pos: [JAR.x, standOn(lidTop, NOTE[1]), JAR.z], size: NOTE, color: C.banknote, startsHidden: true }),
+  gig({ id: 'static_tip_jar_label', shape: 'box', pos: [JAR.x, standOn(STAGE_TOP, JAR.h) + 0.02, mountOn(JAR.z + JAR_LID[2] / 2, JAR_LABEL[2])], size: JAR_LABEL, color: C.paper, startsHidden: true }),
 ];
+
+/** Ids the mic hand-over shows (all of them start hidden). Must equal static.json's step 2 "show". */
+export const STATIC_FIX_SHOWS: readonly string[] = PROPS_STATIC.filter((p) => /^static_(crowd|setlist|tip_jar)/.test(p.id)).map((p) => p.id);

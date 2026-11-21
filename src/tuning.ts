@@ -165,7 +165,13 @@ export const T = {
     skin: '#e9b48a',
     guitar: '#e8590c',
     banner: '#ff6b6b', // hand-painted banner behind the stage
-    crowd: ['#2b8a3e', '#d6336c', '#1971c2'], // people who stop to watch once the mic works
+    crowd: ['#2b8a3e', '#d6336c', '#1971c2', '#f59f00', '#0c8599', '#862e9c', '#e8590c', '#5c940d'], // the crowd once the mic works
+    paper: '#f8f9fa', // the dropped set list and the tip jar's label
+    paperTitle: '#e03131', // "SET LIST" scrawled in red
+    paperInk: '#212529', // the song titles
+    jarGlass: '#a5d8ff',
+    jarLid: '#495057',
+    banknote: '#69db7c', // a fiver poking out of the tip jar
   },
   mira: {
     // Mira's open mic, 14 March 2004 (props in src/world/props/mira.ts).
