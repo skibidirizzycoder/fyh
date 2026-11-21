@@ -2,7 +2,8 @@
 // Every helper drives the TEST build through window.__game and returns a Snapshot.
 //
 //   await restart(page);                    // fresh game, in today
-//   await phoneTo(page, 'street_gig');      // real keys: Q, Down..., E
+//   await cdTo(page, 'street_gig');         // real keys: walk to The Static's CD at the CD player, E, wait to arrive
+//   await phoneTo(page, 'present');         // real keys: Q, Down..., E (a locked moment goes through the CD player)
 //   const r = await walkTo(page, 'static_mic'); expect(r.ok, 'could not reach the mic');
 //   await measureContrast(page, '#phone', 'phone');
 //   await screenshot(page, 'phone-open');   // saved to artifacts/phone-open.png
@@ -41,7 +42,20 @@ export const step = (page: Page, n: number): Promise<Snapshot> => inPage(page, (
 export const restart = (page: Page): Promise<Snapshot> => inPage(page, () => window.__game?.restart(), null);
 export const travel = (page: Page, to: string): Promise<Snapshot> => inPage(page, (to) => window.__game?.travel(to), to);
 export const interact = (page: Page, id: string): Promise<InteractResult> => inPage(page, (id) => window.__game?.interact(id), id);
-export const phoneTo = (page: Page, to: string): Promise<Snapshot> => inPage(page, (to) => window.__game?.phoneTo(to), to);
+export const cdTo = (page: Page, to: string): Promise<WalkResult> => inPage(page, (to) => window.__game?.cdTo(to), to);
+
+/**
+ * Real keys: Q, Down until `to` is selected, then E. A moment you haven't been to yet is locked
+ * on the phone (you go in through the CD player), so for those this goes through the CD player
+ * instead (cdTo): from 2004 it phones home first. Either way you end up in `to`.
+ */
+export async function phoneTo(page: Page, to: string): Promise<Snapshot> {
+  const now = await state(page);
+  if (to === 'present' || !now.phone.locked.includes(to)) return inPage(page, (to) => window.__game?.phoneTo(to), to);
+  const r = await cdTo(page, to);
+  expect(r.ok, `phoneTo(${to}): it is locked on the phone, and going through the CD player failed (in ${r.state.moment ?? 'today'}, target ${r.state.target})`);
+  return r.state;
+}
 export const walkTo = (page: Page, id: string): Promise<WalkResult> => inPage(page, (id) => window.__game?.walkTo(id), id);
 export const placePlayer = (page: Page, x: number, z: number, yawDeg: number): Promise<Snapshot> =>
   inPage(page, (a) => window.__game?.placePlayer(a.x, a.z, a.yawDeg), { x, z, yawDeg });

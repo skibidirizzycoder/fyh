@@ -15,6 +15,8 @@ function silentAudio(makeContext: () => AudioContext | null = () => null) {
 
 const PAYLOADS: { [K in EventName]: GameEvents[K] } = {
   'game-start': {},
+  title: {},
+  'cd-insert': { cd: 'mira' },
   mute: {},
   travel: { to: 'ringtone', era: '2004', moment: 'ringtone' },
   'action-done': { actionId: 'mira_take_cd', cd: 'mira' },

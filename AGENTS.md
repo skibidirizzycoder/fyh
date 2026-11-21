@@ -27,7 +27,7 @@ Never start the next task on top of untested code. `npm run gate` = check + smok
 ## Measure, don't eyeball
 
 - Prove positions, directions and timings with numbers from `window.__game`
-  (`state()`, `step(n)`, `travel(to)`, `walkTo(id)`, `phoneTo(to)`, `interact(id)`, `press/release`).
+  (`state()`, `step(n)`, `travel(to)`, `walkTo(id)`, `phoneTo(to)`, `cdTo(to)`, `interact(id)`, `press/release`).
   Smoke checks use the helpers in `scripts/checks/tools.ts`.
 - Use `pause()` and `step(n)` so results are exact and repeatable. Never measure with real time.
 - Never retry a flaky test until it passes. Find the cause; flakiness *is* the bug.

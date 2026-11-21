@@ -1,8 +1,14 @@
 {
-  "intro": "Your record shop, Hollow Records, closed in 2004. Three CDs nobody bought are still behind the counter. Your old flip phone buzzes. Press Q to open it.",
+  "intro": "Your record shop, Hollow Records, closed in 2004. Three CDs nobody bought sit by an old CD player outside. Put one in (E) to go back to its 2004 moment. Your flip phone (Q) brings you home.",
   "travelLines": {
     "present": "Snap. The phone closes and it's today again.",
     "past": "{date}. {situation}"
+  },
+  "fixedSituation": "Listen: everyone is into {artist} now. You already fixed this moment.",
+  "cdPlayer": {
+    "prompt": "Put {artist}'s CD in the player",
+    "line": "Click. Whirr. {artist}'s \"{title}\" spins up, and the street starts to blur...",
+    "phoneLockedLine": "No signal for that one yet. Put its CD in the old player outside the shop."
   },
   "alreadyDoneLine": "You've already done that here.",
   "notHereLine": "There's nothing to use here right now.",
