@@ -11,7 +11,7 @@ Which files will change (keep the list short; if it is long, split the task).
 How we will *show* it works, with numbers, on the production build:
 - [ ] `npm run check` passes
 - [ ] `npm run smoke` passes (new assertion added to `scripts/smoke.ts` if behaviour changed)
-- [ ] Looked at `artifacts/2004.png` and `artifacts/present.png`: <what you expect to see>
+- [ ] Looked at the screenshots in `artifacts/`: <which ones, and what you expect to see>
 - [ ] Measured with `window.__game`: <e.g. "player.x goes from 0 to 1.5 after 30 frames of W at yaw -90">
 
 ## Report

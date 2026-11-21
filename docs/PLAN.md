@@ -38,25 +38,28 @@ The smoke test checks that the demo route fits in time (measured, not guessed).
 
 | Person | Builds | Owns these files |
 |---|---|---|
-| **Claude** | The engine: moments (several 2004 scenes), phone logic, reputation levels, events, Mira's CD, today's reputation props (gold discs, posters, plaque), the pitch-length test, merging, deploying | `src/core/`, `src/story/timeline.ts`, `src/story/validate.ts`, `src/game.ts`, `src/main.ts`, `src/debug.ts`, `src/phone/state.ts`, `src/story/cds/mira.json`, `src/world/props/mira.ts`, `src/world/props/today.ts`, `scripts/smoke.ts` |
-| **Teammate A** | The **flip phone's look** (opening animation, green pixel screen, menu) + **The Static** CD | `src/phone/view.ts`, `src/phone/phone.css`, `src/story/cds/static.json`, `src/world/props/static.ts`, `scripts/checks/phone.ts`, `scripts/checks/static.ts`, the `phone` and `static` sections of `src/tuning.ts` |
-| **Teammate B** | **All sound** (made in code: ringtone, keypad beeps, era background, chimes) + **DJ K-Bit** CD | `src/audio/*`, `src/story/cds/kbit.json`, `src/world/props/kbit.ts`, `scripts/checks/audio.ts`, `scripts/checks/kbit.ts`, the `audio` and `kbit` sections of `src/tuning.ts` |
+| **Claude** | The engine: moments (several 2004 scenes), phone logic, reputation levels, events, Mira's CD, today's reputation props (gold discs, posters, plaque), the pitch-length test, merging, deploying | everything not listed below, including `src/core/`, `src/game.ts`, `src/main.ts`, `src/debug.ts`, `src/phone/state.ts`, `src/story/` (except the two CD files below), `src/world/` (except the two props files below), `src/ui/`, `server/`, `scripts/smoke.ts`, `scripts/checks/tools.ts`, the other sections of `src/tuning.ts` |
+| **Teammate A** | The **flip phone's look** (opening animation, green pixel screen, menu) + **The Static** CD | `src/phone/view.ts`, `src/phone/phone.css`, `src/story/cds/static.json`, `src/world/props/static.ts`, `scripts/checks/phone.ts`, `scripts/checks/static.ts`, the `phone` and `static` sections of `src/tuning.ts`, new `tests/phone-*.test.ts` files |
+| **Teammate B** | **All sound** (made in code: ringtone, keypad beeps, era background, chimes) + **DJ K-Bit** CD | `src/audio/*`, `src/story/cds/kbit.json`, `src/world/props/kbit.ts`, `scripts/checks/audio.ts`, `scripts/checks/kbit.ts`, the `audio` and `kbit` sections of `src/tuning.ts`, new `tests/audio-*.test.ts` files |
 
 Need a change in someone else's file? Ask them (or Claude) instead of editing it.
+Your files already exist and work: placeholders are **magenta** and their text starts with **PLACEHOLDER**.
+Replace them. Keep the ids (`static_cable_reel`, ...) or change them in your JSON and props file together.
 
 ## Shared formats (the "contracts")
 
-Claude pushes a **foundation commit** ("Foundation: CD moments") with every file above already
-created as a working stub. Pull it before you write code. Until then: set up, read `AGENTS.md`, plan.
+The **foundation commit** ("Foundation: CD moments") is on `main`: every file above exists as a
+working stub and `npm run gate` passes. Pull it before you write code.
 
 **A CD's story** (`src/story/cds/<id>.json`):
 ```json
 {
   "cd": { "id": "static", "artist": "The Static", "title": "Feedback Summer",
           "moment": "street_gig", "date": "2 July 2004",
-          "situation": "One sentence: what is going wrong in this moment." },
+          "situation": "One sentence: what is going wrong in this moment.",
+          "today": "One sentence: what is different today once this CD is fixed." },
   "actions": [
-    { "id": "static_plug_amp", "moment": "street_gig", "objectId": "static_cable_reel",
+    { "id": "static_plug_amp", "objectId": "static_cable_reel",
       "label": "plugged The Static's amp into the shop", "prompt": "Plug in the amp",
       "requires": [], "line": "Dialogue when it works.", "lockedLine": "",
       "effects": { "show": [], "hide": [] } },
@@ -66,6 +69,7 @@ created as a working stub. Pull it before you write code. Until then: set up, re
 }
 ```
 The engine makes the gold disc and reputation changes for you. Your CD is "fixed" when its last action is done.
+Actions happen in the CD's moment (you can leave out `"moment"`). Text shows as-is, so keep lines short.
 
 **A CD's props** (`src/world/props/<id>.ts`): export an array of props, like `src/world/layout.ts`,
 each with `eras: ['2004']` and `moments: ['street_gig']`. Interactable props need `interactable: true`
@@ -78,11 +82,16 @@ Sound plays on these; it never edits `game.ts`.
 **Phone view** (`src/phone/view.ts`): gets a `PhoneState` every frame (open or closed, the list of
 moments, which is selected, which are fixed) and draws it. Claude's `state.ts` handles the keys.
 
+**Smoke checks** (`scripts/checks/<yours>.ts`): use the helpers in `scripts/checks/tools.ts`:
+`restart`, `travel(page, 'street_gig')`, `walkTo(page, 'static_mic')` (real keys), `phoneTo`,
+`interact`, `tap(page, 'KeyQ')`, `state`, `measureContrast`, `screenshot`, `expect`.
+Each returns `__game.state()`: `moment`, `flags`, `fixedCds`, `visibleMeshes`, `phone`, `audio.lastCue`, ...
+
 ## Timeline
 
 | When | What |
 |---|---|
-| now–13:45 | Everyone: set up (`README.md` → For teammates). Claude: foundation commit. |
+| now–13:45 | Everyone: set up (`README.md` → For teammates). Claude: foundation commit (done). |
 | 13:45–16:15 | Build on your own branch. Pull `main` every hour. |
 | ~14:30 | Mira's CD works end to end: from here on we always have a demo. |
 | 16:15 | **Feature freeze.** Push your branch; Claude merges, runs `npm run gate`, deploys. |
@@ -90,6 +99,9 @@ moments, which is selected, which are fixed) and draws it. Claude's `state.ts` h
 | 17:30 | Draft submitted. 18:00 hard deadline. |
 
 **Safety net:** if a CD isn't working by 16:15, we ship without it. Two CDs still demo well.
+
+**Team workflow** (lanes, ownership check, diff review, measure): `docs/prompts/05-agentic-workflow.md`.
+Each teammate's first message to their agent is at the bottom of that file.
 
 ## Git, step by step
 

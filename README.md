@@ -54,7 +54,7 @@ For every task:
 
 1. One focused task (use `docs/task-template.md`).
 2. `npm run check`
-3. `npm run smoke`: then **look at** `artifacts/2004.png` and `artifacts/present.png`.
+3. `npm run smoke`: then **look at** the screenshots in `artifacts/` (`2004.png`, `present.png`, `moment-*.png`, ...).
 4. Commit. The pre-commit hook runs `npm run check` and blocks bad commits.
 
 The smoke test fails on any console or page error, any missed state change, text
@@ -71,10 +71,13 @@ In dev (`npm run dev`) and test builds, open the browser console:
 ```js
 __game.pause()                      // stop real time; only step() moves the game
 __game.press('Enter'); __game.step(1); __game.release('Enter')
-__game.setEra('2004')
-__game.interact('cd')               // { ok: true, actionId: 'take_cd' }
+__game.restart()                    // fresh game, today
+__game.travel('open_mic')           // shortcut: straight to a 2004 moment (or 'present')
+__game.interact('mira_cd')          // shortcut: { ok: true, actionId: 'mira_take_cd' }
+__game.phoneTo('ringtone')          // real keys: Q, Down..., E
+__game.walkTo('kbit_phone')         // real keys: turn and walk there, then press E
 __game.placePlayer(0, 3, 90)        // x, z, yaw in degrees
-__game.state()                      // scene, era, flags, present, player, camera, drawCalls...
+__game.state()                      // scene, era, moment, flags, phone, audio, card, drawCalls...
 ```
 
 The shipped production build does not include it. The smoke test checks this.

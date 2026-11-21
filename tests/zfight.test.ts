@@ -1,13 +1,10 @@
 // zfight.test.ts — no two visible surfaces share a plane where they overlap.
 import { describe, expect, it } from 'vitest';
-import contentJson from '../src/story/content.json';
+import { content } from '../src/story/content.ts';
 import { propOverrides, type Flags } from '../src/story/timeline.ts';
-import type { StoryContent } from '../src/story/types.ts';
-import { ERAS, T } from '../src/tuning.ts';
+import { T, type Era } from '../src/tuning.ts';
 import { visibleProps } from '../src/world/layout.ts';
 import { findZFighting } from '../src/world/zfight.ts';
-
-const content: StoryContent = contentJson;
 
 describe('z-fighting', () => {
   it('finds two boxes sitting in the same plane', () => {
@@ -22,15 +19,21 @@ describe('z-fighting', () => {
     expect(findZFighting([a, b], 0.01)).toEqual([]);
   });
 
-  // Check every era at every step of the story, since effects show and hide props.
-  const stages: Flags[] = content.actions.map((_, i) => content.actions.slice(0, i).map((a) => a.id));
-  stages.push(content.actions.map((a) => a.id));
-  for (const era of ERAS) {
-    stages.forEach((flags, i) => {
-      it(`layout has no z-fighting in ${era}, story step ${i}`, () => {
+  // Check every scene (today + each CD's moment) at every step of the story,
+  // since effects show and hide props.
+  const ids = content.actions.map((a) => a.id);
+  const stages: Flags[] = ids.map((_, i) => ids.slice(0, i));
+  stages.push(ids);
+  const scenes: { era: Era; moment: string | null }[] = [
+    { era: 'present', moment: null },
+    ...content.cds.map((c) => ({ era: '2004' as const, moment: c.moment })),
+  ];
+  for (const { era, moment } of scenes) {
+    it(`layout has no z-fighting in ${moment ?? 'today'}, at any story step`, () => {
+      for (const flags of stages) {
         const { shown, hidden } = propOverrides(content, flags);
-        expect(findZFighting(visibleProps(era, shown, hidden), T.world.surfaceGap / 2)).toEqual([]);
-      });
+        expect(findZFighting(visibleProps(era, moment, shown, hidden), T.world.surfaceGap / 2), `after ${flags.length} actions`).toEqual([]);
+      }
     });
   }
 });

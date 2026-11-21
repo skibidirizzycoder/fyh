@@ -18,7 +18,7 @@ export function createHud(root: HTMLElement, content: StoryContent, news: NewsDe
     <div id="title" class="overlay panel">
       <h1>Flip Phone</h1>
       <p>Something old, into something modern.</p>
-      <p class="dim">W/S walk · A/D turn · E or click to use · Q flip the phone</p>
+      <p class="dim">W/S walk · A/D turn · E or click to use · Q flip phone · M mute</p>
       <p class="accent">Press Enter to start</p>
     </div>
     <div id="era" class="panel"></div>
@@ -59,7 +59,7 @@ export function createHud(root: HTMLElement, content: StoryContent, news: NewsDe
       show(parts.title, scene === 'title');
       show(parts.ending, scene === 'ending');
       show(parts.era, playing);
-      setText(parts.era, T.eras[s.era].label);
+      setText(parts.era, game.currentCd()?.date ?? T.eras[s.era].label);
       parts.era.dataset.era = s.era;
 
       const action = content.actions.find((a) => a.objectId === s.target);
@@ -69,11 +69,10 @@ export function createHud(root: HTMLElement, content: StoryContent, news: NewsDe
       show(parts.dialogue, playing && s.dialogueLeft > 0);
       setText(parts.dialogue, s.dialogue);
 
-      const changes = content.changes.filter((c) => game.present()[c.id]);
-      show(parts.card, playing && s.era === 'present' && changes.length > 0);
-      setText(parts.change, changes.map((c) => `→ ${c.label}`).join(' '));
-      const causeHtml = game.causes().map((a) => `<li>${a.label}</li>`).join('');
-      if (parts.causes.innerHTML !== causeHtml) parts.causes.innerHTML = causeHtml;
+      const changes = game.cardChanges();
+      show(parts.card, playing && s.era === 'present' && changes.length > 0 && !s.phone.open);
+      setText(parts.change, changes.map((c) => `→ ${c.label}`).join('\n'));
+      setList(parts.causes, game.causes().map((a) => a.label));
 
       // Newspaper. LLM text is untrusted, so it only ever goes in via textContent.
       const paper = news.current();
@@ -83,6 +82,18 @@ export function createHud(root: HTMLElement, content: StoryContent, news: NewsDe
       show(parts.offline, paper.status === 'ready' && paper.offline);
     },
   };
+}
+
+/** Makes a list element hold exactly these items (as text). */
+function setList(list: HTMLElement, items: string[]): void {
+  const key = items.join('\n');
+  if (list.dataset.items === key) return;
+  list.dataset.items = key;
+  list.replaceChildren(...items.map((text) => {
+    const li = document.createElement('li');
+    li.textContent = text;
+    return li;
+  }));
 }
 
 /** Shows or hides an element. */

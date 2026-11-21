@@ -7,7 +7,7 @@ import { T } from '../src/tuning.ts';
 
 const ACCOUNT = 'testorg-testacct';
 const TOKEN = 'secret-token-123';
-const ALL = ['take_cd', 'play_cd', 'pin_flyer'];
+const ALL = ['mira_take_cd', 'mira_play_cd']; // Mira's CD, fixed
 
 /** A POST to /api/headline. */
 function post(body: unknown): Request {
@@ -67,7 +67,7 @@ describe('/api/headline', () => {
 
   it('rejects flags that cannot happen, without calling Snowflake', async () => {
     const fetchFn = cortexSays('{}');
-    expect((await handleHeadline(post({ flags: ['pin_flyer'] }), { fetchFn })).status).toBe(400);
+    expect((await handleHeadline(post({ flags: ['mira_play_cd'] }), { fetchFn })).status).toBe(400);
     expect((await handleHeadline(post('nonsense'), { fetchFn })).status).toBe(400);
     expect(fetchFn).not.toHaveBeenCalled();
   });

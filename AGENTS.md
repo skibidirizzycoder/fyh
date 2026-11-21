@@ -13,7 +13,7 @@ snowball and change the present.
 2. Make the change, keeping it small.
 3. `npm run check`: types, lint and unit tests.
 4. `npm run smoke`: builds the production bundle and plays it in headless Chromium.
-5. **Look at** `artifacts/2004.png` and `artifacts/present.png`. Do they show what you meant?
+5. **Look at** the screenshots in `artifacts/` (`2004.png`, `present.png`, `moment-*.png`, ...). Do they show what you meant?
 6. Commit. The pre-commit hook re-runs `npm run check` and blocks the commit if it fails.
 
 Never start the next task on top of untested code. `npm run gate` = check + smoke.
@@ -27,7 +27,8 @@ Never start the next task on top of untested code. `npm run gate` = check + smok
 ## Measure, don't eyeball
 
 - Prove positions, directions and timings with numbers from `window.__game`
-  (`state()`, `step(n)`, `placePlayer()`, `setEra()`, `interact(id)`, `press/release`).
+  (`state()`, `step(n)`, `travel(to)`, `walkTo(id)`, `phoneTo(to)`, `interact(id)`, `press/release`).
+  Smoke checks use the helpers in `scripts/checks/tools.ts`.
 - Use `pause()` and `step(n)` so results are exact and repeatable. Never measure with real time.
 - Never retry a flaky test until it passes. Find the cause; flakiness *is* the bug.
 

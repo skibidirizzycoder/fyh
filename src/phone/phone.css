@@ -1,0 +1,12 @@
+/* phone.css — the flip phone's look. Owner: Teammate A. PLACEHOLDER styles. */
+#phone {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #0c0c10;
+  color: #f4f4f6;
+  font: 16px/1.5 'Courier New', monospace;
+  white-space: pre;
+}

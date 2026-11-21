@@ -1,0 +1,37 @@
+{
+  "cd": {
+    "id": "static",
+    "artist": "The Static",
+    "title": "Feedback Summer",
+    "moment": "street_gig",
+    "date": "2 July 2004",
+    "situation": "PLACEHOLDER (Teammate A builds this): The Static's street gig, and the amp keeps cutting out.",
+    "today": "PLACEHOLDER: The Static are a cult indie band now."
+  },
+  "actions": [
+    {
+      "id": "static_plug_amp",
+      "objectId": "static_cable_reel",
+      "label": "plugged The Static's amp into the shop",
+      "prompt": "Plug in the amp",
+      "requires": [],
+      "line": "PLACEHOLDER: the amp hums into life.",
+      "lockedLine": "",
+      "effects": { "show": [], "hide": [] }
+    },
+    {
+      "id": "static_give_mic",
+      "objectId": "static_mic",
+      "label": "handed them the shop's microphone",
+      "prompt": "Hand over the mic",
+      "requires": ["static_plug_amp"],
+      "line": "PLACEHOLDER: the crowd goes wild.",
+      "lockedLine": "PLACEHOLDER: no point without power.",
+      "effects": { "show": [], "hide": [] }
+    }
+  ],
+  "offline": {
+    "headline": "PLACEHOLDER: The Static headline",
+    "article": "PLACEHOLDER: Teammate A writes this. Two sentences."
+  }
+}
