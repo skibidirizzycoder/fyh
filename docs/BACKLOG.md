@@ -99,4 +99,4 @@ Two sessions: B3/B5/B6 in one (they all touch `src/audio/`), B4 in the other.
   neighbouring buildings, kerb; a low-poly person instead of the cylinder). *Helper agent, `director/street`.*
 - ~~C3. The rest of `docs/prompts/05-agentic-workflow.md`~~ **Cut:** `ship` already enforces
   ownership and the gate. We build the game instead.
-- [ ] C4. Deploy each checkpoint to Netlify, so the team plays it in a browser (needs `netlify login` from the lead).
+- [x] C4. `npm run checkpoint` deploys to https://flip-phone-2004-8a09.netlify.app (ships don't: free-plan credits).

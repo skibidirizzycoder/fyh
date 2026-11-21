@@ -32,3 +32,6 @@ artifacts
 .env
 .env.*
 !.env.example
+
+# Netlify CLI link (local only)
+.netlify
