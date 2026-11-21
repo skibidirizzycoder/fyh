@@ -10,8 +10,10 @@ import { busArrives, sceneLayers, type SceneId } from './soundscape.ts';
 export interface Ambience {
   /** Fades to an era's background sound. */
   setEra(era: Era): void;
-  /** Fades to a moment's soundscape (and lets the bus pull in at the bus stop). */
+  /** Fades to a moment's soundscape. */
   setScene(scene: SceneId): void;
+  /** A bus pulls in, `delaySec` from now (K-Bit's payoff: and nobody gets on). */
+  bus(delaySec: number): void;
   /** Turns the whole background down while a song plays (T.audio.ambience.underMusic), so the song is heard. */
   setUnderMusic(on: boolean): void;
   stop(): void;
@@ -79,8 +81,8 @@ function buildScene(ctx: BaseAudioContext, out: AudioNode, scene: SceneId): { be
   return { bed, sources };
 }
 
-/** Plays the bus pulling in, once, a moment after you arrive. */
-function playBus(ctx: BaseAudioContext, out: AudioNode): AudioBufferSourceNode {
+/** Plays the bus pulling in, once, `delaySec` from now. */
+function playBus(ctx: BaseAudioContext, out: AudioNode, delaySec: number): AudioBufferSourceNode {
   const b = T.audio.soundscape.ringtone.bus;
   const samples = busArrives(ctx.sampleRate, seededRandom(T.audio.soundscape.seed + 99), b);
   const buffer = ctx.createBuffer(1, samples.length, ctx.sampleRate);
@@ -90,7 +92,7 @@ function playBus(ctx: BaseAudioContext, out: AudioNode): AudioBufferSourceNode {
   const g = ctx.createGain();
   g.gain.value = b.gain;
   src.connect(g).connect(out);
-  src.start(ctx.currentTime + b.delaySec);
+  src.start(ctx.currentTime + delaySec);
   return src;
 }
 
@@ -127,7 +129,9 @@ export function createAmbience(ctx: BaseAudioContext, out: AudioNode, era: Era):
         bed.gain.setValueAtTime(bed.gain.value, now);
         bed.gain.linearRampToValueAtTime(id === next ? 1 : 0, now + T.audio.soundscape.fadeSec);
       });
-      if (next === 'ringtone') sources.push(playBus(ctx, level));
+    },
+    bus(delaySec) {
+      sources.push(playBus(ctx, out, delaySec));
     },
     setUnderMusic(on) {
       if (on === under) return;

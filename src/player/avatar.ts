@@ -1,44 +1,77 @@
 // avatar.ts — the player's body and the follow camera.
-// The body is a cylinder with a "nose" box on its local -Z side (Three.js
-// forward), so you can see — and measure — which way it faces.
+// The body is a round person (src/player/person.ts) in the player's look: a knit jumper, jeans, white
+// trainers, an orange cap and headphones. The cap's brim is the "nose": it sits on the local -Z side
+// (Three.js forward), so you can see — and measure — which way the player faces.
+// The stride moves with the distance walked (not with time); the pose blends idle, walk and run by the
+// (eased) speed and leans into turns, and the legs finish their step when you stop.
+// The follow camera (glide, dialogue framing, the push-in when a CD is fixed) lives in camera.ts.
 
 import * as THREE from 'three';
-import { forwardFromYaw } from '../core/facing.ts';
 import { T } from '../tuning.ts';
+import { createFollowCamera, type CameraMood } from './camera.ts';
 import type { PlayerState } from './controller.ts';
+import { advancePhase, createPerson, createPersonTextures, posePerson, type Person } from './person.ts';
 
 export interface Avatar {
   root: THREE.Group;
   nose: THREE.Mesh;
-  /** Moves the body and camera to match the player state. */
-  sync(p: PlayerState, camera: THREE.PerspectiveCamera): void;
+  /** Moves the body and camera to match the player state. With the game `frame`, the camera glides
+   *  there by the steps since the last call; without it, it goes straight there. `mood`: see camera.ts. */
+  sync(p: PlayerState, camera: THREE.PerspectiveCamera, frame?: number, mood?: CameraMood): void;
+  /** A CD was just fixed (at game `frame`): the camera pushes in for a moment. */
+  cheer(frame: number): void;
   /** Direction from body centre to nose, measured from the real meshes. */
   measuredFacing(): { x: number; z: number };
   dispose(): void;
 }
 
+const A = T.avatar;
+
+/** Moves a walk phase towards the nearest standing pose (a multiple of pi), by at most `rate`. */
+export function settlePhase(phase: number, rate: number): number {
+  const rest = Math.round(phase / Math.PI) * Math.PI;
+  const d = rest - phase;
+  return Math.abs(d) <= rate ? rest : phase + Math.sign(d) * rate;
+}
+
+/** How fast the body moves, either way (a state without a speed, from a test or a jump, walks). */
+export function gaitSpeed(p: PlayerState): number {
+  return p.speed === undefined ? T.player.speed : Math.abs(p.speed);
+}
+
+/** The player's nose: the brim of their cap (the player's look always wears one). */
+function noseOf(person: Person): THREE.Mesh {
+  if (!person.brim) throw new Error("the player's look needs a cap: its brim is the nose");
+  return person.brim;
+}
+
 /** Creates the avatar and adds it to the scene. */
 export function createAvatar(scene: THREE.Scene): Avatar {
-  const bodyGeo = new THREE.CylinderGeometry(T.player.radius, T.player.radius, T.player.height, 16);
-  const noseGeo = new THREE.BoxGeometry(0.15, 0.15, 0.3);
-  const bodyMat = new THREE.MeshStandardMaterial({ color: T.player.bodyColor });
-  const noseMat = new THREE.MeshStandardMaterial({ color: T.player.noseColor });
-
-  const root = new THREE.Group();
-  root.name = 'player';
-  const body = new THREE.Mesh(bodyGeo, bodyMat);
-  body.position.y = T.player.height / 2 + T.world.surfaceGap;
-  const nose = new THREE.Mesh(noseGeo, noseMat);
-  nose.position.set(0, T.player.height * 0.8, -T.player.radius - 0.15); // local -Z = forward
-  root.add(body, nose);
+  const textures = createPersonTextures();
+  const person = createPerson(T.person.looks.player, textures, 'player');
+  const { root } = person;
+  const nose = noseOf(person);
   scene.add(root);
 
-  function sync(p: PlayerState, camera: THREE.PerspectiveCamera): void {
+  let phase = 0;
+  let last: { x: number; z: number } | null = null;
+  const follow = createFollowCamera();
+
+  /** Moves the stride on by the distance walked since the last frame (settles it when standing still) and poses the body. */
+  function walk(p: PlayerState, frame: number | undefined): void {
+    const moved = last ? Math.hypot(p.x - last.x, p.z - last.z) : 0;
+    last = { x: p.x, z: p.z };
+    const speed = gaitSpeed(p);
+    if (moved > 0 && moved < A.teleportM) phase = advancePhase(phase, moved, speed);
+    else phase = settlePhase(phase, A.settleRad);
+    posePerson(person, { phase, speed, turnRate: p.turnRate ?? 0, time: (frame ?? 0) / T.loop.stepsPerSecond });
+  }
+
+  function sync(p: PlayerState, camera: THREE.PerspectiveCamera, frame?: number, mood: CameraMood = { talking: false }): void {
     root.position.set(p.x, 0, p.z);
     root.rotation.y = (p.yawDeg * Math.PI) / 180;
-    const f = forwardFromYaw(p.yawDeg);
-    camera.position.set(p.x - f.x * T.camera.distance, T.camera.height, p.z - f.z * T.camera.distance);
-    camera.lookAt(p.x, T.camera.lookHeight, p.z);
+    walk(p, frame);
+    follow.update(p, camera, frame, mood);
   }
 
   function measuredFacing(): { x: number; z: number } {
@@ -50,9 +83,9 @@ export function createAvatar(scene: THREE.Scene): Avatar {
   }
 
   function dispose(): void {
-    [bodyGeo, noseGeo, bodyMat, noseMat].forEach((x) => x.dispose());
-    scene.remove(root);
+    person.dispose();
+    textures.dispose();
   }
 
-  return { root, nose, sync, measuredFacing, dispose };
+  return { root, nose, sync, cheer: (frame) => follow.cheer(frame), measuredFacing, dispose };
 }

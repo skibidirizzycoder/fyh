@@ -63,18 +63,18 @@ Ranked by look per hour. **Not started: the lead picks which to build.**
 - F2 playtest `checkpoint-11` (real key presses, headless Chrome; no sound): Teammate B, done 15:40. Bugs below.
 
 **Bugs** (F2 playtest of `checkpoint-11`: whole game in the order Static → K-Bit → Mira, ending, play again):
-1. **Revisiting a fixed moment shows the "before" line.** Fix The Static, go today, then Q → The Static. The
+1. **(Fixed in C7: `fixedSituation`.)** **Revisiting a fixed moment shows the "before" line.** Fix The Static, go today, then Q → The Static. The
    line still says "their battery amp keeps dying mid-chorus", but the amp is plugged in and the band is live.
    Same for any fixed CD. (Claude: `travelLines.past` could have an "after" version.)
-2. **Console error on the newspaper:** `npm run checkpoint:play`, fix a CD, go today → `/api/headline` answers
+2. **(Fixed in C7: 200 `{ offline }`, `VITE_NEWS_API=off`.)** **Console error on the newspaper:** `npm run checkpoint:play`, fix a CD, go today → `/api/headline` answers
    500 (Snowflake refuses the trial account) and the browser logs "Failed to load resource: 500". The game
    falls back to the offline edition correctly; only the console error is wrong (a 200/204 with
    "offline" would be quiet).
-3. **E does nothing, silently,** with nothing in front of you or at an object you already used. So
+3. **(Fixed in C7.)** **E does nothing, silently,** with nothing in front of you or at an object you already used. So
    `notHereLine` and `alreadyDoneLine` can never show when playing (only via the debug API).
 4. ~~**Phone-size screen (390×844):** the open phone covers the dialogue, and the newspaper covers the card
    Low priority: the game needs a keyboard anyway.~~ **Fixed (Teammate A):** narrow windows stack the card and paper under the era and folded phone, and the open phone hangs from the top-right; smoke checks it at 390×844 (`narrow-today.png`, `narrow-phone.png`).
-5. **(Teammate B, needs an event)** After the ending, "Press Enter to play again" goes to the title, which
+5. **(Teammate B; the `title` event exists since C7)** After the ending, "Press Enter to play again" goes to the title, which
    still plays the last game's music until Enter. Music resets on `game-start`; a `title` event would let it
    stop on the title.
 From the code review of 15:45 (`/code-review`; 1–3 verified in the test build by the reviewer):

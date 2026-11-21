@@ -37,6 +37,10 @@
 
 ## Round 3 (from 16:00): the CD player is the time machine, a bigger map, smoother play
 
+**From 17:00 (the lead): features and improvements first, bugs later.** Build new things (A7-A9,
+B11-B13 and anything that makes the game look or feel better). Write any bug you notice in STATUS
+under "Bugs" and keep going; we fix them all together at the end. Skip B9 and the playtest until then.
+
 **The lead's design:** you travel in time by **putting a CD into a CD player** (outside the shop
 today). When you've fixed a CD, the **flip phone** shows it (★) and takes you home or back to a moment
 you've already fixed. The phone is your progress list and your way home; the CD player is the way in.

@@ -2,6 +2,8 @@
 // - Replies are cached by flag set, so the same timeline never asks twice.
 // - On error or after T.news.timeoutMs, it shows the pre-written text from
 //   content.json, marked as the "offline edition". Failures are not cached.
+// - The server answers 200 { offline: true, reason } when Snowflake is unavailable, so the
+//   browser logs no error; a build without the endpoint (`api: false`) never asks at all.
 // The game never waits for this: it runs on its own, outside the fixed-step loop.
 
 import { flagKey, offlineNews } from '../story/news.ts';
@@ -30,7 +32,14 @@ export interface DeskOptions {
   fetchFn?: typeof fetch; // tests pass a fake
   timeoutMs?: number;
   endpoint?: string;
+  api?: boolean; // false: this build has no /api/headline (a static host): print the offline edition at once
   now?: () => number; // clock in ms
+}
+
+/** Why a 200 reply had no paper: the server's own "offline" reason, else "bad reply". */
+function offlineReason(body: unknown): string {
+  const reply = body as { offline?: unknown; reason?: unknown } | null;
+  return reply?.offline === true ? `server offline: ${String(reply.reason ?? '')}` : 'bad reply';
 }
 
 /** Creates the news desk. */
@@ -60,8 +69,9 @@ export function createNewsDesk(opts: DeskOptions): NewsDesk {
         body: JSON.stringify({ flags }),
         signal: abort.signal,
       });
-      const paper = res.ok ? parseArticle(await res.json()) : null;
-      if (!paper) throw new Error(res.ok ? 'bad reply' : `HTTP ${res.status}`);
+      const body: unknown = res.ok ? await res.json() : null;
+      const paper = parseArticle(body);
+      if (!paper) throw new Error(res.ok ? offlineReason(body) : `HTTP ${res.status}`);
       cache.set(key, paper);
       finish(key, paper, false, false, '', now() - started);
     } catch (e) {
@@ -78,6 +88,7 @@ export function createNewsDesk(opts: DeskOptions): NewsDesk {
       const hit = cache.get(key);
       state = { status: 'loading', key };
       if (hit) finish(key, hit, false, true, '', 0);
+      else if (opts.api === false) finish(key, offlineNews(opts.content, flags), true, false, 'no-api', 0);
       else void fetchPaper([...flags], key);
     },
     clear() {

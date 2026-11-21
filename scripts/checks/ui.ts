@@ -20,6 +20,9 @@ import { T } from '../../src/tuning.ts';
 import type { Snapshot } from '../../src/debug.ts';
 import { expect, interact, measureContrast, restart, screenshot, state, step, tap, travel } from './tools.ts';
 
+/** Upper bound for waits on the page: same conditions, but a busy machine (several agents' smoke runs) can take long. */
+const BUSY_WAIT_MS = 30_000;
+
 const VARIANTS = ['lcd', 'colour'] as const;
 const BOOT_LINES = ['.boot-shop', '.boot-shop-sub', '.boot-keys']; // biggest to smallest text
 const POLL_MS = 100;
@@ -79,7 +82,7 @@ async function checkBubbles(page: Page): Promise<number> {
   expect((await bubbles.count()) === 0, 'bubbles before anything was fixed');
   await fixCd(page, 'static');
   try {
-    await page.waitForFunction((n) => document.querySelectorAll('#bubbles .bubble').length === n, B.count, { polling: POLL_MS, timeout: 2000 });
+    await page.waitForFunction((n) => document.querySelectorAll('#bubbles .bubble').length === n, B.count, { polling: POLL_MS, timeout: BUSY_WAIT_MS });
   } catch {
     expect(false, `fixing The Static popped ${await bubbles.count()} bubbles, expected ${B.count}`);
   }
@@ -110,7 +113,7 @@ async function checkBubbles(page: Page): Promise<number> {
     }
   });
   try {
-    await page.waitForFunction(() => document.querySelectorAll('#bubbles .bubble').length === 0, null, { polling: POLL_MS, timeout: (B.sec + B.staggerSec) * 1000 + 2000 });
+    await page.waitForFunction(() => document.querySelectorAll('#bubbles .bubble').length === 0, null, { polling: POLL_MS, timeout: (B.sec + B.staggerSec) * 1000 + BUSY_WAIT_MS });
   } catch {
     expect(false, 'the bubbles never went away');
   }
@@ -122,7 +125,7 @@ async function checkBubbles(page: Page): Promise<number> {
 
 /** Waits (real time) until the phone shows this look. */
 async function waitForPhone(page: Page, look: string): Promise<void> {
-  await page.waitForFunction((l) => document.getElementById('phone')?.dataset.state === l, look, { polling: POLL_MS, timeout: 5000 });
+  await page.waitForFunction((l) => document.getElementById('phone')?.dataset.state === l, look, { polling: POLL_MS, timeout: BUSY_WAIT_MS });
 }
 
 /** A phone-size window: today with the card and the paper, then with the phone open. */
@@ -130,7 +133,7 @@ async function checkNarrow(page: Page): Promise<number> {
   const wide = page.viewportSize();
   await page.setViewportSize(NARROW);
   try {
-    await page.waitForFunction(() => document.documentElement.classList.contains('is-narrow'), null, { polling: POLL_MS, timeout: 3000 });
+    await page.waitForFunction(() => document.documentElement.classList.contains('is-narrow'), null, { polling: POLL_MS, timeout: BUSY_WAIT_MS });
     await restart(page);
     await fixCd(page, 'mira');
     await travel(page, 'present');

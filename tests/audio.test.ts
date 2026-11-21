@@ -14,9 +14,11 @@ function silentAudio(makeContext: () => AudioContext | null = () => null) {
 }
 
 /** The events this table covers, by name (so new events in GameEvents don't break this file). */
-type Covered = 'game-start' | 'mute' | 'travel' | 'action-done' | 'action-locked' | 'phone-open' | 'phone-close' | 'phone-move' | 'phone-select' | 'reputation';
+type Covered = 'game-start' | 'title' | 'cd-insert' | 'mute' | 'travel' | 'action-done' | 'action-locked' | 'phone-open' | 'phone-close' | 'phone-move' | 'phone-select' | 'reputation';
 const PAYLOADS: { [K in Covered]: GameEvents[K] } = {
   'game-start': {},
+  title: {},
+  'cd-insert': { cd: 'mira' },
   mute: {},
   travel: { to: 'ringtone', era: '2004', moment: 'ringtone' },
   'action-done': { actionId: 'mira_take_cd', cd: 'mira' },
@@ -77,7 +79,7 @@ describe('createAudio', () => {
     const { events, audio } = silentAudio();
     const expected: [Covered, string][] = [
       ['phone-open', 'flip-open'], ['phone-move', 'beep'], ['phone-select', 'blip'], ['travel', 'whoosh'],
-      ['action-done', 'chime'], ['action-locked', 'nope'], ['reputation', 'fanfare'], ['phone-close', 'flip-close'],
+      ['action-done', 'chime'], ['action-locked', 'nope'], ['reputation', 'remaster'], ['phone-close', 'flip-close'],
     ];
     for (const [name, cue] of expected) {
       events.emit(name, PAYLOADS[name]);
@@ -136,8 +138,8 @@ describe('createAudio', () => {
 });
 
 describe('tuning', () => {
-  it('the fanfare waits until the travel whoosh is nearly over', () => {
-    expect(T.audio.fanfare.delaySec).toBeGreaterThan(T.audio.whoosh.sec / 2);
-    expect(T.audio.fanfare.delaySec).toBeLessThanOrEqual(T.audio.whoosh.sec);
+  it('the remaster sting starts while the travel whoosh fades, not on top of its start', () => {
+    expect(T.audio.remaster.delaySec).toBeGreaterThan(T.audio.whoosh.sec / 3);
+    expect(T.audio.remaster.delaySec).toBeLessThanOrEqual(T.audio.whoosh.sec);
   });
 });

@@ -1,6 +1,7 @@
 // content.ts — builds the whole story from content.json + one file per CD.
 // It also makes the "today" changes for you:
-//   gold_<cd>       when that CD's last action is done (shows the prop gold_<cd>)
+//   gold_<cd>       when that CD's last action is done (shows the prop gold_<cd>, and the CD by the
+//                   CD player turns gold: see src/story/cdplayer.ts)
 //   reputation      levels from content.json, when enough CDs are fixed
 // Add a CD: create src/story/cds/<id>.json and add one import + list entry below.
 
@@ -8,6 +9,7 @@ import base from './content.json' with { type: 'json' };
 import kbit from './cds/kbit.json' with { type: 'json' };
 import mira from './cds/mira.json' with { type: 'json' };
 import staticCd from './cds/static.json' with { type: 'json' };
+import { cdObjectId, goldCdObjectId } from './cdplayer.ts';
 import type { Article, BaseContent, CdFile, LoadedCd, PastAction, PresentChange, StoryContent } from './types.ts';
 
 /** The CDs, in the order they appear in the phone menu. */
@@ -25,7 +27,7 @@ function goldChange(cd: LoadedCd): PresentChange {
     label: `${cd.artist}'s "${cd.title}" went gold`,
     requires: [cd.finalAction],
     line: cd.today ?? `${cd.artist}'s "${cd.title}" went gold.`,
-    effects: { show: [`gold_${cd.id}`], hide: [] },
+    effects: { show: [`gold_${cd.id}`, goldCdObjectId(cd.id)], hide: [cdObjectId(cd.id)] },
   };
 }
 
@@ -43,6 +45,8 @@ export function buildContent(shared: BaseContent, files: CdFile[]): StoryContent
   return {
     intro: shared.intro,
     travelLines: shared.travelLines,
+    fixedSituation: shared.fixedSituation,
+    cdPlayer: shared.cdPlayer,
     alreadyDoneLine: shared.alreadyDoneLine,
     notHereLine: shared.notHereLine,
     ending: shared.ending,

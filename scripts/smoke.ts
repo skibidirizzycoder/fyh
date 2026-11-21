@@ -5,9 +5,10 @@
 // 2. Serves both with `vite preview`.
 // 3. Shipped build: must load with no errors and must NOT expose window.__game.
 // 4. Test build: proves walking follows the facing and that solid props stop the player,
-//    plays the pitch route with REAL key presses (phone menu, walking, E), times it,
-//    fixes the remaining CDs, reaches the ending, then runs each teammate's checks
-//    (scripts/checks/*.ts).
+//    plays the pitch route with REAL key presses (walk to a CD at the CD player and press E to
+//    travel, walk to each object and press E, the phone home), times it, fixes the remaining
+//    CDs, reaches the ending, measures the looks (grade, retro pixels, ink outlines), then runs
+//    each teammate's checks (scripts/checks/*.ts).
 // The newspaper endpoint is faked in the browser, and the server's Snowflake
 // variables are blanked, so the smoke test never touches the network.
 // Any console error, page error, outside network request or missed state change fails the run.
@@ -18,9 +19,11 @@ import { createServer } from 'node:net';
 import { chromium, type BrowserContext, type Page } from 'playwright';
 import { build, preview, type PreviewServer } from 'vite';
 import type { Snapshot } from '../src/debug.ts';
+import { cdObjectId, fillCdText } from '../src/story/cdplayer.ts';
 import { content } from '../src/story/content.ts';
 import { T } from '../src/tuning.ts';
 import { PROPS } from '../src/world/layout.ts';
+import { lookFor, renderSize } from '../src/world/look.ts';
 import { checkAudio } from './checks/audio.ts';
 import { checkKbit } from './checks/kbit.ts';
 import { checkMira } from './checks/mira.ts';
@@ -30,15 +33,18 @@ import { checkStatic } from './checks/static.ts';
 import { checkTodayShop } from './checks/today.ts';
 import { checkUi } from './checks/ui.ts';
 import {
-  contrast, expect, hold, interact, measureContrast, phoneTo, placePlayer, restart, sceneMean, screenshot,
-  state, step, travel, waitForNews, walkTo, type Check,
+  contrast, expect, hold, inPage, interact, measureContrast, phoneTo, placePlayer, restart, sceneMean, screenshot,
+  SHOT_TIMEOUT_MS, state, step, travel, waitForNews, walkTo, type Check,
 } from './checks/tools.ts';
 
 // Ports are picked free at start, so several agents can run smoke on one machine at once.
 const PROD = { outDir: 'dist', port: 0 };
 const TEST = { outDir: 'dist-test', port: 0 };
+const VIEWPORT = { width: 1280, height: 720 }; // device pixel ratio 1
 const STEP = 1 / T.loop.stepsPerSecond;
 const READ_FRAMES = Math.round(T.pitch.readSec * T.loop.stepsPerSecond);
+const INSERT_FRAMES = Math.round(T.cdPlayer.insertSec * T.loop.stepsPerSecond);
+const UP_TO_SPEED = Math.ceil(T.player.accelSec * T.loop.stepsPerSecond) + 1; // W held this long: walking at full speed
 const started = Date.now();
 const TEAM_CHECKS: Record<string, Check> = {
   phone: checkPhone, static: checkStatic, mira: checkMira, ui: checkUi, // Teammate A
@@ -112,19 +118,35 @@ function watchErrors(page: Page, errors: string[], label: string): void {
 /** The shipped build loads cleanly and hides the debug API. */
 async function checkShippedBuild(page: Page): Promise<void> {
   await page.goto(`http://localhost:${PROD.port}/`);
-  await page.locator('canvas').waitFor();
+  await page.locator('canvas').waitFor({ timeout: SHOT_TIMEOUT_MS }); // slow to appear on a busy software GPU
   await page.locator('#title').waitFor();
   expect(await page.evaluate(() => window.__game === undefined), 'window.__game exists in the shipped build');
   expect((await page.locator('#fallback').count()) === 0, 'shipped build showed the fallback message');
 }
 
-/** Proves W moves exactly speed*time along the facing at several headings. */
+/**
+ * Real keys: holds W from standing, and from the moment it is up to full speed for `frames` more
+ * steps. Returns the state at full speed and at the end; W stays held throughout.
+ */
+function walkAtFullSpeed(page: Page, frames: number): Promise<{ from: Snapshot; to: Snapshot }> {
+  return inPage(page, (a) => {
+    const g = window.__game;
+    if (!g) return undefined;
+    g.press('KeyW');
+    const from = g.step(a.upToSpeed);
+    const to = g.step(a.frames);
+    g.release('KeyW');
+    return { from, to };
+  }, { upToSpeed: UP_TO_SPEED, frames });
+}
+
+/** Proves W moves exactly speed*time along the facing at several headings, once it is up to speed. */
 async function checkHeadings(page: Page): Promise<number> {
-  const frames = 30; // 1.5 m: the start spot is that clear of props in every direction (today)
+  const frames = 20; // 1 m at full speed (plus the speed-up): the start spot is that clear of props in every direction (today)
   const yaws = [0, 90, 180, -90];
   for (const yaw of yaws) {
-    const before = await placePlayer(page, T.player.startX, T.player.startZ, yaw);
-    const after = await hold(page, 'KeyW', frames);
+    await placePlayer(page, T.player.startX, T.player.startZ, yaw);
+    const { from: before, to: after } = await walkAtFullSpeed(page, frames);
     const expected = T.player.speed * frames * STEP;
     const dx = after.player.x - before.player.x;
     const dz = after.player.z - before.player.z;
@@ -146,20 +168,37 @@ async function checkCollisions(page: Page): Promise<{ stopZ: number; slideX: num
   expect(wall !== undefined, 'no shop_wall prop');
   if (!wall) return { stopZ: 0, slideX: 0 };
   const stopAt = wall.pos[2] + wall.size[2] / 2 + T.player.radius;
-  const x = 1; // between the shop window and the door: only the wall itself is in the way
+  const x = 0.7; // between the shop window and the door: only the wall itself is in the way (and the slide stays clear of the door)
   await placePlayer(page, x, stopAt + 1, 0); // 1 m in front, facing the wall
   const head = await hold(page, 'KeyW', T.loop.stepsPerSecond); // 1 s = 3 m of walking
   expect(Math.abs(head.player.z - stopAt) < 1e-6 && Math.abs(head.player.x - x) < 1e-6,
     `walking into the shop wall: player at (${head.player.x.toFixed(3)}, ${head.player.z.toFixed(3)}), expected (${x}, ${stopAt.toFixed(3)})`);
-  const frames = 10; // 0.35 m of sliding: stays clear of the door
+  const frames = 10; // 0.35 m of sliding at full speed, after ~0.2 m speeding up: stays clear of the door
   const slid = await hold(page, 'KeyW', frames); // still facing the wall: nothing moves
   expect(Math.abs(slid.player.z - stopAt) < 1e-6, 'the player went into the wall');
   await placePlayer(page, x, stopAt, -45); // facing the wall and +X (towards the door)
-  const angled = await hold(page, 'KeyW', frames);
-  const expectedX = x + Math.SQRT1_2 * T.player.speed * frames * STEP;
+  const { from, to: angled } = await walkAtFullSpeed(page, frames);
+  const expectedX = from.player.x + Math.SQRT1_2 * T.player.speed * frames * STEP;
   expect(Math.abs(angled.player.z - stopAt) < 1e-6 && Math.abs(angled.player.x - expectedX) < 1e-6,
     `sliding along the shop wall: player at (${angled.player.x.toFixed(3)}, ${angled.player.z.toFixed(3)}), expected (${expectedX.toFixed(3)}, ${stopAt.toFixed(3)})`);
-  return { stopZ: Math.round(head.player.z * 1000) / 1000, slideX: Math.round((angled.player.x - x) * 1000) / 1000 };
+  return { stopZ: Math.round(head.player.z * 1000) / 1000, slideX: Math.round((angled.player.x - from.player.x) * 1000) / 1000 };
+}
+
+/** Today, facing a CD at the CD player: the HUD's E prompt says what it does, readably. */
+async function checkCdPrompt(page: Page): Promise<string> {
+  const mira = content.cds.find((c) => c.id === 'mira');
+  const cd = PROPS.find((p) => p.id === cdObjectId('mira'));
+  expect(mira !== undefined && cd !== undefined, 'no Mira CD at the CD player');
+  if (!mira || !cd) return '';
+  await placePlayer(page, cd.pos[0], cd.pos[2] + 1.3, 0); // just in front of it, facing it (-Z)
+  const s = await step(page, 1);
+  expect(s.target === cdObjectId('mira'), `facing Mira's CD, the target is ${s.target}`);
+  const text = (await page.locator('#prompt').textContent()) ?? '';
+  const want = fillCdText(content.cdPlayer.prompt, mira);
+  expect(await page.locator('#prompt').isVisible() && text.includes(want), `prompt says "${text}", expected "${want}"`);
+  await measureContrast(page, '#prompt', 'cdPrompt');
+  await screenshot(page, 'cd-prompt');
+  return text;
 }
 
 /** The endpoint is too slow: after exactly the timeout, the offline edition appears. */
@@ -179,15 +218,32 @@ async function checkOfflineEdition(page: Page): Promise<number> {
   return ms;
 }
 
-/** Real input: fixes one CD in its moment (phone there, walk to each object, E). Returns frames used. */
+/**
+ * Real input, today: walk to a CD at the CD player and press E. The CD goes in at once
+ * (cd-insert), and you arrive in its moment exactly T.cdPlayer.insertSec of game steps later.
+ */
+async function insertCdByHand(page: Page, cdId: string, moment: string, first: boolean): Promise<Snapshot> {
+  let s = await state(page);
+  expect(s.phone.locked.includes(moment), `${moment} should be locked on the phone before its CD goes in (locked: ${s.phone.locked.join()})`);
+  if (first) await screenshot(page, 'cd-player');
+  const r = await walkTo(page, cdObjectId(cdId));
+  expect(r.ok && r.state.inserting === cdId && r.state.era === 'present', `could not put ${cdId}'s CD in the player (target ${r.state.target}, inserting ${r.state.inserting})`);
+  expect(r.state.events.includes('cd-insert'), `no cd-insert event: ${r.state.events.join()}`);
+  s = await step(page, INSERT_FRAMES - 1);
+  expect(s.era === 'present', `arrived before the CD was in (after ${INSERT_FRAMES - 1} of ${INSERT_FRAMES} frames)`);
+  s = await step(page, 1);
+  expect(s.era === '2004' && s.moment === moment, `the CD player did not take us to ${moment} (${s.era}/${s.moment})`);
+  return s;
+}
+
+/** Real input: fixes one CD in its moment (CD player there, walk to each object, E). Returns frames used. */
 async function fixCdByHand(page: Page, cdId: string, first: boolean): Promise<number> {
   const cd = content.cds.find((c) => c.id === cdId);
   const actions = content.actions.filter((a) => a.cd === cdId);
   expect(cd !== undefined && actions.length > 0, `unknown CD "${cdId}"`);
   if (!cd) return 0;
   const startFrame = (await state(page)).frame;
-  let s = await phoneTo(page, cd.moment);
-  expect(s.era === '2004' && s.moment === cd.moment, `phone did not take us to ${cd.moment} (${s.era}/${s.moment})`);
+  let s = await insertCdByHand(page, cdId, cd.moment, first);
   expect(!s.visibleMeshes.includes('ev_charger'), `${cd.moment}: today's props are showing`);
   await step(page, READ_FRAMES);
   if (first) {
@@ -222,6 +278,9 @@ async function returnToday(page: Page, cdId: string, level: number): Promise<{ f
   expect(s.reputation === level, `reputation ${s.reputation}, expected ${level}`);
   expect(s.card.visible && s.card.changes.includes(`gold_${cdId}`), `card does not explain ${cdId}: ${JSON.stringify(s.card)}`);
   expect(s.drawCalls > 0 && s.drawCalls <= T.limits.maxDrawCalls, `draw calls ${s.drawCalls} (max ${T.limits.maxDrawCalls})`);
+  expect(s.visibleMeshes.includes(`today_cd_${cdId}_gold`) && !s.visibleMeshes.includes(cdObjectId(cdId)), `${cdId}'s CD by the player did not turn gold`);
+  const moment = content.cds.find((c) => c.id === cdId)?.moment ?? '';
+  expect(!s.phone.locked.includes(moment), `${moment} is still locked on the phone after fixing it`);
   s = await state(page);
   return { frames: s.frame - before, s };
 }
@@ -310,6 +369,108 @@ async function checkLooks(page: Page): Promise<Record<string, number[]>> {
   return means;
 }
 
+/** A part of the 3D scene clear of every HUD panel (era badge, paper, card, prompt, dialogue). */
+const SCENE_CLIP = { x: 400, y: 100, width: 480, height: 400 };
+
+/** Rendered pixels of the scene: most distinct values in one channel, and the shortest run of equal pixels in a row or column. */
+async function pixelStats(page: Page): Promise<{ levels: number; shortestRun: number }> {
+  const png = await page.screenshot({ clip: SCENE_CLIP, animations: 'disabled' });
+  return page.evaluate(async (b64) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    await img.decode();
+    const [w, h] = [img.width, img.height];
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const g = c.getContext('2d');
+    if (!g) throw new Error('2D canvas unavailable for pixelStats');
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, w, h).data;
+    const levels = Math.max(...[0, 1, 2].map((k) => new Set(d.filter((_, i) => i % 4 === k)).size));
+    const same = (a: number, b: number): boolean => d[a] === d[b] && d[a + 1] === d[b + 1] && d[a + 2] === d[b + 2];
+    let shortestRun = Infinity;
+    // Runs along each row (step 1 pixel) and each column (step w pixels); the cut-off runs at the edges do not count.
+    const lines = [...Array.from({ length: h }, (_, y) => ({ start: y * w, step: 1, n: w })),
+      ...Array.from({ length: w }, (_, x) => ({ start: x, step: w, n: h }))];
+    for (const { start, step, n } of lines) {
+      let run = 1;
+      let atEdge = true;
+      for (let k = 1; k < n; k++) {
+        if (same((start + k * step) * 4, (start + (k - 1) * step) * 4)) run++;
+        else {
+          if (!atEdge) shortestRun = Math.min(shortestRun, run);
+          atEdge = false;
+          run = 1;
+        }
+      }
+    }
+    return { levels, shortestRun };
+  }, png.toString('base64'));
+}
+
+/** 2004 is drawn with chunky pixels and few colour levels; today has single pixels and smooth colour. */
+async function checkRetro(page: Page): Promise<Record<string, unknown>> {
+  const moment = content.cds[0]?.moment ?? '';
+  const look = lookFor('2004', moment); // each moment has its own year's pixels
+  expect(look.pixelHeight > 0, `${moment} is not a pixelated moment: pick one for the retro check`);
+  const { scale, height } = renderSize(VIEWPORT.width, VIEWPORT.height, look.pixelHeight);
+  await travel(page, moment);
+  const past = await pixelStats(page);
+  expect(past.levels <= look.colorLevels, `2004 shows ${past.levels} levels in one colour channel, max ${look.colorLevels}`);
+  expect(past.shortestRun >= Math.max(2, scale - 1), `2004 has a run of ${past.shortestRun} equal pixels: not chunky (scale ${scale})`);
+  await travel(page, 'present');
+  const today = await pixelStats(page);
+  expect(today.shortestRun === 1 && today.levels > look.colorLevels, `today is not crisp: ${JSON.stringify(today)}`);
+  return { lines: height, scale, past, today };
+}
+
+/** A pixel counts as inked when the outlines make it at least this much darker (luminance, 0-255). */
+const INK_DROP = 20;
+/** Share of the scene's pixels the outlines must ink: some (lines are drawn), never most (noise). */
+const INK_SHARE = { min: 0.005, max: 0.25 };
+
+/** Share of SCENE_CLIP's pixels that the ink outlines darken, measured on the same frame with them off, then on. */
+async function inkedShare(page: Page): Promise<number> {
+  const shot = (): Promise<Buffer> => page.screenshot({ clip: SCENE_CLIP, animations: 'disabled', timeout: SHOT_TIMEOUT_MS });
+  await inPage(page, (on) => window.__game?.outlines(on), false);
+  const off = await shot();
+  await inPage(page, (on) => window.__game?.outlines(on), true);
+  const on = await shot();
+  return page.evaluate(async ({ a, b, drop }) => {
+    const pixels = async (b64: string): Promise<Uint8ClampedArray> => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.width;
+      c.height = img.height;
+      const g = c.getContext('2d');
+      if (!g) throw new Error('2D canvas unavailable for inkedShare');
+      g.drawImage(img, 0, 0);
+      return g.getImageData(0, 0, c.width, c.height).data;
+    };
+    const [x, y] = [await pixels(a), await pixels(b)];
+    const luma = (d: Uint8ClampedArray, i: number): number => 0.2126 * (d[i] ?? 0) + 0.7152 * (d[i + 1] ?? 0) + 0.0722 * (d[i + 2] ?? 0);
+    let inked = 0;
+    for (let i = 0; i < x.length; i += 4) if (luma(x, i) - luma(y, i) > drop) inked++;
+    return inked / (x.length / 4);
+  }, { a: off.toString('base64'), b: on.toString('base64'), drop: INK_DROP });
+}
+
+/** Today and a 2004 moment both get ink outlines: a few percent of the scene, not a mess. */
+async function checkOutlines(page: Page): Promise<Record<string, number>> {
+  const shares: Record<string, number> = {};
+  for (const to of ['present', content.cds[0]?.moment ?? '']) {
+    await travel(page, to);
+    const share = await inkedShare(page);
+    expect(share >= INK_SHARE.min && share <= INK_SHARE.max,
+      `${to}: the ink outlines darken ${(share * 100).toFixed(2)}% of the scene, expected ${INK_SHARE.min * 100}-${INK_SHARE.max * 100}%`);
+    shares[to] = Math.round(share * 10000) / 100; // percent
+  }
+  return shares;
+}
+
 /** Plays the whole demo in the test build. */
 async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
   await page.goto(`http://localhost:${TEST.port}/`);
@@ -323,11 +484,14 @@ async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
   await measureContrast(page, '#dialogue', 'dialoguePresent');
   const headings = await checkHeadings(page);
   const collisions = await checkCollisions(page);
+  const cdPrompt = await checkCdPrompt(page);
   const offlineMs = await checkOfflineEdition(page);
   const pitch = await playPitchRoute(page);
   await checkToday(page, pitch.s);
   const frames = await finishGame(page);
   const looks = await checkLooks(page);
+  const retro = await checkRetro(page);
+  const outlines = await checkOutlines(page);
   const team: Record<string, unknown> = {};
   for (const [name, check] of Object.entries(TEAM_CHECKS)) {
     try {
@@ -337,7 +501,7 @@ async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
     }
   }
   const news = { headline: pitch.s.news.status === 'ready' ? pitch.s.news.headline : '', apiCalls: api.calls.length, offlineMs };
-  return { headings, collisions, pitchSec: pitch.sec, drawCalls: pitch.s.drawCalls, frames, flags: pitch.s.flags, news, looks, team };
+  return { headings, collisions, cdPrompt, pitchSec: pitch.sec, drawCalls: pitch.s.drawCalls, frames, flags: pitch.s.flags, news, looks, retro, outlines, team };
 }
 
 /** Runs everything and prints one JSON line. */
@@ -354,7 +518,7 @@ async function main(): Promise<void> {
     PROD.port = await freePort();
     TEST.port = await freePort();
     servers.push(await serve(PROD.outDir, PROD.port), await serve(TEST.outDir, TEST.port));
-    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+    const context = await browser.newContext({ viewport: VIEWPORT });
     await mockNewsApi(context);
     blockOutsideNetwork(context, errors);
     const prodPage = await context.newPage();

@@ -9,6 +9,8 @@ import type { Era } from '../tuning.ts';
 /** Every event and the data it carries. */
 export interface GameEvents {
   'game-start': Record<string, never>; // Enter pressed on the title (a good moment to start audio)
+  title: Record<string, never>; // the game went (back) to the title: at start-up, after "play again", on restart
+  'cd-insert': { cd: string }; // a CD went into the CD player today (cd = its id, e.g. "mira"); the travel follows T.cdPlayer.insertSec later
   travel: { to: string; era: Era; moment: string | null }; // to = a moment id or "present"
   'action-done': { actionId: string; cd: string | null };
   'action-locked': { actionId: string; missing: string[] };
@@ -18,6 +20,7 @@ export interface GameEvents {
   'phone-select': { target: string };
   reputation: { level: number }; // the shop's reputation went up (number of CDs fixed)
   mute: Record<string, never>; // M pressed
+  area: { id: string; title: string }; // the player walked into an area of the street, or arrived somewhere (T.areas)
 }
 
 export type EventName = keyof GameEvents;

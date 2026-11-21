@@ -8,6 +8,7 @@ export const KEY_MAP = {
   back: ['KeyS', 'ArrowDown'],
   turnLeft: ['KeyA', 'ArrowLeft'],
   turnRight: ['KeyD', 'ArrowRight'],
+  run: ['ShiftLeft', 'ShiftRight'], // hold to run
   interact: ['KeyE', 'Mouse0'],
   phone: ['KeyQ'], // flip the phone open or closed
   start: ['Enter', 'Space'],
