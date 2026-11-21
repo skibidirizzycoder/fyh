@@ -118,7 +118,7 @@ function watchErrors(page: Page, errors: string[], label: string): void {
 /** The shipped build loads cleanly and hides the debug API. */
 async function checkShippedBuild(page: Page): Promise<void> {
   await page.goto(`http://localhost:${PROD.port}/`);
-  await page.locator('canvas').waitFor();
+  await page.locator('canvas').waitFor({ timeout: SHOT_TIMEOUT_MS }); // slow to appear on a busy software GPU
   await page.locator('#title').waitFor();
   expect(await page.evaluate(() => window.__game === undefined), 'window.__game exists in the shipped build');
   expect((await page.locator('#fallback').count()) === 0, 'shipped build showed the fallback message');
