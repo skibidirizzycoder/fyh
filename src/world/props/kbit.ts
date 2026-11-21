@@ -6,7 +6,7 @@
 
 import { T } from '../../tuning.ts';
 import type { Prop } from '../layout.ts';
-import { GAP, PAST, standOn } from './helpers.ts';
+import { GAP, PAST, mountOn, standOn } from './helpers.ts';
 
 const M = ['ringtone'];
 const K = T.kbit;
@@ -33,6 +33,10 @@ const SIGN_X = -4.6;
 const SIGN_Z = 0.85;
 const POLE_H = 2;
 const SIGN = [0.6, 0.6, 0.08] as const;
+const SIGN_Y = standOn(standOn(0, POLE_H) + POLE_H / 2, SIGN[1]);
+const BAND = [0.5, 0.16, 0.02] as const; // the white "BUS" band across the sign's front
+const TIMETABLE = [0.4, 0.55, 0.03] as const; // on the pole, at reading height
+const POLE_D = 0.08;
 
 // --- DJ K-Bit: a body, headphones on top, his phone held out towards the street ---
 const KBIT_X = -3.8;
@@ -40,7 +44,7 @@ const KBIT_Z = 0.6;
 const KBIT_D = 0.5;
 const KBIT_H = 1.7;
 const HEADPHONES = [0.6, 0.12, 0.2] as const;
-const KBIT_PHONE = [0.12, 0.2, 0.06] as const;
+const KBIT_PHONE = [0.18, 0.3, 0.08] as const; // big enough to read as "a phone" from the start
 
 const queue: Prop[] = QUEUE_Z.flatMap((z, i): Prop[] => [
   { id: `kbit_person_${i + 1}`, shape: 'cylinder', eras: PAST, moments: M, pos: [SHELTER_X, standOn(0, PERSON_H), z], size: [PERSON_D, PERSON_H, PERSON_D], color: K.people[i % K.people.length] ?? K.kbitBody },
@@ -53,8 +57,10 @@ export const KBIT_PROPS: readonly Prop[] = [
   { id: 'kbit_shelter_post_2', shape: 'cylinder', eras: PAST, moments: M, pos: [frontX, standOn(0, SHELTER_H), SHELTER_Z + SHELTER_LENGTH / 2 - 0.05], size: [0.08, SHELTER_H, 0.08], color: K.shelterFrame },
   { id: 'kbit_shelter_roof', shape: 'box', eras: PAST, moments: M, pos: [SHELTER_X, standOn(shelterTop, 0.1), SHELTER_Z], size: [SHELTER_DEPTH + 0.1, 0.1, SHELTER_LENGTH + 0.2], color: K.shelterRoof },
   ...queue,
-  { id: 'kbit_sign_pole', shape: 'cylinder', eras: PAST, moments: M, pos: [SIGN_X, standOn(0, POLE_H), SIGN_Z], size: [0.08, POLE_H, 0.08], color: K.signPole },
-  { id: 'kbit_bus_stop', shape: 'box', eras: PAST, moments: M, pos: [SIGN_X, standOn(standOn(0, POLE_H) + POLE_H / 2, SIGN[1]), SIGN_Z], size: SIGN, color: K.sign, interactable: true },
+  { id: 'kbit_sign_pole', shape: 'cylinder', eras: PAST, moments: M, pos: [SIGN_X, standOn(0, POLE_H), SIGN_Z], size: [POLE_D, POLE_H, POLE_D], color: K.signPole },
+  { id: 'kbit_bus_stop', shape: 'box', eras: PAST, moments: M, pos: [SIGN_X, SIGN_Y, SIGN_Z], size: SIGN, color: K.sign, interactable: true },
+  { id: 'kbit_sign_band', shape: 'box', eras: PAST, moments: M, pos: [SIGN_X, SIGN_Y + 0.08, mountOn(SIGN_Z + SIGN[2] / 2, BAND[2])], size: BAND, color: K.signBand },
+  { id: 'kbit_timetable', shape: 'box', eras: PAST, moments: M, pos: [SIGN_X, 1.35, mountOn(SIGN_Z + POLE_D / 2, TIMETABLE[2])], size: TIMETABLE, color: K.timetable },
   { id: 'kbit_body', shape: 'cylinder', eras: PAST, moments: M, pos: [KBIT_X, standOn(0, KBIT_H), KBIT_Z], size: [KBIT_D, KBIT_H, KBIT_D], color: K.kbitBody },
   { id: 'kbit_headphones', shape: 'box', eras: PAST, moments: M, pos: [KBIT_X, standOn(standOn(0, KBIT_H) + KBIT_H / 2, HEADPHONES[1]), KBIT_Z], size: HEADPHONES, color: K.headphones },
   { id: 'kbit_phone', shape: 'box', eras: PAST, moments: M, pos: [KBIT_X + KBIT_D / 2 + GAP + KBIT_PHONE[0] / 2, 1.2, KBIT_Z], size: KBIT_PHONE, color: K.kbitPhone, interactable: true },

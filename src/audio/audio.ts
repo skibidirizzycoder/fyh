@@ -45,9 +45,11 @@ export interface GameAudio {
   dispose(): void;
 }
 
-/** The cue for a finished action: the ringtone for K-Bit's bus stop, a chime otherwise. */
+/** The cue for a finished action: K-Bit's beam and ringtone are special, everything else chimes. */
 export function actionCue(actionId: string): CueName {
-  return (T.audio.ringtoneActions as readonly string[]).includes(actionId) ? 'ringtone' : 'chime';
+  if ((T.audio.ringtoneActions as readonly string[]).includes(actionId)) return 'ringtone';
+  if ((T.audio.beamActions as readonly string[]).includes(actionId)) return 'beam';
+  return 'chime';
 }
 
 /** Cues that wait a moment so they don't land on top of the travel whoosh. */

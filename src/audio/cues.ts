@@ -4,9 +4,9 @@
 
 import { T } from '../tuning.ts';
 
-export type CueName = 'beep' | 'blip' | 'flip-open' | 'flip-close' | 'ringtone' | 'whoosh' | 'chime' | 'nope' | 'fanfare';
+export type CueName = 'beep' | 'blip' | 'flip-open' | 'flip-close' | 'ringtone' | 'whoosh' | 'chime' | 'nope' | 'fanfare' | 'beam';
 
-export const CUE_NAMES: readonly CueName[] = ['beep', 'blip', 'flip-open', 'flip-close', 'ringtone', 'whoosh', 'chime', 'nope', 'fanfare'];
+export const CUE_NAMES: readonly CueName[] = ['beep', 'blip', 'flip-open', 'flip-close', 'ringtone', 'whoosh', 'chime', 'nope', 'fanfare', 'beam'];
 
 /** One oscillator note. `toNote` slides the pitch during the note. */
 export interface Tone {
@@ -65,6 +65,18 @@ function ringtone(): Cue {
   return { tones, noises: [] };
 }
 
+/** The infrared beam: two tones flicking back and forth (the handshake), then a "got it" blip. */
+function beam(): Cue {
+  const b = T.audio.beam;
+  const wave = b.wave as OscillatorType;
+  const chirps = Array.from({ length: b.chirps }, (_, i) => ({
+    at: i * b.chirpSec, sec: b.chirpSec, note: b.notes[i % b.notes.length] ?? 0, wave, gain: b.gain,
+  }));
+  const end = b.chirps * b.chirpSec;
+  const done = b.doneNotes.map((note, i) => ({ at: end + i * b.doneGapSec, sec: b.doneSec, note, wave, gain: b.doneGain }));
+  return { tones: [...chirps, ...done], noises: [] };
+}
+
 /** Builds the data for one cue. */
 export function buildCue(name: CueName): Cue {
   const a = T.audio;
@@ -87,6 +99,8 @@ export function buildCue(name: CueName): Cue {
       return arpeggio(a.nope);
     case 'fanfare':
       return arpeggio(a.fanfare);
+    case 'beam':
+      return beam();
   }
 }
 
