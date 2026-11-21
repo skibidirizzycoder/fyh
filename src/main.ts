@@ -15,6 +15,7 @@ import { propOverrides } from './story/timeline.ts';
 import { validateContent } from './story/validate.ts';
 import { T } from './tuning.ts';
 import { createHud, showFallback } from './ui/hud.ts';
+import { createTv } from './ui/tv.ts';
 import { buildWorld } from './world/build.ts';
 import { GROUND, PROPS } from './world/layout.ts';
 import { lookFor } from './world/look.ts';
@@ -54,6 +55,7 @@ function boot(): void {
   const post = createPostFilter(1, 1);
   const hud = createHud(app, content, news);
   const phone = createPhoneView(app);
+  const tv = createTv(app, audio); // each CD's real song, from its official YouTube video
   let drawCalls = 0;
 
   function resize(): void {
@@ -79,6 +81,7 @@ function boot(): void {
     drawCalls = renderer.info.render.calls;
     hud.render(game);
     phone.render(s.phone);
+    tv.update();
   }
 
   const loop = createLoop({

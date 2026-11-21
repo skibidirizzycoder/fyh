@@ -1,0 +1,22 @@
+/* tv.css — the shop TV (src/ui/tv.ts). The YouTube player inside must stay fully visible and uncovered:
+   no rounded clipping, no overlay, and it sits above every other screen element. */
+#tv {
+  position: absolute;
+  left: var(--tv-left);
+  bottom: var(--tv-bottom); /* above the dialogue's tallest (three-line) box */
+  z-index: 20;
+  padding: 10px 10px 8px;
+  background: var(--tv-frame);
+  border-radius: 14px;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35); /* no tilt: the player is shown exactly as YouTube draws it */
+}
+#tv[hidden] { display: none; }
+.tv-screen { width: var(--tv-screen); height: var(--tv-screen); background: #000; }
+.tv-screen iframe { display: block; border: 0; }
+.tv-label {
+  margin: 6px 0 0;
+  max-width: var(--tv-screen);
+  color: var(--tv-text);
+  font: 700 12px/1.3 var(--font, sans-serif);
+  text-align: center;
+}

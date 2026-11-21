@@ -191,3 +191,15 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
 - Moment ids (`open_mic`, `street_gig`, `ringtone`) and every prop/action id are unchanged. Dates in
   checks now come from the story files (`scripts/checks/phone.ts`); `shortDate` moved to
   `src/ui/dates.ts` so Node checks can import it without CSS.
+
+## The shop TV (lead's request, 2026-11-21)
+
+- The real songs now play from their **official YouTube videos** on a small "shop TV" (`src/ui/tv.ts`,
+  `T.tv`): Lose Yourself (EminemMusic), Sweet Child O' Mine (GunsNRosesVEVO), Despacito (LuisFonsiVEVO).
+  The TV follows the music rules (`audio.nowPlaying()`): volume by mode, the broken amp cuts in and out.
+- YouTube's embed rules: the player is never hidden or covered (200 x 200, z-index above everything,
+  no tilt), so the TV shows only while a song plays and pauses otherwise. Not shown on narrow screens.
+- No network until a song is wanted; off in test builds (smoke blocks outside network). If YouTube
+  fails or times out (`T.tv.apiTimeoutSec`), or a video won't embed, that CD plays its CC stand-in
+  (`audio.external()` in Teammate B's audio silences the built-in song only while the TV covers it).
+- To do by ear: `T.tv.videos[cd].startSec / lengthSec` (all start at 0:00 and play to the end).

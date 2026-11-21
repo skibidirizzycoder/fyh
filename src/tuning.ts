@@ -245,6 +245,24 @@ export const T = {
   },
 
   // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
+  tv: {
+    // The shop TV (src/ui/tv.ts): each CD's real song from its official YouTube video. Owner: Teammate A.
+    // YouTube's embed rules: the player stays visible, at least 200 x 200 px, and nothing covers it.
+    enabled: true,
+    apiUrl: 'https://www.youtube.com/iframe_api',
+    apiTimeoutSec: 8, // no YouTube by then: the CDs play their Creative Commons stand-ins
+    screenPx: 200,
+    leftPx: 16,
+    bottomPx: 150, // clear of the dialogue box (three lines reach ~134 px up)
+    frame: '#1f1d1b',
+    text: '#ffe14d',
+    volume: { '2004': 55, '2004-broken': 90, '2004-live': 100, '2004-leak': 15, today: 100 } as Record<string, number>, // 0-100, by music mode
+    videos: { // startSec / lengthSec (0 = to the end): the part that loops. Set by ear.
+      mira: { id: 'xFYQQPAOz7Y', startSec: 0, lengthSec: 0, credit: 'Lose Yourself · Eminem' },
+      static: { id: '1w7OgIMMRc4', startSec: 0, lengthSec: 0, credit: "Sweet Child O' Mine · Guns N' Roses" },
+      kbit: { id: 'kJQP7kiw5Fk', startSec: 0, lengthSec: 0, credit: 'Despacito · Luis Fonsi ft. Daddy Yankee' },
+    },
+  },
   moments: {
     open_mic: { // 14 March: evening, dusk light
       sky: '#7a5873', fogNear: 10, fogFar: 34, sunColor: '#ffb27a', sunIntensity: 1.5, ambient: 0.75,

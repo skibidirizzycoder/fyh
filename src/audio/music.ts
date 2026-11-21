@@ -16,6 +16,8 @@ export interface MusicPlayer {
   addSong(cd: string, buffer: AudioBuffer): void;
   /** Turns the music down for `sec` seconds, so a sound effect can be heard. */
   duck(sec: number): void;
+  /** CDs played outside Web Audio (the shop TV, src/ui/tv.ts): their song here stays silent. */
+  setExternal(cds: ReadonlySet<string>): void;
   stop(): void;
 }
 
@@ -139,16 +141,17 @@ export function createMusicPlayer(ctx: BaseAudioContext, out: AudioNode): MusicP
   bus.connect(ducker).connect(out);
   let voice: Voice | null = null;
   let wanted: { pick: NowPlaying | null; level: number } = { pick: null, level: 0 };
+  let external: ReadonlySet<string> = new Set();
 
   function apply(): void {
     const { pick, level } = wanted;
     const now = ctx.currentTime;
     const today = pick?.mode === 'today';
-    if (voice && (!pick || voice.cd !== pick.cd || voice.today !== today)) {
+    if (voice && (!pick || voice.cd !== pick.cd || voice.today !== today || external.has(voice.cd))) {
       fadeOut(voice, now);
       voice = null;
     }
-    if (!pick) return;
+    if (!pick || external.has(pick.cd)) return;
     const song = songs.get(pick.cd);
     if (!voice && song) voice = startVoice(ctx, bus, song, pick.cd, today);
     if (!voice) return; // the song has not loaded (or has no file): stay silent
@@ -168,6 +171,10 @@ export function createMusicPlayer(ctx: BaseAudioContext, out: AudioNode): MusicP
     addSong(cd, buffer) {
       songs.set(cd, buffer);
       if (wanted.pick?.cd === cd) apply();
+    },
+    setExternal(cds) {
+      external = cds;
+      apply();
     },
     duck(sec) {
       const now = ctx.currentTime;
