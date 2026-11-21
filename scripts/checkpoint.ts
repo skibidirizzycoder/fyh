@@ -3,6 +3,9 @@
 //   npm run checkpoint:play [-- <tag>]  anyone: build that checkpoint (default: the newest) in a
 //                                       separate folder (../<repo>-checkpoint) and serve it on port 4300,
 //                                       also on the local network (others on the same Wi-Fi can open it).
+// `npm run checkpoint` also deploys the gated build to Netlify, if this folder is linked (.netlify/,
+// made by the lead's `netlify login` + first deploy). Ships never deploy: the free plan has ~20
+// production deploys a month (15 of 300 credits each).
 // Every `npm run ship` also tags a checkpoint. checkpoint:play never touches your own branch or files,
 // and the checkpoint folder has no .env, so the newspaper is always the offline edition there.
 
@@ -12,6 +15,20 @@ import { basename, resolve } from 'node:path';
 import { checkpoints, tagCheckpoint } from './tag.ts';
 
 const PORT = 4300;
+const NETLIFY = 'npx -y netlify-cli@27.20.1';
+
+/** Deploys the gated production build (dist/) to the linked Netlify site. Skips if not linked. */
+function deployLive(tag: string): void {
+  if (!existsSync('.netlify/state.json')) {
+    console.log('checkpoint: no Netlify link here (.netlify/state.json), so no live deploy.');
+    return;
+  }
+  try {
+    run(`${NETLIFY} deploy --prod --no-build --dir dist --message ${tag}`);
+  } catch {
+    console.log('checkpoint: the Netlify deploy failed (the tag is still pushed). Try: npx netlify-cli status');
+  }
+}
 
 function run(cmd: string, cwd?: string): void {
   execSync(cmd, { stdio: 'inherit', cwd });
@@ -47,6 +64,7 @@ function make(): void {
     const smoke = JSON.parse(readFileSync('artifacts/smoke.json', 'utf8')) as { pitchSec?: number };
     const tag = tagCheckpoint(`${read('git log -1 --format=%s')} (gate ok, pitchSec ${smoke.pitchSec ?? '?'})`);
     if (!tag) stop('could not push a checkpoint tag. Try again.');
+    deployLive(tag);
     console.log(`\ncheckpoint: ${tag} is on GitHub. Everyone can play it with: npm run checkpoint:play`);
     return;
   }

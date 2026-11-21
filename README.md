@@ -44,7 +44,7 @@ On Windows, use `npm ci` rather than `npm install`, so `package-lock.json` stays
 |---|---|
 | `npm run ship` | Merges `main` into your branch, refuses files outside your lane ([scripts/lanes.ts](scripts/lanes.ts)), runs the gate, fast-forwards `main` and tags a checkpoint. No permission needed: the gate is the permission |
 | `npm run checkpoint:play` | Builds the newest checkpoint in `../<repo>-checkpoint` and serves it at http://localhost:4300 (and on the local network). Your branch is untouched |
-| `npm run checkpoint` | Director: gate `main` by hand and tag it |
+| `npm run checkpoint` | Director: gate `main`, tag it and deploy it to the live site (https://flip-phone-2004-8a09.netlify.app) |
 
 What to build next: [docs/BACKLOG.md](docs/BACKLOG.md).
 The prompts that built this project are in [docs/prompts/](docs/prompts/). Read them to see
