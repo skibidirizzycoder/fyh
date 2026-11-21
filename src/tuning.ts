@@ -200,6 +200,26 @@ export const T = {
     bootSec: 1.2, // the boot progress bar fills in this long (then "Press Enter" blinks)
     blinkSec: 1.1, // one on/off cycle of "Press Enter"
     narrowBelowPx: 700, // windows narrower than this (phones) stack the card and paper and move the phone up
+    // Hand-made UI (like Messenger's, our own colours): off-white paper, thick ink outlines, chunky type,
+    // panels a little rotated. Used by the era badge, prompt, dialogue, card, paper and ending captions.
+    paper: '#fbf6e9',
+    paper2004: '#f3e3c0', // the era badge in 2004: older, yellower paper
+    paperInk: '#1d1a14',
+    outlinePx: 3,
+    note: '#ffe14d', // the "E — ..." prompt is a yellow sticky note
+    chunkyFont: "'Trebuchet MS', 'Arial Rounded MT Bold', system-ui, sans-serif",
+    dialogueMaxPx: 720, // the dialogue never gets wide enough to reach the open phone (bottom-right)
+    bubbles: {
+      // Fixing a CD: ♪ and ♥ bubbles pop over the moment (Messenger's payoff), then float away.
+      count: 8,
+      sec: 1.2, // each bubble's pop, float and fade
+      staggerSec: 0.35, // the last bubble starts this much after the first
+      band: { left: 22, right: 78, top: 26, bottom: 52 }, // % of the window: where the crowd is when you fix a CD
+      sizePx: 44,
+      paper: '#fffdf5',
+      ink: '#1d1a14',
+      heart: '#e03131',
+    },
     backdrop: '#0b0b0f', // behind the title and the ending
     // 'lcd' title: the phone's own green LCD (T.phone.lcd / lcdInk), with a dark bezel
     bezel: '#2b2f35',
@@ -212,7 +232,6 @@ export const T = {
     cdDusty: '#9aa0a6',
     cdHub: '#4b5057',
     // tabloid: card + newspaper
-    tabloidPaper: '#ffffff',
     tabloidInk: '#111111',
     tabloidRed: '#c8102e', // red-top masthead (white text on it: 5.8:1)
     tabloidRedText: '#ffffff',

@@ -2,20 +2,24 @@
 
 Branch: `feat/phone-static`. Owned paths: see `docs/prompts/05-agentic-workflow.md` (Part 5).
 
-## Status (2026-11-21, 15:35)
+## Status (2026-11-21, 16:00)
 
-**Done and on `main`:** A1-A6 (A6 + the badge fix are `checkpoint-14`).
-**Done, shipping now:** review fixes: F2 bug 4 (phone-size screens), the ending/title scroll instead
-of being cut off in short windows, no `!important` in the boot screen, the outer screen's clock uses
-two formatters made once instead of formatting per frame.
-**Queue:** M-A3 (checklist + payoff bubbles), M-A2 (hand-made UI), M-A1 (title over the live street).
+**Done and on `main`:** A1-A6 and the review fixes (F2 bug 4, `checkpoint-16`).
+**Done, shipping now:** M-A3 (phone checklist + ♪/♥ payoff bubbles) and M-A2 (hand-made paper UI).
+Smoke `"ok":true`, `"ui":{"bubbles":8,"discs":3,"narrowPanels":4}`, lowest contrast 5.45 (red
+"→ changes" on the card's paper).
+**Queue:** M-A1 (title over the live 3D street, chunky tilting logo, one PRESS START button). It
+needs the live street behind the title (the 3D world is drawn only in play; see requests) and the
+logo art (see Art requests).
 
 **Live site check (15:15, real keys, production has no debug API):** https://flip-phone-2004-8a09.netlify.app
 loads and plays (title, Enter, phone, travel to 14 March 2004 and back, no script errors), but it
 serves an older build (no A4 screens, no A5 phone) and `/api/headline` returns 500 "server is
 missing SNOWFLAKE_ACCOUNT or SNOWFLAKE_TOKEN", so the paper there is always the offline edition.
 
-**Screenshots checked:** `artifacts/narrow-today.png` and `artifacts/narrow-phone.png` (390x844:
+**Screenshots checked:** `artifacts/bubbles.png` (♪/♥ bubbles over The Static's crowd),
+`artifacts/tabloid.png` (paper UI), `artifacts/phone.png` (checklist), `artifacts/ending.png`
+(frames hung by hand, paper captions), `artifacts/narrow-today.png` and `artifacts/narrow-phone.png` (390x844:
 nothing overlaps), `artifacts/static-fixed.png` (packed crowd, arms up, set list by the mic),
 `artifacts/phone-connecting.png` ("Connecting..." + "14 March 2004", bars
 filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 Mar 2004, "Q: open"),
@@ -27,6 +31,11 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
 `T.screens.titleVariant` (`'lcd'` green mono, the default, matches the phone; or `'colour'` blue screen).
 
 ## Requests for the director
+
+- **Bubbles over the right people (M-A3):** `hud.render(game)` has no camera, so the ♪/♥ bubbles pop
+  in a band across the middle of the screen (where the crowd is when you fix a CD, facing it). If
+  `main.ts` passed the camera (`hud.render(game, camera)`), I can pin each bubble over a person
+  that the fixing step shows (project their prop positions).
 
 - **Netlify:** the live site is behind `main` (no A4/A5): it needs `npm run checkpoint` from your
   linked folder. Its `/api/headline` returns 500 because `SNOWFLAKE_ACCOUNT`/`SNOWFLAKE_TOKEN` are
@@ -122,3 +131,28 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
 - **Checks:** `tests/static.test.ts` (step 2 shows exactly the exported list, crowd size and raised
   arms, the aisle, only the reel and mic are interactable, inside the street, no z-fighting or
   overlap except the amp light pair that swaps); `scripts/checks/static.ts` checks every payoff prop.
+
+## Task M-A3: checklist + payoff
+
+- **Checklist:** the phone menu is a checklist: a tick box before each CD (ticked once fixed, drawn in
+  CSS with `currentColor`, so it inverts on the selected row) and "1/3" by the TIME TRAVEL title.
+  Replaces the star.
+- **Payoff:** fixing a CD pops `T.screens.bubbles.count` (8) ♪/♥ speech bubbles (off-white, thick ink
+  outline) across the middle of the screen; each pops, floats up and fades in `sec` (1.2 s), with
+  a stagger. Seeded positions, so screenshots are stable. Only a new fix pops them: travelling,
+  restarting or the ending never do. `#bubbles` sits above the world and below the phone.
+- **Checks:** `scripts/checks/phone.ts` (one box per CD, ticks only on fixed CDs, "1/3"),
+  `scripts/checks/ui.ts` `checkBubbles` (count after a fix, clear of the dialogue, gone after the
+  burst, none on travel; screenshot `bubbles`).
+
+## Task M-A2: hand-made UI
+
+- **Look:** the era badge, prompt, dialogue, card, paper and the ending's captions are off-white paper
+  (`T.screens.paper`) with a thick ink outline (`outlinePx`), a hard offset shadow, chunky type
+  (`chunkyFont`) and a slight tilt (era -2°, prompt 1°, dialogue -0.6°, card 1.5°, paper -1.2°,
+  gold frames ±2°). 2004's era badge is older, yellower paper; the prompt is a yellow sticky note.
+  The tabloid red tops stay.
+- **Dialogue width:** at most `dialogueMaxPx` (720 px), so even a three-line line stays clear of the
+  open phone in the bottom-right.
+- **Cleanup:** dropped CSS variables nothing read (`--panel`, `--accent`, `--text-dim`, `--paper`,
+  `--ink`, the era badge colours, `--tabloid-paper`) and `T.screens.tabloidPaper`.

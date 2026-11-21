@@ -6,6 +6,8 @@
 //   tabloid with a CD fixed today, the card and the paper are tabloid pages whose red headers,
 //           headline and lists are readable
 //   ending  with every CD fixed, the ending is a wall with one gold disc per CD, readable captions
+//   bubbles fixing a CD pops T.screens.bubbles.count ♪/♥ bubbles in the middle of the screen (clear
+//           of the dialogue) that are gone again after the burst; travelling or restarting pops none
 //   narrow  in a phone-size window (390x844) the era, folded phone, card + paper, prompt and dialogue
 //           never overlap, and the open phone takes the papers' place without covering the dialogue
 // Contrast is measured on rendered pixels of single text lines/blocks (cheap, and it isolates the
@@ -65,6 +67,56 @@ async function expectApart(page: Page, selectors: readonly string[], when: strin
     }
   }
   return shown.length;
+}
+
+/** Fixing a CD pops ♪/♥ bubbles for about a second; nothing else does. */
+async function checkBubbles(page: Page): Promise<number> {
+  const B = T.screens.bubbles;
+  const bubbles = page.locator('#bubbles .bubble');
+  await restart(page);
+  await travel(page, 'street_gig');
+  expect((await bubbles.count()) === 0, 'bubbles before anything was fixed');
+  await fixCd(page, 'static');
+  try {
+    await page.waitForFunction((n) => document.querySelectorAll('#bubbles .bubble').length === n, B.count, { polling: POLL_MS, timeout: 2000 });
+  } catch {
+    expect(false, `fixing The Static popped ${await bubbles.count()} bubbles, expected ${B.count}`);
+  }
+  const clash = await page.evaluate(() => {
+    const d = document.getElementById('dialogue')?.getBoundingClientRect();
+    if (!d || d.width === 0) return null;
+    return Array.from(document.querySelectorAll('#bubbles .bubble')).some((b) => {
+      const r = b.getBoundingClientRect();
+      return r.left < d.right && d.left < r.right && r.top < d.bottom && d.top < r.bottom;
+    });
+  });
+  expect(clash !== true, 'a bubble covers the dialogue');
+  // Freeze the burst mid-pop for the picture: a slow machine can take longer than the burst to screenshot.
+  await page.evaluate(() => {
+    for (const a of document.getAnimations()) {
+      const target = (a.effect as KeyframeEffect | null)?.target;
+      if (!(target instanceof HTMLElement) || !target.classList.contains('bubble')) continue;
+      const timing = a.effect?.getTiming();
+      a.pause();
+      a.currentTime = Number(timing?.delay ?? 0) + Number(timing?.duration ?? 0) * 0.35;
+    }
+  });
+  await screenshot(page, 'bubbles');
+  await page.evaluate(() => {
+    for (const a of document.getAnimations()) {
+      const target = (a.effect as KeyframeEffect | null)?.target;
+      if (target instanceof HTMLElement && target.classList.contains('bubble')) a.play();
+    }
+  });
+  try {
+    await page.waitForFunction(() => document.querySelectorAll('#bubbles .bubble').length === 0, null, { polling: POLL_MS, timeout: (B.sec + B.staggerSec) * 1000 + 2000 });
+  } catch {
+    expect(false, 'the bubbles never went away');
+  }
+  await travel(page, 'present');
+  await step(page, 1);
+  expect((await bubbles.count()) === 0, 'travelling with a CD already fixed popped bubbles again');
+  return B.count;
 }
 
 /** Waits (real time) until the phone shows this look. */
@@ -188,9 +240,10 @@ async function checkEnding(page: Page): Promise<number> {
 export async function checkUi(page: Page): Promise<Record<string, unknown>> {
   const started = Date.now();
   await checkTitle(page);
+  const bubbles = await checkBubbles(page);
   await checkTabloid(page);
   const discs = await checkEnding(page);
   const narrowPanels = await checkNarrow(page);
   await restart(page); // leave a playing game for the next check
-  return { titleVariant: T.screens.titleVariant, discs, narrowPanels, ms: Date.now() - started };
+  return { titleVariant: T.screens.titleVariant, bubbles, discs, narrowPanels, ms: Date.now() - started };
 }

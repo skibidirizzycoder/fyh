@@ -3,7 +3,8 @@
 // when something changed. The logic (keys, menu, travel) lives in state.ts (Claude's).
 //
 //   folded — the closed phone: a small outer screen with the time and date where you are
-//   lid    — earpiece + pale green LCD: signal, where you are, battery, the menu, soft keys
+//   lid    — earpiece + pale green LCD: signal, where you are, battery, the menu as a checklist
+//            (a tick box per CD, "fixed/total" by the title), soft keys
 //   hinge  — the barrel the lid flips around
 //   base   — nav ring with call/end keys, then the 0-9 * # keypad
 //
@@ -150,12 +151,13 @@ function keypad(): { base: HTMLElement; up: HTMLElement; down: HTMLElement } {
   return { base, up, down };
 }
 
-/** One menu row: artist (+ star when fixed) over the date. */
+/** One menu row: a tick box (ticked once fixed) and the artist, over the date. "Back to today" has no box. */
 function menuRow(item: PhoneItem, here: boolean): HTMLElement {
   const row = make('li', 'phone-row');
   row.dataset.target = item.target;
-  const top = make('span', 'phone-row-label', item.label);
-  if (item.fixed) top.appendChild(make('span', 'phone-star', ' ★'));
+  const top = make('span', 'phone-row-label');
+  if (item.target !== TODAY) top.appendChild(make('span', item.fixed ? 'phone-tick is-done' : 'phone-tick'));
+  top.append(item.label); // a text node: never parsed as HTML
   if (here) top.appendChild(make('span', 'phone-here', ' ◄'));
   row.append(top, make('span', 'phone-row-date', item.date));
   return row;
@@ -178,7 +180,10 @@ export function createPhoneView(root: HTMLElement): PhoneView {
   const soft = make('div', 'phone-soft');
   soft.append(make('span', '', 'E: Go'), make('span', '', 'Q: Close'));
   const travel = travelScreens();
-  lcd.append(status.bar, make('div', 'phone-title', 'TIME TRAVEL'), menu, soft, travel.connect, travel.noise);
+  const title = make('div', 'phone-title', 'TIME TRAVEL');
+  const count = make('span', 'phone-count');
+  title.appendChild(count);
+  lcd.append(status.bar, title, menu, soft, travel.connect, travel.noise);
   lid.append(make('div', 'phone-earpiece'), lcd);
   const keys = keypad();
   phone.append(lid, make('div', 'phone-hinge'), keys.base);
@@ -232,6 +237,8 @@ export function createPhoneView(root: HTMLElement): PhoneView {
       if (key !== rowsKey) {
         rowsKey = key;
         menu.replaceChildren(...state.items.map((item) => menuRow(item, item.target === state.here)));
+        const cds = state.items.filter((i) => i.target !== TODAY);
+        count.textContent = `${cds.filter((i) => i.fixed).length}/${cds.length}`;
         index = -1;
       }
       if (state.index !== index) {

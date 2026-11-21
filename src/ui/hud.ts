@@ -5,11 +5,14 @@
 //   #card     "Because you..." as a tabloid inside story  } both inside #today-papers: apart on
 //   #news     today's paper as a 2000s red-top front page } wide screens, stacked on narrow ones
 //   #ending   a wall of framed gold discs, one per CD
+//   #bubbles  ♪/♥ bubbles that pop over the moment when a CD is fixed, for about a second
 // Colours come from tuning.ts via CSS variables. Story text only ever goes in via textContent.
+// Everything in play is "hand-made": off-white paper, thick ink outlines, chunky type, a slight tilt.
 
 import './hud.css';
 import type { Game } from '../game.ts';
 import type { NewsDesk } from '../news/desk.ts';
+import { fixedCds } from '../story/timeline.ts';
 import type { LoadedCd, StoryContent } from '../story/types.ts';
 import { T } from '../tuning.ts';
 
@@ -65,6 +68,48 @@ export function bootScreen(cds: readonly LoadedCd[], variant: string): HTMLEleme
   return boot;
 }
 
+/** A number in [0, 1) from n, the same every run (so bubble layouts are stable in screenshots). */
+function scatter(n: number): number {
+  const x = Math.sin(n * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/**
+ * ♪ and ♥ bubbles across the band of the screen where the moment's crowd is when you fix its CD
+ * (you are facing them). One burst per CD fixed; each bubble removes itself when its animation ends
+ * (so pausing the animation, e.g. for a screenshot, keeps it on screen).
+ */
+function createBubbles(root: HTMLElement): (fixed: number, playing: boolean) => void {
+  const B = T.screens.bubbles;
+  const layer = make('div', '');
+  layer.id = 'bubbles';
+  root.appendChild(layer);
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let last = 0;
+
+  function burst(seed: number): void {
+    layer.replaceChildren(...Array.from({ length: B.count }, (_, i) => {
+      const heart = i % 2 === 1;
+      const bubble = make('span', heart ? 'bubble bubble-heart' : 'bubble', heart ? '♥' : '♪');
+      const across = (i + 0.25 + scatter(seed * 31 + i) * 0.5) / B.count; // one per slot, nudged
+      bubble.style.left = `${B.band.left + (B.band.right - B.band.left) * across}%`;
+      bubble.style.top = `${B.band.top + (B.band.bottom - B.band.top) * scatter(seed * 17 + i * 7)}%`;
+      bubble.style.animationDelay = `${(B.staggerSec * scatter(seed * 5 + i * 3)).toFixed(2)}s`;
+      bubble.addEventListener('animationend', () => bubble.remove()); // gone once it has floated away
+      return bubble;
+    }));
+    // Reduced motion: no animation, so no animationend either. Clear them after the same time.
+    if (still.matches) setTimeout(() => layer.replaceChildren(), (B.sec + B.staggerSec) * 1000);
+  }
+
+  return (fixed, playing) => {
+    if (!playing && layer.childElementCount > 0) layer.replaceChildren(); // never resume a burst after the title or ending
+    layer.hidden = !playing;
+    if (playing && fixed > last) burst(fixed);
+    last = fixed;
+  };
+}
+
 /** The ending: a wall of framed gold discs, one per CD, then the closing line. */
 function endingScreen(content: StoryContent): HTMLElement[] {
   const wall = make('div', 'gold-wall');
@@ -116,6 +161,7 @@ export function createHud(root: HTMLElement, content: StoryContent, news: NewsDe
   };
   parts.title.appendChild(bootScreen(content.cds, T.screens.titleVariant));
   parts.ending.append(...endingScreen(content));
+  const bubbles = createBubbles(root);
 
   // Phones and other narrow windows get their own layout (hud.css and phone.css read this class).
   const narrow = window.matchMedia(`(max-width: ${T.screens.narrowBelowPx - 1}px)`);
@@ -128,6 +174,7 @@ export function createHud(root: HTMLElement, content: StoryContent, news: NewsDe
       const s = game.state;
       const scene = game.scenes.current();
       const playing = scene === 'play';
+      bubbles(fixedCds(content, s.flags).length, playing);
       show(parts.title, scene === 'title');
       show(parts.ending, scene === 'ending');
       show(parts.era, playing);
@@ -183,15 +230,8 @@ function setCssColours(): void {
   const css = document.documentElement.style;
   const S = T.screens;
   const vars: Record<string, string> = {
-    '--panel': T.ui.panel,
     '--text': T.ui.text,
-    '--text-dim': T.ui.textDim,
-    '--accent': T.ui.accent,
     '--font': T.ui.fontFamily,
-    '--era-2004': T.eras['2004'].badgeText,
-    '--era-present': T.eras.present.badgeText,
-    '--paper': T.news.paper,
-    '--ink': T.news.ink,
     '--offline-ink': T.news.offlineInk,
     '--lcd': T.phone.lcd,
     '--lcd-ink': T.phone.lcdInk,
@@ -205,7 +245,6 @@ function setCssColours(): void {
     '--colour-accent': S.colourAccent,
     '--cd-dusty': S.cdDusty,
     '--cd-hub': S.cdHub,
-    '--tabloid-paper': S.tabloidPaper,
     '--tabloid-ink': S.tabloidInk,
     '--tabloid-red': S.tabloidRed,
     '--tabloid-red-text': S.tabloidRedText,
@@ -216,6 +255,18 @@ function setCssColours(): void {
     '--frame': S.frame,
     '--mat': S.mat,
     '--caption': S.caption,
+    '--paper-hand': S.paper,
+    '--paper-2004': S.paper2004,
+    '--paper-ink': S.paperInk,
+    '--outline': `${S.outlinePx}px solid ${S.paperInk}`,
+    '--note': S.note,
+    '--chunky': S.chunkyFont,
+    '--dialogue-max': `${S.dialogueMaxPx}px`,
+    '--bubble-sec': `${S.bubbles.sec}s`,
+    '--bubble-size': `${S.bubbles.sizePx}px`,
+    '--bubble-paper': S.bubbles.paper,
+    '--bubble-ink': S.bubbles.ink,
+    '--bubble-heart': S.bubbles.heart,
   };
   for (const [name, value] of Object.entries(vars)) css.setProperty(name, value);
 }

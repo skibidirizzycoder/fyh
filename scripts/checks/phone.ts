@@ -3,8 +3,8 @@
 //   closed  the folded phone shows the time and date where you are (live clock today), readable,
 //           clear of #dialogue / #card / #era
 //   open    the flip runs for T.phone.flipSec; the phone sits bottom-right under 300 px wide, clear of
-//           #dialogue and #card; the selected row is inverted with a blinking cursor; only fixed CDs
-//           show a star; the LCD text is readable (measured on pixels)
+//           #dialogue and #card; the selected row is inverted with a blinking cursor; the menu is a
+//           checklist (only fixed CDs ticked, "1/3" by the title); the LCD text is readable (on pixels)
 //   travel  choosing a moment shows "Connecting..." + the destination with the bars filling, then
 //           static, then the phone folds shut showing the new place's date and 2004 time
 
@@ -143,10 +143,14 @@ export async function checkPhone(page: Page): Promise<Record<string, unknown>> {
   });
   expect(cursor.content === '">"' && cursor.animation === 'phone-blink' && cursor.sec === `${T.phone.blinkSec}s`, `selected row cursor: ${JSON.stringify(cursor)}`);
 
-  // Stars: exactly the fixed CDs (only The Static so far).
+  // Checklist: a box on every CD row, ticked on exactly the fixed CDs (only The Static so far).
+  const boxes = await page.locator('#phone .phone-tick').count();
+  expect(boxes === s.phone.items.length - 1, `${boxes} tick boxes, expected one per CD (${s.phone.items.length - 1})`);
   const starred = await rows.evaluateAll((els) =>
-    els.filter((e) => e.querySelector('.phone-star')).map((e) => (e as HTMLElement).dataset.target));
-  expect(starred.join() === 'street_gig', `stars on [${starred.join()}], expected [street_gig]`);
+    els.filter((e) => e.querySelector('.phone-tick.is-done')).map((e) => (e as HTMLElement).dataset.target));
+  expect(starred.join() === 'street_gig', `ticks on [${starred.join()}], expected [street_gig]`);
+  const count = await page.locator('#phone .phone-count').textContent();
+  expect(count === `1/${boxes}`, `the phone counts "${count}" fixed, expected "1/${boxes}"`);
 
   await measureContrast(page, '#phone .phone-lcd', 'phone');
   await screenshot(page, 'phone');
