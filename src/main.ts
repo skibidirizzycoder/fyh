@@ -96,7 +96,7 @@ function boot(): void {
   loop.start();
 
   if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
-    installDebugApi({ game, input, loop, news, audio, camera, avatar, scene: world.scene, drawCalls: () => drawCalls });
+    installDebugApi({ game, input, loop, news, audio, camera, avatar, scene: world.scene, drawCalls: () => drawCalls, showOutlines: post.showOutlines });
   }
 }
 

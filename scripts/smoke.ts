@@ -7,7 +7,8 @@
 // 4. Test build: proves walking follows the facing and that solid props stop the player,
 //    plays the pitch route with REAL key presses (walk to a CD at the CD player and press E to
 //    travel, walk to each object and press E, the phone home), times it, fixes the remaining
-//    CDs, reaches the ending, then runs each teammate's checks (scripts/checks/*.ts).
+//    CDs, reaches the ending, measures the looks (grade, retro pixels, ink outlines), then runs
+//    each teammate's checks (scripts/checks/*.ts).
 // The newspaper endpoint is faked in the browser, and the server's Snowflake
 // variables are blanked, so the smoke test never touches the network.
 // Any console error, page error, outside network request or missed state change fails the run.
@@ -33,7 +34,7 @@ import { checkTodayShop } from './checks/today.ts';
 import { checkUi } from './checks/ui.ts';
 import {
   contrast, expect, hold, inPage, interact, measureContrast, phoneTo, placePlayer, restart, sceneMean, screenshot,
-  state, step, travel, waitForNews, walkTo, type Check,
+  SHOT_TIMEOUT_MS, state, step, travel, waitForNews, walkTo, type Check,
 } from './checks/tools.ts';
 
 // Ports are picked free at start, so several agents can run smoke on one machine at once.
@@ -424,6 +425,52 @@ async function checkRetro(page: Page): Promise<Record<string, unknown>> {
   return { lines: height, scale, past, today };
 }
 
+/** A pixel counts as inked when the outlines make it at least this much darker (luminance, 0-255). */
+const INK_DROP = 20;
+/** Share of the scene's pixels the outlines must ink: some (lines are drawn), never most (noise). */
+const INK_SHARE = { min: 0.005, max: 0.15 };
+
+/** Share of SCENE_CLIP's pixels that the ink outlines darken, measured on the same frame with them off, then on. */
+async function inkedShare(page: Page): Promise<number> {
+  const shot = (): Promise<Buffer> => page.screenshot({ clip: SCENE_CLIP, animations: 'disabled', timeout: SHOT_TIMEOUT_MS });
+  await inPage(page, (on) => window.__game?.outlines(on), false);
+  const off = await shot();
+  await inPage(page, (on) => window.__game?.outlines(on), true);
+  const on = await shot();
+  return page.evaluate(async ({ a, b, drop }) => {
+    const pixels = async (b64: string): Promise<Uint8ClampedArray> => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.width;
+      c.height = img.height;
+      const g = c.getContext('2d');
+      if (!g) throw new Error('2D canvas unavailable for inkedShare');
+      g.drawImage(img, 0, 0);
+      return g.getImageData(0, 0, c.width, c.height).data;
+    };
+    const [x, y] = [await pixels(a), await pixels(b)];
+    const luma = (d: Uint8ClampedArray, i: number): number => 0.2126 * (d[i] ?? 0) + 0.7152 * (d[i + 1] ?? 0) + 0.0722 * (d[i + 2] ?? 0);
+    let inked = 0;
+    for (let i = 0; i < x.length; i += 4) if (luma(x, i) - luma(y, i) > drop) inked++;
+    return inked / (x.length / 4);
+  }, { a: off.toString('base64'), b: on.toString('base64'), drop: INK_DROP });
+}
+
+/** Today and a 2004 moment both get ink outlines: a few percent of the scene, not a mess. */
+async function checkOutlines(page: Page): Promise<Record<string, number>> {
+  const shares: Record<string, number> = {};
+  for (const to of ['present', content.cds[0]?.moment ?? '']) {
+    await travel(page, to);
+    const share = await inkedShare(page);
+    expect(share >= INK_SHARE.min && share <= INK_SHARE.max,
+      `${to}: the ink outlines darken ${(share * 100).toFixed(2)}% of the scene, expected ${INK_SHARE.min * 100}-${INK_SHARE.max * 100}%`);
+    shares[to] = Math.round(share * 10000) / 100; // percent
+  }
+  return shares;
+}
+
 /** Plays the whole demo in the test build. */
 async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
   await page.goto(`http://localhost:${TEST.port}/`);
@@ -444,6 +491,7 @@ async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
   const frames = await finishGame(page);
   const looks = await checkLooks(page);
   const retro = await checkRetro(page);
+  const outlines = await checkOutlines(page);
   const team: Record<string, unknown> = {};
   for (const [name, check] of Object.entries(TEAM_CHECKS)) {
     try {
@@ -453,7 +501,7 @@ async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
     }
   }
   const news = { headline: pitch.s.news.status === 'ready' ? pitch.s.news.headline : '', apiCalls: api.calls.length, offlineMs };
-  return { headings, collisions, cdPrompt, pitchSec: pitch.sec, drawCalls: pitch.s.drawCalls, frames, flags: pitch.s.flags, news, looks, retro, team };
+  return { headings, collisions, cdPrompt, pitchSec: pitch.sec, drawCalls: pitch.s.drawCalls, frames, flags: pitch.s.flags, news, looks, retro, outlines, team };
 }
 
 /** Runs everything and prints one JSON line. */
