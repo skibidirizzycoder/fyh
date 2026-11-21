@@ -27,4 +27,8 @@ to access this endpoint", legacy `SNOWFLAKE.CORTEX.COMPLETE` is blocked for new 
 - The player walks through props.
 - GitHub Pages has no endpoint, so the paper is always the offline edition there.
 
+**Now (hackathon day):** we're building the CD plan in `docs/PLAN.md`: 3 unpopular CDs,
+each with a 2004 moment you fix in 2 steps, and shop reputation rising today. Teammate prompts are in
+`docs/prompts/03-*` and `04-*`. Claude is building the foundation commit ("Foundation: CD moments").
+
 **Next session:** read `AGENTS.md`, run `npm run gate`, run `npm run snowflake:ping` if `.env` is set.
