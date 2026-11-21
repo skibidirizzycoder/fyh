@@ -2,20 +2,20 @@
   "cd": {
     "id": "mira",
     "artist": "Mira",
-    "title": "first songs",
+    "title": "Lose Yourself",
     "moment": "open_mic",
-    "date": "14 March 2004",
-    "situation": "Open mic night outside the shop. Mira is up next, but the crowd is glued to their phones and she has lost her nerve.",
-    "today": "Mira's 'first songs' went gold. She still opens the shop's open mic night every March."
+    "date": "13 December 2002",
+    "situation": "Battle night outside the shop. Mira has one shot at the mic with her acoustic 'Lose Yourself', but the crowd is glued to their phones and she has frozen.",
+    "today": "Mira's 'Lose Yourself' went gold. She still opens the shop's battle night every December."
   },
   "actions": [
     {
       "id": "mira_take_cd",
       "objectId": "mira_cd",
-      "label": "picked up Mira's dropped demo CD",
+      "label": "picked up Mira's dropped CD-R",
       "prompt": "Pick up the CD",
       "requires": [],
-      "line": "A scratched demo CD on the bench: 'MIRA - first songs', in silver marker. She must have dropped it.",
+      "line": "A scratched CD-R on the bench: 'MIRA - LOSE YOURSELF (one take)', in silver marker. She must have dropped it.",
       "lockedLine": "",
       "effects": { "show": [], "hide": ["mira_cd"] }
     },
@@ -25,7 +25,7 @@
       "label": "played it at the shop's listening post",
       "prompt": "Play it at the listening post",
       "requires": ["mira_take_cd"],
-      "line": "The owner turns the listening post right up. Phones go down. 'Who IS this?' Mira grins, grabs the mic and plays it live.",
+      "line": "The owner turns the listening post right up. Phones go down. 'Who IS this?' Mira stops shaking, grabs the mic and doesn't miss her one shot.",
       "lockedLine": "The listening post is free, but you've got nothing worth playing. Didn't someone drop a CD by the bench?",
       "effects": {
         "show": [
@@ -42,7 +42,7 @@
     }
   ],
   "offline": {
-    "headline": "The Open Mic Nobody Was Watching",
-    "article": "On 14 March 2004 a stranger played Mira's dropped demo at Hollow Records' listening post, and a bored open-mic crowd put their phones away to listen. Her debut 'first songs' has just gone gold, and its disc hangs by the shop door."
+    "headline": "The Battle Night Nobody Was Watching",
+    "article": "On 13 December 2002 a stranger played Mira's dropped CD-R of 'Lose Yourself' at Hollow Records' listening post, and a crowd glued to their phones turned round to listen. She took her one shot. Her version has just gone gold, and its disc hangs by the shop door."
   }
 }
