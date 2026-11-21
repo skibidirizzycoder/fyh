@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ERAS, T, type Era } from '../tuning.ts';
+import { placed } from './areas.ts';
 import { GROUND, PROPS, inScene, propColor, visibleProps, type Prop } from './layout.ts';
 import { lookFor } from './look.ts';
 
@@ -65,7 +66,7 @@ export function buildWorld(): WorldView {
     return m;
   }
 
-  for (const prop of [GROUND, ...PROPS].filter((p) => !p.decor)) {
+  for (const prop of [GROUND, ...PROPS].filter((p) => !p.decor).map(placed)) { // where it stands (areas.ts)
     const view = buildProp(prop, markerMaterial, sharedMaterial);
     views.set(prop.id, view);
     scene.add(view.mesh);

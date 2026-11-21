@@ -13,6 +13,7 @@ import { pickTarget, startPlayer, stepPlayer, type PlayerState, type Target } fr
 import { actionForObject, causesOf, changeCauses, doAction, fixedCds, presentState, propOverrides, reputationLevel, type Flags } from './story/timeline.ts';
 import type { LoadedCd, PastAction, PresentChange, StoryContent } from './story/types.ts';
 import { T, type Era } from './tuning.ts';
+import { areaAt } from './world/areas.ts';
 import { visibleProps } from './world/layout.ts';
 
 export type SceneName = 'title' | 'play' | 'ending';
@@ -81,6 +82,15 @@ interface Ctx {
   state: GameState;
   events: Events;
   news: NewsDesk | undefined;
+  area: string | null; // the street area announced last; null = announce the next one (a new game, a new arrival)
+}
+
+/** Announces the area of the street the player is in, when it changes (see T.areas). */
+function updateArea(ctx: Ctx): void {
+  const area = areaAt(ctx.state.player.x, ctx.area);
+  if (area.id === ctx.area) return;
+  ctx.area = area.id;
+  ctx.events.emit('area', { id: area.id, title: area.title });
 }
 
 /** Shows a line of dialogue for a while. */
@@ -163,6 +173,7 @@ function travelTo(ctx: Ctx, to: string): boolean {
   state.era = cd ? '2004' : 'present';
   state.moment = cd ? cd.moment : null;
   state.player = startPlayer(); // every moment starts on the same spot, facing the shop
+  ctx.area = null; // ...and announces where you are again
   state.target = null;
   state.phone = closedPhone(phoneItems(content.cds, fixedCds(content, state.flags)), to);
   ctx.events.emit('travel', { to, era: state.era, moment: state.moment });
@@ -221,6 +232,7 @@ function updatePlay(ctx: Ctx, input: Input): SceneName | null {
   } else {
     state.target = null;
   }
+  updateArea(ctx);
   state.dialogueLeft = Math.max(0, state.dialogueLeft - DT);
   if (state.endingLeft !== null && state.era === 'present') {
     state.endingLeft = Math.max(0, state.endingLeft - DT);
@@ -233,12 +245,13 @@ function updatePlay(ctx: Ctx, input: Input): SceneName | null {
 export function createGame(content: StoryContent, input: Input, deps: { news?: NewsDesk; events?: Events } = {}): Game {
   const state = freshState(content, 0);
   const events = deps.events ?? createEvents();
-  const ctx: Ctx = { content, state, events, news: deps.news };
+  const ctx: Ctx = { content, state, events, news: deps.news, area: null };
 
   const scenes = createSceneManager<SceneName, null>({
     title: {
       enter: () => {
         Object.assign(state, freshState(content, state.frame));
+        ctx.area = null;
         ctx.news?.clear();
       },
       update: () => {

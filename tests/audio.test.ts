@@ -24,6 +24,7 @@ const PAYLOADS: { [K in EventName]: GameEvents[K] } = {
   'phone-move': { index: 1 },
   'phone-select': { target: 'ringtone' },
   reputation: { level: 1 },
+  area: { id: 'square', title: 'The Square' },
 };
 
 describe('cues', () => {

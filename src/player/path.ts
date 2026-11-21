@@ -15,12 +15,32 @@ export type Steer = 'left' | 'right' | 'walk';
 
 /** True when the player can walk in a straight line from a to b (b included) without overlapping anything. */
 export function lineClear(a: Spot, b: Spot, obstacles: readonly Footprint[]): boolean {
+  const near = obstacles.filter((f) => reachesBox(f, Math.min(a.x, b.x), Math.max(a.x, b.x), Math.min(a.z, b.z), Math.max(a.z, b.z)));
   const steps = Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / (T.collide.pathCell / 2));
   for (let i = 1; i <= steps; i++) {
     const t = i / steps;
-    if (overlapsAny({ x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t }, obstacles)) return false;
+    if (overlapsAny({ x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t }, near)) return false;
   }
   return true;
+}
+
+/** True when a footprint, grown by the player's radius, reaches into the box x0..x1, z0..z1 (only those can block in it). */
+function reachesBox(f: Footprint, x0: number, x1: number, z0: number, z1: number): boolean {
+  const [halfW, halfD] = f.shape === 'circle' ? [f.r, f.r] : [f.halfW, f.halfD];
+  const r = T.player.radius;
+  return f.x + halfW + r >= x0 && f.x - halfW - r <= x1 && f.z + halfD + r >= z0 && f.z - halfD - r <= z1;
+}
+
+/** The footprints that can block in each 1 m strip of x, so a grid spot only checks the few props near it. */
+function stripsOf(obstacles: readonly Footprint[]): (x: number) => readonly Footprint[] {
+  const strips = new Map<number, Footprint[]>();
+  for (const f of obstacles) {
+    const half = f.shape === 'circle' ? f.r : f.halfW;
+    for (let k = Math.floor(f.x - half - T.player.radius); k <= Math.floor(f.x + half + T.player.radius); k++) {
+      strips.set(k, [...(strips.get(k) ?? []), f]);
+    }
+  }
+  return (x) => strips.get(Math.floor(x)) ?? [];
 }
 
 /** True when the player at `s` is close enough to use something at `target` (with a margin). */
@@ -61,8 +81,9 @@ interface Grid {
 
 function makeGrid(): Grid {
   const corner = onGround({ x: -Infinity, z: -Infinity });
-  const cols = Math.floor((-2 * corner.x) / T.collide.pathCell) + 1;
-  const rows = Math.floor((-2 * corner.z) / T.collide.pathCell) + 1;
+  const far = onGround({ x: Infinity, z: Infinity });
+  const cols = Math.floor((far.x - corner.x) / T.collide.pathCell) + 1;
+  const rows = Math.floor((far.z - corner.z) / T.collide.pathCell) + 1;
   return { cols, rows, corner };
 }
 
@@ -96,9 +117,11 @@ function neighbours(g: Grid, i: number, isFree: (j: number) => boolean): number[
 /** Breadth-first search from the grid spot nearest `from` to the nearest free spot in reach. Spots, start excluded. */
 function searchGrid(from: Spot, target: Spot, obstacles: readonly Footprint[]): Spot[] | null {
   const g = makeGrid();
+  const near = stripsOf(obstacles);
   const state = new Int8Array(g.cols * g.rows); // 0 = not checked yet, 1 = free, 2 = blocked
   const isFree = (j: number): boolean => {
-    if (state[j] === 0) state[j] = overlapsAny(spotOf(g, j), obstacles) ? 2 : 1;
+    const spot = spotOf(g, j);
+    if (state[j] === 0) state[j] = overlapsAny(spot, near(spot.x)) ? 2 : 1;
     return state[j] === 1;
   };
   const start = indexNear(g, from);

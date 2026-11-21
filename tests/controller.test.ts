@@ -21,7 +21,7 @@ describe('controller', () => {
 
   it('stays inside the ground', () => {
     const p = stepPlayer({ x: 100, z: -100, yawDeg: 0 }, still, dt);
-    expect(p.x).toBe(T.world.groundWidth / 2 - T.player.radius);
+    expect(p.x).toBe(T.world.groundCenterX + T.world.groundWidth / 2 - T.player.radius);
     expect(p.z).toBe(-(T.world.groundDepth / 2 - T.player.radius));
   });
 
