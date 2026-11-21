@@ -5,15 +5,13 @@
 // Used by the Vite dev/preview server (vite.config.ts), the Netlify Function
 // (netlify/functions/headline.ts) and `npm run snowflake:ping`.
 
-import contentJson from '../src/story/content.json' with { type: 'json' };
+import { content } from '../src/story/content.ts';
 import { extractJson, parseArticle } from '../src/news/article.ts';
 import { newsPrompt } from '../src/story/news.ts';
 import { replayFlags } from '../src/story/timeline.ts';
-import type { StoryContent } from '../src/story/types.ts';
 import { T } from '../src/tuning.ts';
 import { CortexError, completeText } from './cortex.ts';
 
-const content: StoryContent = contentJson;
 
 /**
  * Reads the Snowflake settings from process.env, the ONLY place they come from.

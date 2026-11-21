@@ -23,7 +23,7 @@ async function main(): Promise<void> {
   const req = new Request('http://localhost/api/headline', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ flags: ['take_cd', 'play_cd', 'pin_flyer'] }),
+    body: JSON.stringify({ flags: ['mira_take_cd', 'mira_play_cd'] }), // Mira's CD fixed
   });
   const res = await handleHeadline(req, { timeoutMs: T.news.pingTimeoutMs });
   const body = (await res.json()) as Record<string, unknown>; // already redacted by the handler

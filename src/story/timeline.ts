@@ -31,9 +31,27 @@ export function doAction(content: StoryContent, flags: Flags, actionId: string):
   return { ok: true, action, flags: [...flags, actionId] };
 }
 
-/** True when every requirement of a present-day change is in the flags. */
+/** True when a present-day change's requirements are met: all of `requires`, and at least `minOf.count` of `minOf.of`. */
 export function isChangeActive(change: PresentChange, flags: Flags): boolean {
-  return change.requires.every((id) => flags.includes(id));
+  const all = change.requires.every((id) => flags.includes(id));
+  const some = !change.minOf || change.minOf.of.filter((id) => flags.includes(id)).length >= change.minOf.count;
+  return all && some;
+}
+
+/** The done actions that a change depends on (its direct causes). */
+export function changeCauses(change: PresentChange, flags: Flags): string[] {
+  const fromMin = change.minOf ? change.minOf.of.filter((id) => flags.includes(id)) : [];
+  return [...change.requires, ...fromMin];
+}
+
+/** Ids of the CDs that are fixed (their last action is done), in CD order. */
+export function fixedCds(content: StoryContent, flags: Flags): string[] {
+  return content.cds.filter((c) => flags.includes(c.finalAction)).map((c) => c.id);
+}
+
+/** The shop's reputation level today: how many CDs are fixed. */
+export function reputationLevel(content: StoryContent, flags: Flags): number {
+  return fixedCds(content, flags).length;
 }
 
 /** The present day: which changes are active. A pure function of the flags. */

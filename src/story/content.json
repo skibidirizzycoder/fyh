@@ -1,94 +1,44 @@
 {
-  "intro": "Hollow Records closed in 2004. It has been boarded up ever since. Your old flip phone buzzes. Press Q to flip it open.",
+  "intro": "Your record shop, Hollow Records, closed in 2004. Three CDs nobody bought are still behind the counter. Your old flip phone buzzes. Press Q to open it.",
   "travelLines": {
-    "2004": "The screen flickers... 2004. The shop is still open, just.",
-    "present": "Snap. The phone closes and the street is today again."
+    "present": "Snap. The phone closes and it's today again.",
+    "past": "{date}. {situation}"
   },
   "alreadyDoneLine": "You've already done that here.",
-  "notHereLine": "There's nothing to use here in this era.",
-  "actions": [
+  "notHereLine": "There's nothing to use here right now.",
+  "ending": "Three forgotten CDs, one famous shop. Something old, into something modern. Press Enter to play again.",
+  "endingChange": "rep_landmark",
+  "reputation": [
     {
-      "id": "take_cd",
-      "objectId": "cd",
-      "label": "picked up Mira's dropped demo CD",
-      "prompt": "Pick up the CD",
-      "requires": [],
-      "line": "A scratched demo CD: 'MIRA - first songs'. Someone dropped it.",
-      "lockedLine": "",
-      "effects": {
-        "show": [],
-        "hide": [
-          "cd"
-        ]
-      }
+      "id": "rep_open",
+      "count": 1,
+      "label": "Hollow Records is open again",
+      "line": "The boards are gone. The shop is open.",
+      "effects": { "show": ["lit_window", "open_sign"], "hide": ["boarded_window"] },
+      "offline": { "headline": "Hollow Records Reopens Its Doors", "article": "The corner record shop that closed in 2004 is open again. Locals say it all started with one forgotten CD." }
     },
     {
-      "id": "play_cd",
-      "objectId": "listening_post",
-      "label": "played it at the shop's listening post",
-      "prompt": "Use the listening post",
-      "requires": [
-        "take_cd"
-      ],
-      "line": "You slip the CD in. The owner stops sweeping. 'Who IS this?'",
-      "lockedLine": "The listening post is free. You have nothing to play.",
-      "effects": {
-        "show": [
-          "owner_flyer_stack"
-        ],
-        "hide": []
-      }
+      "id": "rep_busy",
+      "count": 2,
+      "label": "the shop is busy every weekend",
+      "line": "There are posters in the window and a queue at the till.",
+      "effects": { "show": ["rep_posters"], "hide": [] },
+      "offline": { "headline": "Weekend Queues at Hollow Records", "article": "Two of the shop's forgotten 2004 CDs are now cult favourites. Fans travel across London to buy them where it all began." }
     },
     {
-      "id": "pin_flyer",
-      "objectId": "noticeboard",
-      "label": "pinned her gig flyer where everyone walks past",
-      "prompt": "Pin a flyer",
-      "requires": [
-        "play_cd"
-      ],
-      "line": "The owner hands you a flyer for Mira's first gig. You pin it up.",
-      "lockedLine": "An empty noticeboard. Nothing worth pinning... yet.",
-      "effects": {
-        "show": [
-          "flyer"
-        ],
-        "hide": []
-      }
+      "id": "rep_landmark",
+      "count": 3,
+      "label": "the shop is a London landmark",
+      "line": "A blue plaque by the door: 'Where the 2004 sound was discovered.'",
+      "effects": { "show": ["rep_plaque"], "hide": [] },
+      "offline": { "headline": "Blue Plaque for the Shop That Found the 2004 Sound", "article": "Three artists nobody had heard of in 2004 are now household names. All three were first championed by one small record shop on this corner." }
     }
   ],
-  "changes": [
-    {
-      "id": "shop_saved",
-      "label": "Hollow Records is open",
-      "requires": [
-        "pin_flyer"
-      ],
-      "line": "Mira's first record sold out in 2005. She bought the shop and kept it open.",
-      "effects": {
-        "show": [
-          "open_sign",
-          "lit_window"
-        ],
-        "hide": [
-          "boarded_window"
-        ]
-      }
-    }
-  ],
-  "ending": "Something old, into something modern. Press Enter to play again.",
   "news": {
     "brief": "You write the front page of the local newspaper, today. Use only the facts given; do not invent new events or names. Reply with only a JSON object: {\"headline\": \"<at most 12 words>\", \"article\": \"<2 or 3 sentences>\"}.",
     "unchangedFact": "Hollow Records, the record shop on the corner, closed in 2004 and has been boarded up ever since.",
     "offline": {
-      "default": {
-        "headline": "Corner Shop Still Boarded Up, Twenty Years On",
-        "article": "Hollow Records closed its doors in 2004 and nobody has opened them since. Neighbours say the street has been quieter without the music."
-      },
-      "shop_saved": {
-        "headline": "Hollow Records Celebrates Another Year of Vinyl",
-        "article": "Singer Mira bought the corner shop with money from her 2005 debut, which began with a demo CD someone played at the listening post. The shop is still open, and the noticeboard outside is still covered in gig flyers."
-      }
+      "default": { "headline": "Corner Shop Still Boarded Up, Twenty Years On", "article": "Hollow Records closed its doors in 2004 and nobody has opened them since. Neighbours say the street has been quieter without the music." }
     }
   }
 }

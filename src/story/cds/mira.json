@@ -1,0 +1,37 @@
+{
+  "cd": {
+    "id": "mira",
+    "artist": "Mira",
+    "title": "first songs",
+    "moment": "open_mic",
+    "date": "14 March 2004",
+    "situation": "Open mic night, and nobody has heard of Mira.",
+    "today": "Mira's 'first songs' went gold. She still plays the shop every Christmas."
+  },
+  "actions": [
+    {
+      "id": "mira_take_cd",
+      "objectId": "mira_cd",
+      "label": "picked up Mira's dropped demo CD",
+      "prompt": "Pick up the CD",
+      "requires": [],
+      "line": "A scratched demo CD: 'MIRA - first songs'. Someone dropped it.",
+      "lockedLine": "",
+      "effects": { "show": [], "hide": ["mira_cd"] }
+    },
+    {
+      "id": "mira_play_cd",
+      "objectId": "listening_post",
+      "label": "played it at the shop's listening post",
+      "prompt": "Play the CD",
+      "requires": ["mira_take_cd"],
+      "line": "The owner stops sweeping. 'Who IS this?' He pins her flyer up and books her for tonight.",
+      "lockedLine": "The listening post is free. You have nothing to play.",
+      "effects": { "show": ["mira_flyer"], "hide": [] }
+    }
+  ],
+  "offline": {
+    "headline": "Mira's Debut Turns Gold, Twenty Years Later",
+    "article": "Singer Mira's 2004 demo, first played at Hollow Records' listening post, has finally gone gold. She says she owes it all to the shop on the corner."
+  }
+}

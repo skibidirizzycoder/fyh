@@ -20,7 +20,8 @@ export interface WorldView {
   sun: THREE.DirectionalLight;
   hemi: THREE.HemisphereLight;
   /** Shows the props for an era + story overrides and recolours them. */
-  apply(era: Era, shown: ReadonlySet<string>, hidden: ReadonlySet<string>): void;
+  /** Shows the props of an era and moment (moment = null today), with story effects. */
+  apply(era: Era, moment: string | null, shown: ReadonlySet<string>, hidden: ReadonlySet<string>): void;
   /** Turns the highlight glow on for one interactable (or none). */
   highlight(id: string | null): void;
   /** Animates markers; `seconds` is game time so it is deterministic. */
@@ -63,11 +64,11 @@ export function buildWorld(): WorldView {
 
   let appliedKey = '';
 
-  function apply(era: Era, shown: ReadonlySet<string>, hidden: ReadonlySet<string>): void {
-    const key = `${era}|${[...shown].join()}|${[...hidden].join()}`;
+  function apply(era: Era, moment: string | null, shown: ReadonlySet<string>, hidden: ReadonlySet<string>): void {
+    const key = `${era}|${moment ?? ''}|${[...shown].join()}|${[...hidden].join()}`;
     if (key === appliedKey) return; // nothing changed since last frame
     appliedKey = key;
-    const visible = new Set(visibleProps(era, shown, hidden).map((p) => p.id));
+    const visible = new Set(visibleProps(era, moment, shown, hidden).map((p) => p.id));
     for (const view of views.values()) {
       const on = visible.has(view.prop.id);
       view.mesh.visible = on;

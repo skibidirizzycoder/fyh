@@ -1,13 +1,11 @@
 // news.test.ts — the newspaper's facts come from the timeline; replies are checked.
 import { describe, expect, it } from 'vitest';
-import contentJson from '../src/story/content.json';
+import { content } from '../src/story/content.ts';
 import { extractJson, parseArticle } from '../src/news/article.ts';
 import { flagKey, newsFacts, newsPrompt, offlineNews } from '../src/story/news.ts';
 import { replayFlags } from '../src/story/timeline.ts';
-import type { StoryContent } from '../src/story/types.ts';
 
-const content: StoryContent = contentJson;
-const ALL = ['take_cd', 'play_cd', 'pin_flyer'];
+const ALL = ['mira_take_cd', 'mira_play_cd']; // Mira's CD, fixed
 
 describe('news facts and prompt', () => {
   it('with nothing done, reports the unchanged present', () => {
@@ -15,26 +13,29 @@ describe('news facts and prompt', () => {
   });
 
   it('a partial chain still reports the unchanged present', () => {
-    expect(newsFacts(content, ['take_cd', 'play_cd'])).toEqual([content.news.unchangedFact]);
+    expect(newsFacts(content, ['mira_take_cd'])).toEqual([content.news.unchangedFact]);
   });
 
   it('with the full chain, reports the change and its causes in snowball order', () => {
     const prompt = newsPrompt(content, ALL);
     expect(prompt).toContain(content.news.brief);
     expect(prompt).toContain('Hollow Records is open');
-    const order = ['picked up', 'played it', 'pinned her'].map((s) => prompt.indexOf(s));
+    const order = ['picked up', 'played it'].map((s) => prompt.indexOf(s));
     expect(order).toEqual([...order].sort((a, b) => a - b));
     expect(order.every((i) => i > 0)).toBe(true);
   });
 
   it('offline text follows the present state', () => {
     expect(offlineNews(content, [])).toEqual(content.news.offline.default);
-    expect(offlineNews(content, ALL)).toEqual(content.news.offline.shop_saved);
+    const gold = content.news.offline.gold_mira;
+    const open = content.news.offline.rep_open;
+    // Leads with the CD just fixed, then adds the shop's new reputation.
+    expect(offlineNews(content, ALL)).toEqual({ headline: gold?.headline, article: `${gold?.article} ${open?.article}` });
   });
 
   it('cache key ignores order', () => {
-    expect(flagKey(['play_cd', 'take_cd'])).toBe(flagKey(['take_cd', 'play_cd']));
-    expect(flagKey([])).not.toBe(flagKey(['take_cd']));
+    expect(flagKey(['mira_play_cd', 'mira_take_cd'])).toBe(flagKey(['mira_take_cd', 'mira_play_cd']));
+    expect(flagKey([])).not.toBe(flagKey(['mira_take_cd']));
   });
 });
 
@@ -45,11 +46,11 @@ describe('replayFlags (checks flags sent over the network)', () => {
   });
 
   it.each([
-    ['unknown ids', ['take_cd', 'hack']],
-    ['an impossible order', ['play_cd', 'take_cd']],
-    ['duplicates', ['take_cd', 'take_cd']],
+    ['unknown ids', ['mira_take_cd', 'hack']],
+    ['an impossible order', ['mira_play_cd', 'mira_take_cd']],
+    ['duplicates', ['mira_take_cd', 'mira_take_cd']],
     ['non-strings', [1]],
-    ['not a list', 'take_cd'],
+    ['not a list', 'mira_take_cd'],
     ['a missing value', undefined],
   ])('rejects %s', (_name, value) => {
     expect(replayFlags(content, value)).toBeNull();

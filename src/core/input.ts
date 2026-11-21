@@ -9,8 +9,9 @@ export const KEY_MAP = {
   turnLeft: ['KeyA', 'ArrowLeft'],
   turnRight: ['KeyD', 'ArrowRight'],
   interact: ['KeyE', 'Mouse0'],
-  phone: ['KeyQ'], // flip the phone open: travel between eras
+  phone: ['KeyQ'], // flip the phone open or closed
   start: ['Enter', 'Space'],
+  mute: ['KeyM'],
 } as const;
 
 export type Action = keyof typeof KEY_MAP;

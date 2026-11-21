@@ -26,3 +26,4 @@ Every fixed bug adds a line here (and a test when possible). Newest at the botto
 ## Project lessons
 
 - Vitest crashed at start-up ("reading 'url'") — cause: a Vite plugin hook written as `(s) => s.middlewares.use(...)` returned the app, and Vite treats a returned function as a post-hook — rule: write Vite hooks with block bodies that return nothing.
+- Smoke screenshot timed out after `walkTo` — cause: it drew every simulated frame inside one `page.evaluate`, and software WebGL queued hundreds of frames of GPU work — rule: in multi-frame debug helpers, simulate with `game.update()` and draw once at the end.

@@ -100,6 +100,24 @@ export const T = {
     offlineInk: '#8a1c1c', // "offline edition" label
   },
 
+  pitch: {
+    maxAutopilotSec: 45, // smoke: playing the demo route (2 CDs) must take at most this much game time
+    readSec: 2.5, // smoke: pause after each line of dialogue, as if the presenter reads it
+    route: ['ringtone', 'open_mic'], // the moments the pitch demo fixes, in order (see docs/PLAN.md)
+  },
+
+  // ---- Teammate A's sections ----
+  phone: {
+    flipSec: 0.25, // open/close animation time
+  },
+  static: {},
+
+  // ---- Teammate B's sections ----
+  audio: {
+    masterVolume: 0.5,
+  },
+  kbit: {},
+
   limits: {
     maxDrawCalls: 60, // smoke fails above this
   },
