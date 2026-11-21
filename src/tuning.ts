@@ -145,6 +145,20 @@ export const T = {
     },
   },
 
+  // --- Teammate B: DJ K-Bit's moment, "5 December 2004" (where props stand: src/world/props/kbit.ts) ---
+  kbit: {
+    shelterGlass: '#7f9fb0',
+    shelterFrame: '#3b4048',
+    shelterRoof: '#2f343b',
+    signPole: '#2a2a2a',
+    sign: '#e23b3b', // the bus stop sign: interactable
+    people: ['#5a6fa8', '#a8605a', '#6a9a62', '#9a7ab8'], // the queue, one coat colour each
+    flipPhone: '#c0c6cc', // everyone in the queue has one
+    kbitBody: '#1e1e28',
+    headphones: '#39ff88', // neon, very 2004
+    kbitPhone: '#ffd23f', // K-Bit's phone: interactable
+  },
+
   ui: {
     panel: 'rgba(12, 12, 16, 0.88)',
     text: '#f4f4f6',
