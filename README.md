@@ -2,6 +2,8 @@
 
 *Something old, into something modern.*
 
+A First Year Hack project (KCL Tech), Track 2: Retro Remix, "Old Tech, New Tricks".
+
 A small 3D story game. Hollow Records closed in 2004 and has been boarded up ever since.
 Your old flip phone takes you back to 2004, where three small actions snowball
 and change the present.
