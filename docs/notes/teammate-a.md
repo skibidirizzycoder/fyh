@@ -2,15 +2,16 @@
 
 Branch: `feat/phone-static`. Owned paths: see `docs/prompts/05-agentic-workflow.md` (Part 5).
 
-## Status (2026-11-21, 15:20)
+## Status (2026-11-21, 15:15)
 
-**Done and on `main`:** A1 (phone), A2 (The Static), A3 (Mira's open mic, `checkpoint-2`).
-**Done, shipping now:** A4 (the screens). Gate: 139 unit tests, smoke `"ok":true`, `pitchSec` 26.7,
-`"ui":{"titleVariant":"lcd","discs":3}`. Every screen text line is measured on its own background;
-the lowest is 5.88:1 (white on the red tabloid headers), the colour title's yellow is 7.24:1.
-**Queue:** A1-A4 all done. Next: a Free task (F1 street life in my moments, or F2 playtest).
+**Done and on `main`:** A1 (phone), A2 (The Static), A3 (Mira's open mic), A4 (the screens, `checkpoint-10`).
+**Done, shipping now:** A5 (the phone feels alive). Smoke `"ok":true`; the phone check records
+`closed>opening>connecting>static>closing>closed` while travelling; outer screen contrast 12.65:1.
+**Queue:** A6 (The Static after the fix), then M-A1/M-A2/M-A3.
 
-**Screenshots checked:** `artifacts/title.png` (green LCD boot screen, centred, boot bar filling),
+**Screenshots checked:** `artifacts/phone-connecting.png` ("Connecting..." + "14 March 2004", bars
+filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 Mar 2004, "Q: open"),
+`artifacts/title.png` (green LCD boot screen, centred, boot bar filling),
 `artifacts/title-variants.png` (both looks side by side), `artifacts/tabloid.png` (red-top paper and
 "Because you..." card with EXCLUSIVE sticker), `artifacts/ending.png` (wall of three framed gold discs).
 
@@ -77,3 +78,20 @@ the lowest is 5.88:1 (white on the red tabloid headers), the colour title's yell
 - **Step 2, hand over the mic** (locked until step 1): a crowd of three appears either side of the stage.
 - **Text:** all placeholders replaced in `src/story/cds/static.json`, including the offline paper:
   "Plugged-In Street Gig Makes The Static Stars".
+
+## Task 5: the phone feels alive (A5)
+
+- **Travelling:** choosing a moment shows "Connecting...", the destination date and five signal bars
+  filling one after another (`T.phone.connectSec`), then a burst of LCD static (`T.phone.staticSec`),
+  then the lid flips shut. `#phone[data-state]` goes `connecting` → `static` → `closing` → `closed`.
+  The game has already arrived; the phone is catching up, so the travel itself is not slower.
+- **Closed phone:** a small folded phone stays bottom-right with a blue-backlit outer screen: a live
+  clock and today's date in the present, the moment's own time in 2004 (`T.phone.momentTimes`:
+  open mic 19:30, street gig 15:10, ringtone 16:45) and the short date ("14 Mar 2004"). Hidden on the
+  title and ending screens.
+- **Menu:** the selected row has a blinking ">" cursor (`T.phone.blinkSec`), like a 2004 menu. The
+  row's colours stay put, so the LCD contrast is unchanged.
+- **Checks:** `scripts/checks/phone.ts` checks the outer screen today and in 2004 (text and contrast),
+  that it never overlaps `#dialogue`/`#card`/`#era`, the cursor, and the whole travel sequence. Short
+  looks are recorded in the page with a MutationObserver: on a slow machine a 0.35 s look can come
+  and go while a screenshot is saved. Unit tests: `tests/phone-view.test.ts` (outer screen text).
