@@ -5,8 +5,8 @@
     "title": "Feedback Summer",
     "moment": "street_gig",
     "date": "2 July 2004",
-    "situation": "PLACEHOLDER (Teammate A builds this): The Static's street gig, and the amp keeps cutting out.",
-    "today": "PLACEHOLDER: The Static are a cult indie band now."
+    "situation": "The Static are playing outside the shop, but their battery amp keeps dying mid-chorus.",
+    "today": "The Static's 'Feedback Summer' went gold. Fans still leave guitar picks on the shop's windowsill."
   },
   "actions": [
     {
@@ -15,23 +15,29 @@
       "label": "plugged The Static's amp into the shop",
       "prompt": "Plug in the amp",
       "requires": [],
-      "line": "PLACEHOLDER: the amp hums into life.",
+      "line": "You run the reel to the shop's outdoor socket. The amp hums, then ROARS. The drummer gives you a thumbs up.",
       "lockedLine": "",
-      "effects": { "show": [], "hide": [] }
+      "effects": {
+        "show": ["static_cable_run", "static_cable_lead", "static_amp_live"],
+        "hide": ["static_amp_dead"]
+      }
     },
     {
       "id": "static_give_mic",
       "objectId": "static_mic",
       "label": "handed them the shop's microphone",
-      "prompt": "Hand over the mic",
+      "prompt": "Hand over the shop's mic",
       "requires": ["static_plug_amp"],
-      "line": "PLACEHOLDER: the crowd goes wild.",
-      "lockedLine": "PLACEHOLDER: no point without power.",
-      "effects": { "show": [], "hide": [] }
+      "line": "Their mic was held together with tape. Yours works. The whole street stops to listen to the chorus.",
+      "lockedLine": "A good mic won't help while their amp keeps dying. They need power first.",
+      "effects": {
+        "show": ["static_crowd_1", "static_crowd_2", "static_crowd_3"],
+        "hide": []
+      }
     }
   ],
   "offline": {
-    "headline": "PLACEHOLDER: The Static headline",
-    "article": "PLACEHOLDER: Teammate A writes this. Two sentences."
+    "headline": "Plugged-In Street Gig Makes The Static Stars",
+    "article": "In July 2004 The Static borrowed Hollow Records' socket and microphone, and a passing crowd filmed the whole set. 'Feedback Summer' sold out within a month, and its gold disc now hangs in the shop."
   }
 }
