@@ -104,6 +104,35 @@ export function whooshDelay(insertAt: number | null, now: number): number {
   return insertAt === null ? 0 : Math.max(0, insertAt + T.audio.cdInsert.whooshAtSec - now);
 }
 
+/** One queue phone catching the ringtone: when it starts, where it sits, and its version of the tune. */
+export interface QueuePhone {
+  id: string;
+  delaySec: number;
+  pan: number;
+  cue: Cue;
+}
+
+/** The queue's phones ringing one after another, each its own 4-voice phone (an octave and a wave of its own). */
+export function queueRingtones(): QueuePhone[] {
+  const q = T.kbit.spread;
+  const tune = ringtone();
+  return q.phones.map((id, i) => ({
+    id,
+    delaySec: (i + 1) * q.gapSec,
+    pan: q.pans[i] ?? 0,
+    cue: {
+      noises: [],
+      tones: tune.tones.map((t) => ({
+        ...t,
+        note: t.note + 12 * (q.octaves[i] ?? 0),
+        toNote: t.toNote === undefined ? undefined : t.toNote + 12 * (q.octaves[i] ?? 0),
+        wave: (q.waves[i] ?? t.wave) as OscillatorType,
+        gain: t.gain * q.gain,
+      })),
+    },
+  }));
+}
+
 /** Builds the data for one cue. */
 export function buildCue(name: CueName): Cue {
   const a = T.audio;

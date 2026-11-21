@@ -309,7 +309,7 @@ export const T = {
     chime: { notes: [76, 81, 88], gapSec: 0.08, sec: 0.5, gain: 0.2, wave: 'sine' }, // action-done
     nope: { notes: [50, 46], gapSec: 0.12, sec: 0.14, gain: 0.2, wave: 'square' }, // action-locked
     fanfare: { notes: [67, 72, 76, 79, 84], gapSec: 0.1, sec: 0.35, gain: 0.18, wave: 'square', delaySec: 0.7 }, // reputation; waits for the travel whoosh
-    beam: { notes: [86, 93], chirps: 14, chirpSec: 0.035, gain: 0.12, wave: 'square', doneNotes: [84, 96], doneGapSec: 0.09, doneSec: 0.08, doneGain: 0.18 }, // infrared handshake, then "got it"
+    beam: { notes: [86, 93], chirps: 30, chirpSec: 0.035, gain: 0.12, wave: 'square', doneNotes: [84, 96], doneGapSec: 0.09, doneSec: 0.08, doneGain: 0.18 }, // infrared handshake, then "got it"
     ambience: {
       fadeSec: 1.2, // crossfade when you travel
       loopSec: 2, // length of the looping noise buffers
@@ -428,6 +428,17 @@ export const T = {
     pigeon: '#8a8f99',
     dog: '#b07a45',
     dogHead: '#8f5f33',
+    // The demo's payoff: shared timings (Teammate A's phone screen and bubbles read these too).
+    beamSec: 1.25, // the infrared transfer: the beam sound lasts this long (an IrDA progress bar can match it)
+    spread: {
+      // After your phone rings, the queue catches it: each phone joins one ringtone beat after the last.
+      gapSec: 0.43, // = one beat of the ringtone (140 bpm); phone i starts at (i + 1) * gapSec
+      phones: ['kbit_queue_phone_1', 'kbit_queue_phone_2', 'kbit_queue_phone_3', 'kbit_queue_phone_4'],
+      octaves: [1, 0, -1, 1], // each phone plays it an octave up/down: a cheap tinny speaker, a bassy one...
+      waves: ['triangle', 'sawtooth', 'square', 'triangle'],
+      pans: [-0.6, -0.2, 0.25, 0.65], // spread across the queue, left to right
+      gain: 0.7, // each queue phone, relative to yours (the chorus has to swell)
+    },
   },
 
   ui: {
