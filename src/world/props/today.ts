@@ -26,9 +26,9 @@ function framedDisc(cd: string, x: number): Prop[] {
   ];
 }
 
-/** A person standing at (x, z): a simple cylinder, like everyone else in the game. */
+/** A person standing at (x, z): a round person (shape 'person'). */
 function person(id: string, x: number, z: number, color: string): Prop {
-  return { id, shape: 'cylinder', eras: NOW, pos: [x, standOn(0, PERSON[1]), z], size: PERSON, color, startsHidden: true };
+  return { id, shape: 'person', eras: NOW, pos: [x, standOn(0, PERSON[1]), z], size: PERSON, color, startsHidden: true };
 }
 
 /** A poster stuck on the inside of the shop window. */

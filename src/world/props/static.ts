@@ -96,7 +96,7 @@ function crowdMember(n: number, x: number, z: number, armsUp: boolean): Prop[] {
   const id = `static_crowd_${n}`;
   const color = C.crowd[(n - 1) % C.crowd.length] ?? C.band[0];
   const person: Prop[] = [
-    gig({ id, shape: 'cylinder', pos: [x, standOn(0, CROWD_H), z], size: [BODY_D, CROWD_H, BODY_D], color, startsHidden: true }),
+    gig({ id, shape: 'person', pos: [x, standOn(0, CROWD_H), z], size: [BODY_D, CROWD_H, BODY_D], color, startsHidden: true }),
     gig({ id: `${id}_head`, shape: 'box', pos: [x, standOn(GAP + CROWD_H, CROWD_HEAD), z], size: [CROWD_HEAD, CROWD_HEAD, CROWD_HEAD], color: C.skin, startsHidden: true }),
   ];
   if (armsUp) {
@@ -118,10 +118,10 @@ export const PROPS_STATIC: readonly Prop[] = [
   gig({ id: 'static_cable_lead', shape: 'box', pos: [(leadStartX + leadEndX) / 2, CABLE_Y, REEL.z], size: [leadEndX - leadStartX, CABLE.h, CABLE.w], color: C.cable, startsHidden: true }),
 
   // The band: singer behind the mic stand, guitarist with a guitar.
-  gig({ id: 'static_singer', shape: 'cylinder', pos: [SINGER.x, standOn(STAGE_TOP, SINGER.h), SINGER.z], size: [BODY_D, SINGER.h, BODY_D], color: C.band[0] }),
+  gig({ id: 'static_singer', shape: 'person', pos: [SINGER.x, standOn(STAGE_TOP, SINGER.h), SINGER.z], size: [BODY_D, SINGER.h, BODY_D], color: C.band[0] }),
   gig({ id: 'static_singer_head', shape: 'box', pos: [SINGER.x, standOn(STAGE_TOP + GAP + SINGER.h, HEAD), SINGER.z], size: [HEAD, HEAD, HEAD], color: C.skin }),
   gig({ id: 'static_mic', shape: 'cylinder', pos: [MIC.x, standOn(STAGE_TOP, MIC.h), MIC.z], size: [MIC.d, MIC.h, MIC.d], color: C.stand, interactable: true }),
-  gig({ id: 'static_guitarist', shape: 'cylinder', pos: [GUITARIST.x, standOn(STAGE_TOP, GUITARIST.h), GUITARIST.z], size: [BODY_D, GUITARIST.h, BODY_D], color: C.band[1] }),
+  gig({ id: 'static_guitarist', shape: 'person', pos: [GUITARIST.x, standOn(STAGE_TOP, GUITARIST.h), GUITARIST.z], size: [BODY_D, GUITARIST.h, BODY_D], color: C.band[1] }),
   gig({ id: 'static_guitarist_head', shape: 'box', pos: [GUITARIST.x, standOn(STAGE_TOP + GAP + GUITARIST.h, HEAD), GUITARIST.z], size: [HEAD, HEAD, HEAD], color: C.skin }),
   gig({ id: 'static_guitar', shape: 'box', pos: [GUITARIST.x, guitarY, guitarZ], size: GUITAR_BODY, color: C.guitar }),
   gig({ id: 'static_guitar_neck', shape: 'box', pos: [GUITARIST.x, standOn(guitarY + GUITAR_BODY[1] / 2, GUITAR_NECK[1]), guitarZ], size: GUITAR_NECK, color: C.stand }),

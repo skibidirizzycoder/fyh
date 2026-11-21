@@ -123,6 +123,15 @@ export const T = {
       streetZ: 5.4, // ...and stands on one side of the road (its centre line here): the face towards it is its front
       woodDecor: ['bench_back'] as readonly string[], // decoration props made of wood
     },
+    // People in the scenes (props with shape 'person', src/world/people.ts): round people (T.person),
+    // standing still and breathing, drawn instanced: one draw call per look and material for everyone.
+    people: {
+      looks: ['npc_a', 'npc_b'] as const, // a person prop without a `look` takes these in turn
+      breathScale: 0.012, // standing: each person grows this much taller (and a little slimmer) as they breathe in...
+      breathSec: 3.6, // ...once every this many seconds...
+      breathStep: 0.37, // ...each this far (of a breath) on from the person before, so neighbours breathe out of step
+      facingDeg: 0, // a person prop without `facingDeg` faces this way (0: +Z, towards the road and the camera)
+    },
   },
 
   eras: {
