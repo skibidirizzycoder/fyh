@@ -162,6 +162,36 @@ export const T = {
     listeners: ['#495057', '#1864ab', '#5f3dc4'], // the bored crowd
     phoneGlow: '#a5f3fc', // their phone screens: everyone's looking down
   },
+  screens: {
+    // Title, "Because you..." card, newspaper and ending (src/ui/). Owner: Teammate A.
+    titleVariant: 'lcd' as 'lcd' | 'colour', // the team picks: artifacts/title-variants.png shows both
+    bootSec: 1.2, // the boot progress bar fills in this long (then "Press Enter" blinks)
+    blinkSec: 1.1, // one on/off cycle of "Press Enter"
+    backdrop: '#0b0b0f', // behind the title and the ending
+    // 'lcd' title: the phone's own green LCD (T.phone.lcd / lcdInk), with a dark bezel
+    bezel: '#2b2f35',
+    // 'colour' title: a 2004 colour screen
+    colourTop: '#1c4fd8',
+    colourBottom: '#0a1f5c',
+    colourText: '#ffffff',
+    colourAccent: '#ffd43b',
+    // dusty CDs on the title
+    cdDusty: '#9aa0a6',
+    cdHub: '#4b5057',
+    // tabloid: card + newspaper
+    tabloidPaper: '#ffffff',
+    tabloidInk: '#111111',
+    tabloidRed: '#c8102e', // red-top masthead (white text on it: 5.8:1)
+    tabloidRedText: '#ffffff',
+    sticker: '#ffe14d', // "EXCLUSIVE" sticker (dark text on it)
+    // ending: the wall of gold discs
+    wall: '#2a1218',
+    gold: '#ffcc33',
+    goldDeep: '#b8860b',
+    frame: '#111111',
+    mat: '#f1ece1',
+    caption: '#fff3bf',
+  },
 
   limits: {
     maxDrawCalls: 60, // smoke fails above this
