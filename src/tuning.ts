@@ -157,6 +157,12 @@ export const T = {
       bloomScale: 0.5, // ... the glow is worked out at half the (chunky) resolution, added per chunky pixel
       bloomSpread: 1, // ... glow texels between blur taps: one chunky pixel is already wide
       fxaa: 1, // post filter: FXAA after the ink, only for full-resolution moments (2017)
+      scanlines: 0, // VHS scanlines (every other scene row darker), off (1988 turns them on in moments)
+      chromaBleed: 0, // VHS red/blue bleed in scene pixels, off
+      tracking: 0, // VHS tracking band: the most a row slips sideways (scene pixels), off
+      trackingSec: 7, // ... seconds of game time for the band to roll down the screen
+      trackingBand: 0.06, // ... its half height, as a share of the screen
+      blackLevel: 0, // display black level: > 0 lifts (worn tape), < 0 crushes (phone camera)
       badgeText: '#ffcf7a',
     },
     present: {
@@ -189,6 +195,12 @@ export const T = {
       bloomScale: 0.5, // ... the glow is worked out at half resolution
       bloomSpread: 2, // ... glow texels between blur taps (a soft glow about 30 px wide at 1080p)
       fxaa: 1, // post filter: FXAA after the ink, so ink lines and edges are smooth too
+      scanlines: 0, // no tape or camera effects today
+      chromaBleed: 0,
+      tracking: 0,
+      trackingSec: 7,
+      trackingBand: 0.06,
+      blackLevel: 0,
       badgeText: '#bfe6ff',
     },
   },
@@ -618,11 +630,14 @@ export const T = {
     street_gig: { // 6 August 1988: bright summer afternoon on a worn VHS tape
       sky: '#f2c36b', sunColor: '#fff2cc', sunIntensity: 3.1, ambient: 1.05, tint: [1.1, 1.0, 0.8], saturation: 0.82,
       pixelHeight: 144, colorLevels: 12, grain: 0.09, vignette: 0.42,
+      // Worn VHS: faint scanlines, red/blue bleeding sideways, a tracking band rolling down, greyish blacks.
+      scanlines: 0.14, chromaBleed: 1, tracking: 2, trackingSec: 7, blackLevel: 0.07,
     },
     ringtone: { // 13 January 2017: cold grey dusk, like a phone photo (sharp, light grain; still warmer than today)
       sky: '#8791a6', fogNear: 9, fogFar: 32, sunColor: '#ffd9b0', sunIntensity: 1.4, ambient: 0.8,
-      tint: [1.0, 0.98, 0.98], saturation: 0.72, // colder, so it stays apart from open_mic with ink lines on (smoke: looks)
       pixelHeight: 0, colorLevels: 0, grain: 0.015, outlinePx: 2, // sharp like today, so today's thin ink
+      // Phone camera: a warm "filter" grade, a little extra colour, crushed blacks and a touch of lens vignette.
+      tint: [1.08, 0.99, 0.88], saturation: 0.95, blackLevel: -0.05, vignette: 0.3,
     },
   },
 

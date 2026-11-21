@@ -48,6 +48,18 @@ export interface Look {
   bloomSpread: number;
   /** FXAA after the ink, at full resolution only (1 = on, 0 = off). */
   fxaa: number;
+  /** VHS: how much darker every other scene row is, like a TV's scanlines (0 = off). */
+  scanlines: number;
+  /** VHS: scene pixels the red and blue smear sideways (0 = off). */
+  chromaBleed: number;
+  /** VHS tracking band: the most a row slips sideways, in scene pixels (0 = off). */
+  tracking: number;
+  /** VHS tracking band: seconds (game time) for the band to roll down the screen. */
+  trackingSec: number;
+  /** VHS tracking band: its half height, as a share of the screen. */
+  trackingBand: number;
+  /** Black level in display colour: > 0 lifts the blacks (worn tape), < 0 crushes them (phone camera). */
+  blackLevel: number;
 }
 
 /** Outline widths in the look are screen pixels on a screen this many lines tall (the unit, like metres). */
