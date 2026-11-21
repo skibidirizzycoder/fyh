@@ -71,7 +71,7 @@ export function buildWorld(): WorldView {
     if (view.marker) scene.add(view.marker);
     if (prop.label) labels.set(prop.id, labelMaterials(prop));
   }
-  const decor = buildDecor(PROPS.filter((p) => p.decor), decorMaterial, shapes);
+  const decor = buildDecor(PROPS.filter((p) => p.decor).map(placed), decorMaterial, shapes); // a moment's decor where it stands (areas.ts)
   decor.forEach((d) => scene.add(d.mesh));
   let disposed = false;
   let atlas: THREE.Texture | null = null;
