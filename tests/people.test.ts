@@ -6,7 +6,7 @@ import { createPersonTextures } from '../src/player/person.ts';
 import { footprintOf } from '../src/player/collide.ts';
 import { T } from '../src/tuning.ts';
 import { PROPS, type Prop } from '../src/world/layout.ts';
-import { breath, createPeople, headsOfPeople, isPerson, lookOf, personMatrix } from '../src/world/people.ts';
+import { breath, cheers, createPeople, headsOfPeople, holdItems, isPerson, lookOf, personMatrix } from '../src/world/people.ts';
 
 const C = T.cel.people;
 const PEOPLE = PROPS.filter(isPerson);
@@ -26,11 +26,32 @@ describe('person props', () => {
     }
   });
 
-  it('their head boxes are drawn by the person, and nothing else is', () => {
+  it('their head and arm boxes are drawn by the person, and nothing else is', () => {
     const heads = headsOfPeople(PROPS);
     expect(heads.has('static_crowd_1_head')).toBe(true);
     expect(heads.has('mira_live_head')).toBe(true);
-    for (const id of heads) expect(PEOPLE.some((p) => `${p.id}_head` === id), id).toBe(true);
+    expect([...heads].some((id) => /^static_crowd_\d+_arm_[lr]$/.test(id))).toBe(true);
+    for (const id of heads) expect(PEOPLE.some((p) => [`${p.id}_head`, `${p.id}_arm_l`, `${p.id}_arm_r`].includes(id)), id).toBe(true);
+  });
+
+  it('people with arm boxes cheer, the rest stand', () => {
+    const ids = new Set(PROPS.map((p) => p.id));
+    const cheering = PEOPLE.filter((p) => cheers(p, ids));
+    expect(cheering.length).toBeGreaterThan(0);
+    for (const p of cheering) expect(p.id).toMatch(/^static_crowd_/);
+  });
+
+  it('what people hold is pulled in to their body; anything else stays put', () => {
+    const p = someone('a', 0, 0);
+    const phone: Prop = { id: 'phone', shape: 'box', eras: ['present'], pos: [0, 1.3, 0.26], size: [0.12, 0.18, 0.05], color: '#000000' };
+    const far: Prop = { ...phone, id: 'far', pos: [0, 1.3, 2] };
+    const [, held, still] = holdItems([p, phone, far]);
+    const front = T.person.torso.r * T.person.torso.depth;
+    expect(held?.pos[2]).toBeCloseTo(0.26 - (0.225 - front));
+    expect(held?.pos[1]).toBe(1.3);
+    expect(still?.pos).toEqual(far.pos);
+    const hat: Prop = { ...phone, id: 'hat', pos: [0, 1.65, 0], size: [0.5, 0.1, 0.2] };
+    expect(holdItems([p, hat])[1]?.pos[1]).toBeCloseTo(p.pos[1] - 0.8 + T.person.head.y + T.person.head.r); // on top of the head
   });
 
   it('a person blocks like a cylinder of its size', () => {

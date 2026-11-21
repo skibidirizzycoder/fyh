@@ -22,7 +22,7 @@ import { lookFor } from './look.ts';
 import {
   ATLAS_ATTRIBUTE, SHADE_ATTRIBUTE, celAtlasMaterial, celMaterial, createMaterials, shadowTone, showAtlas, type Materials, type Surface,
 } from './materials.ts';
-import { createPeople, headsOfPeople, isPerson } from './people.ts';
+import { createPeople, headsOfPeople, holdItems, isPerson } from './people.ts';
 import { createBlobs, createShapes, type Shapes } from './shapes.ts';
 
 export interface PropView {
@@ -67,7 +67,7 @@ export function buildWorld(): WorldView {
   const views = new Map<string, PropView>();
   const labels = new Map<string, Record<Era, THREE.MeshLambertMaterial>>();
 
-  for (const prop of [GROUND, ...PROPS].filter((p) => !p.decor).map(placed)) { // where it stands (areas.ts)
+  for (const prop of holdItems([GROUND, ...PROPS].filter((p) => !p.decor).map(placed))) { // where it stands (areas.ts), held things in hand
     const view = buildProp(prop, markerMaterial, materials, shapes);
     views.set(prop.id, view);
     scene.add(view.mesh);

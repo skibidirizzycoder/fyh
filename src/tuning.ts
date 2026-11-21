@@ -131,6 +131,9 @@ export const T = {
       breathSec: 3.6, // ...once every this many seconds...
       breathStep: 0.37, // ...each this far (of a breath) on from the person before, so neighbours breathe out of step
       facingDeg: 0, // a person prop without `facingDeg` faces this way (0: +Z, towards the road and the camera)
+      cheerAt: 0.5, // a person with arm boxes (<id>_arm_l/_r) cheers: arms up as at this point of the player's cheer
+      holdReach: 0.25, // a small box within this far (metres) outside a person's footprint is something they hold...
+      holdMaxSize: 0.7, // ...if no side of it is longer than this: it is pulled in against their body
     },
   },
 
