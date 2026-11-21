@@ -33,8 +33,9 @@ describe('controller', () => {
     expect(before.speed).toBeLessThan(P.speed);
     const after = run(startPlayer(), { ...still, forward: true }, rampSteps(P.accelSec));
     expect(after.speed).toBe(P.speed);
-    expect(after.x).toBe(0); // still straight along the facing (-Z)
-    expect(after.z).toBeLessThan(P.startZ);
+    const f = forwardFromYaw(P.startYawDeg); // still straight along the start facing
+    expect(Math.abs((after.x - P.startX) * f.z - (after.z - P.startZ) * f.x)).toBeLessThan(1e-9);
+    expect((after.x - P.startX) * f.x + (after.z - P.startZ) * f.z).toBeGreaterThan(0);
   });
 
   it('letting go of W slows down evenly to a stop within decelSec, then stays put', () => {
@@ -74,7 +75,7 @@ describe('controller', () => {
 
   it('stays inside the ground', () => {
     const p = stepPlayer({ x: 100, z: -100, yawDeg: 0 }, still, dt);
-    expect(p.x).toBe(T.world.groundWidth / 2 - T.player.radius);
+    expect(p.x).toBe(T.world.groundCenterX + T.world.groundWidth / 2 - T.player.radius);
     expect(p.z).toBe(-(T.world.groundDepth / 2 - T.player.radius));
   });
 

@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { forwardFromYaw } from '../src/core/facing.ts';
-import { createAvatar, settlePhase } from '../src/player/avatar.ts';
+import { createAvatar, followShare, settlePhase } from '../src/player/avatar.ts';
 import { T } from '../src/tuning.ts';
 
 /** A fresh avatar in its own scene, with a camera to sync. */
@@ -60,6 +60,29 @@ describe('avatar', () => {
     avatar.sync({ x: 3, z: -4, yawDeg: 0 }, camera);
     expect(legSwing(avatar)).toBeCloseTo(0, 6);
     avatar.dispose();
+  });
+
+  it('the camera glides after the player by game steps, and cuts after a jump', () => {
+    const { camera, avatar } = made();
+    avatar.sync({ x: 0, z: 0, yawDeg: 0 }, camera, 0);
+    const behind = camera.position.z;
+    expect(behind).toBeCloseTo(T.camera.distance, 6);
+    avatar.sync({ x: 0, z: -1, yawDeg: 0 }, camera, 1); // one step later the player is 1 m further on
+    expect(camera.position.z).toBeCloseTo(behind - followShare(T.avatar.cameraFollow, 1), 6);
+    avatar.sync({ x: 0, z: -1, yawDeg: 0 }, camera, 1); // a redraw with no new step: the camera stays put
+    expect(camera.position.z).toBeCloseTo(behind - followShare(T.avatar.cameraFollow, 1), 6);
+    avatar.sync({ x: 0, z: -1, yawDeg: 0 }, camera, 400); // many steps later it has caught up
+    expect(camera.position.z).toBeCloseTo(T.camera.distance - 1, 6);
+    avatar.sync({ x: 20, z: -1, yawDeg: 0 }, camera, 401); // a jump (travel): cut straight there
+    expect(camera.position.x).toBeCloseTo(20, 6);
+    avatar.dispose();
+  });
+
+  it('followShare: nothing after no steps, all the way after many, never past it', () => {
+    expect(followShare(0.2, 0)).toBe(0);
+    expect(followShare(0.2, 1)).toBeCloseTo(0.2);
+    expect(followShare(0.2, 1000)).toBeCloseTo(1);
+    expect(followShare(0.2, -3)).toBe(0);
   });
 
   it('settlePhase moves to the nearest standing pose without overshooting', () => {

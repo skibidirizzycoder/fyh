@@ -79,7 +79,7 @@ function boot(): void {
     world.highlight(s.target);
     world.animate(s.frame / T.loop.stepsPerSecond);
     post.setLook(lookFor(s.era, s.moment));
-    avatar.sync(s.player, camera);
+    avatar.sync(s.player, camera, s.frame); // the frame lets the camera glide by game time
     particles.update(s.era, s.moment, s.frame / T.loop.stepsPerSecond, camera); // game time: step() stays exact
     renderer.info.reset();
     post.render(renderer, world.scene, camera, s.frame);

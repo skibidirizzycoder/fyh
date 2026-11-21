@@ -17,9 +17,9 @@ export const T = {
     turnAccelSec: 0.1, // A/D eases in: from still to full turning speed in this long...
     turnDecelSec: 0.05, // ...and eases out when you let go
     easeSnap: 1e-9, // a ramp this close to its end counts as there (float rounding), so ramps take exactly sec / dt steps
-    startX: 0,
+    startX: -9, // the start of the high street (T.areas): you walk in towards the shop...
     startZ: 3,
-    startYawDeg: 0, // 0 = facing -Z (towards the shop)
+    startYawDeg: -90, // ...facing +X, along the street (0 = facing -Z, -90 = facing +X)
     radius: 0.35,
     height: 1.6,
     interactRange: 2.2, // metres from player centre to object centre
@@ -40,6 +40,7 @@ export const T = {
     reachMargin: 0.1, // metres: a path ends this far inside the interact range, so the target gets picked
     aimToleranceDeg: 3, // following a path: turn until facing the next point within this, then walk
     waypointReached: 0.1, // metres: this close to a path point, head for the next one
+    sightStopM: 0.4, // a route ends with nothing solid between you and the target, up to this far short of it (its own stand)
   },
 
   camera: {
@@ -52,7 +53,8 @@ export const T = {
   },
 
   world: {
-    groundWidth: 16,
+    groundWidth: 48, // the high street, from its start (x = -12) past the shop and the bus stop to the square (T.areas)...
+    groundCenterX: 12, // ...so the walkable ground is x -12..36 (z stays -6..6)
     groundDepth: 12,
     groundThickness: 0.1,
     surfaceGap: 0.02, // gap between touching surfaces: prevents z-fighting (rule: >= 0.01)
@@ -60,6 +62,42 @@ export const T = {
     markerSize: 0.15,
     markerBobHz: 1,
     markerBobAmount: 0.08,
+  },
+
+  // Cel shading and prop textures (src/world/materials.ts), the same in both eras. Owner: director.
+  // A surface is lit (its colour) or in shade (its colour in HSV with the value lowered and the hue
+  // nudged towards blue/purple), with a soft step between. The era's sun and sky then tint both.
+  cel: {
+    sunPosition: [4, 8, 6] as readonly [number, number, number], // the sun shines from here towards the origin
+    litEdge: 0.05, // a face is lit where N·L (sun) is above this...
+    litSoftness: 0.04, // ...with a soft step this wide either side (0 = a hard cut)
+    litGradient: 0.25, // lit faces turned away from the sun are up to this much darker, so box faces read apart
+    sunWeight: 0.3, // scene light = sun colour x intensity x sunWeight...
+    skyWeight: 0.35, // ...+ sky light x skyWeight (1 = the colours exactly as written)
+    shadowValue: 0.68, // shade: HSV value x this
+    shadowHue: 250, // shade: hue (degrees) nudged towards this blue-purple...
+    shadowHueShift: 18, // ...by at most this many degrees
+    shadowSaturation: 1.15, // shade: saturation x this...
+    shadowMinSaturation: 0.12, // ...and at least this, so even greys get a coloured shade
+    textureMixFront: 0.95, // a picture on a front face (cover, poster, window) shows this much image...
+    textureMixTiled: 0.4, // ...a tiled one (brick, pavement) less, so it stays calm; the rest is the prop's era colour
+    textureFilter: 'linear' as 'linear' | 'nearest', // how textures are sampled
+    // Rounded shapes (src/world/shapes.ts): boxes are bevelled at their real size, cylinders smooth.
+    bevelRatio: 0.12, // bevel radius = this x the box's shortest side...
+    bevelMax: 0.06, // ...at most this (metres; big walls)...
+    bevelMin: 0.006, // ...and a box whose bevel would be under this stays plain (flyers, road paint)
+    bevelSegments: 2, // steps around each rounded edge
+    cylinderSegments: 28, // sides of every cylinder
+    // Soft contact shadows: one blob under every standing prop and the player (one draw call).
+    blobColor: '#241f36', // dark blue-purple, like the shade tones
+    blobOpacity: 0.55,
+    blobMargin: 0.35, // a blob reaches this far (metres) past the prop's footprint on every side
+    blobSoftness: 0.7, // how much of the blob's radius fades out (1 = all of it)
+    blobY: 0.055, // height above the ground: over the road (0.035) by more than the surface gap
+    blobMaxBottom: 0.35, // a prop whose bottom is at most this high stands on the ground (the car body is at 0.3)...
+    blobMinHeight: 0.25, // ...and gets a blob if it is at least this tall (not kerbs or road paint)
+    playerBlob: 1, // the player's blob, metres across
+    blobTexturePx: 64,
   },
 
   eras: {
@@ -357,6 +395,38 @@ export const T = {
     plants: '#4a7f45', // ...with a clipped hedge in it
     tvScreen: '#20262c',
     notices: ['#f1efe6', '#f3e39a', '#a9d3f0'], // papers pinned on the noticeboard
+    // The rest of the high street: the square's town hall, clock tower and memorial; the bus stop's
+    // pub, newsagent, post box and (today) shelter; trees, lamps, and the terrace across the road.
+    hall: { '2004': '#c2ab84', present: '#c9c4b8' }, // pale stone town hall...
+    hallDoor: { '2004': '#3a2a1e', present: '#2a2d33' },
+    hallSign: { '2004': '#1f3b2c', present: '#1c1f25' }, // ...its name board (same ink as the shop's)
+    hallText: 'TOWN HALL',
+    towerRoof: { '2004': '#4a5560', present: '#56606a' }, // lead roof on the clock tower
+    clockFace: '#f2ecd8',
+    clockHands: '#1a1a1a',
+    memorial: { '2004': '#b0a38f', present: '#b9b7b0' },
+    wreath: '#a3262a',
+    pubWall: { '2004': '#e0d2b4', present: '#cfccc4' }, // the pub at the bus stop...
+    pubFront: { '2004': '#2c3d5a', present: '#30343b' }, // ...its painted ground floor...
+    pubSign: { '2004': '#2c3d5a', present: '#1c1f25' }, // ...and its name board
+    pubText: 'THE BELL',
+    newsagent: { '2004': '#9a5d2a', present: '#4a6a7a' }, // fascia of the shop next to the pub
+    trunk: '#5a4632',
+    leaves: { '2004': '#6a8a3a', present: '#4f7a46' },
+    busBox: { '2004': '#c9a23a', present: '#e3c44a' }, // the yellow box painted on the road at the bus stop
+    shelter: { frame: '#3a3f46', glass: '#8fb3c4', roof: '#2b2f36', flag: '#e8eef2' }, // today's bus shelter
+    postBox: '#b3261e',
+    terrace: [ // the row of buildings across the road
+      { '2004': '#8a5a46', present: '#7a7f86' },
+      { '2004': '#a8835e', present: '#9a958c' },
+      { '2004': '#6e5446', present: '#666b73' },
+      { '2004': '#b8946c', present: '#a9acb0' },
+    ],
+    terraceShop: [ // their shop fascias
+      { '2004': '#2f5a3e', present: '#3a4a5a' },
+      { '2004': '#7a2f2f', present: '#5a3a5a' },
+      { '2004': '#2f4a7a', present: '#2f6f6a' },
+    ],
   },
 
   // The player's low-poly body (src/player/avatar.ts). Metres; it fits inside T.player.height and radius.
@@ -378,6 +448,24 @@ export const T = {
     bobM: 0.03, // the body rises this much mid-stride
     settleRad: 0.25, // per drawn frame: when you stop, the legs finish their step at this rate
     teleportM: 0.5, // a jump bigger than this in one frame (travel, restart) is not walking
+    cameraFollow: 0.12, // each step (60 a second) the camera moves this part of the way to its spot behind you...
+    cameraLookFollow: 0.2, // ...and its aim this part of the way to you, so it glides after you instead of jerking
+    cameraSnapM: 3, // the camera cuts instead of gliding when its spot jumps further than this (travel, restart)
+  },
+
+  // The high street's three areas, one after another along +X (the shop faces +Z). Every visit starts at
+  // the start of the street (T.player.startX), with the shop ahead and the other two further along.
+  // Each 2004 moment's props are laid out around the shop in their own files and drawn in their
+  // moment's area, moved along x by its shiftX (src/world/areas.ts).
+  // Walking into an area's span of x emits the `area` event; between two spans the area stays as it was.
+  areas: {
+    list: [
+      { id: 'shop', title: 'Hollow Records', x: [-99, 7.5], shiftX: 0 },
+      { id: 'bus_stop', title: 'The Bus Stop', x: [8.5, 21.5], shiftX: 18 },
+      { id: 'square', title: 'The Square', x: [22.5, 99], shiftX: 27 },
+    ],
+    moments: { open_mic: 'shop', street_gig: 'square', ringtone: 'bus_stop' }, // where each moment happens
+    home: 'shop',
   },
 
   // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
@@ -395,7 +483,7 @@ export const T = {
     },
     ringtone: { // 13 January 2017: cold grey dusk, like a phone photo (sharp, light grain; still warmer than today)
       sky: '#8791a6', fogNear: 9, fogFar: 32, sunColor: '#ffd9b0', sunIntensity: 1.4, ambient: 0.8,
-      tint: [1.02, 0.98, 0.96], saturation: 0.72, // colder, so it stays apart from open_mic with ink lines on (smoke: looks)
+      tint: [1.0, 0.98, 0.98], saturation: 0.72, // colder, so it stays apart from open_mic with ink lines on (smoke: looks)
       pixelHeight: 0, colorLevels: 0, grain: 0.015, outlinePx: 2, // sharp like today, so today's thin ink
     },
   },

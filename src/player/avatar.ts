@@ -4,18 +4,21 @@
 // can see — and measure — which way the player faces.
 // Draw calls: one merged body (torso, head, cap, headphones), two legs, two arms and the brim.
 // Legs and arms swing with the distance walked (not with time) and finish their step when you stop.
+// The camera glides after the player (a damped follow, per game step), and cuts after a jump.
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { forwardFromYaw } from '../core/facing.ts';
 import { T } from '../tuning.ts';
+import { SHADE_ATTRIBUTE, celMaterial, celVertexMaterial, shadeColor } from '../world/materials.ts';
 import type { PlayerState } from './controller.ts';
 
 export interface Avatar {
   root: THREE.Group;
   nose: THREE.Mesh;
-  /** Moves the body and camera to match the player state. */
-  sync(p: PlayerState, camera: THREE.PerspectiveCamera): void;
+  /** Moves the body and camera to match the player state. With the game `frame`, the camera glides
+   *  there by the steps since the last call; without it, it goes straight there. */
+  sync(p: PlayerState, camera: THREE.PerspectiveCamera, frame?: number): void;
   /** Direction from body centre to nose, measured from the real meshes. */
   measuredFacing(): { x: number; z: number };
   dispose(): void;
@@ -60,16 +63,20 @@ const ARM: readonly Part[] = [
 ];
 const BRIM = { at: [0, 1.51, -0.19], size: [0.2, 0.025, 0.14] } as const; // the nose: the cap's brim, forward
 
-/** Merges coloured boxes into one geometry with vertex colours. */
+/** One colour repeated over n vertices, as a vertex attribute. */
+function solidAttribute(color: THREE.Color, n: number): THREE.BufferAttribute {
+  const rgb = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) rgb.set([color.r, color.g, color.b], i * 3);
+  return new THREE.BufferAttribute(rgb, 3);
+}
+
+/** Merges coloured boxes into one geometry with vertex colours and their cel shade tones. */
 function boxesGeometry(parts: readonly Part[]): THREE.BufferGeometry {
-  const color = new THREE.Color();
   const boxes = parts.map((p) => {
     const box = new THREE.BoxGeometry(...p.size).translate(...p.at);
-    color.set(p.color); // converted to linear, like a material colour
     const n = box.getAttribute('position').count;
-    const rgb = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) rgb.set([color.r, color.g, color.b], i * 3);
-    box.setAttribute('color', new THREE.BufferAttribute(rgb, 3));
+    box.setAttribute('color', solidAttribute(new THREE.Color(p.color), n)); // converted to linear, like a material colour
+    box.setAttribute(SHADE_ATTRIBUTE, solidAttribute(shadeColor(p.color), n));
     return box;
   });
   const merged = mergeGeometries(boxes);
@@ -94,10 +101,24 @@ export function settlePhase(phase: number, rate: number): number {
   return Math.abs(d) <= rate ? rest : phase + Math.sign(d) * rate;
 }
 
+/** Where the camera wants to be for a player state, and the point it aims at. */
+function cameraGoal(p: PlayerState): { eye: THREE.Vector3; aim: THREE.Vector3 } {
+  const f = forwardFromYaw(p.yawDeg);
+  return {
+    eye: new THREE.Vector3(p.x - f.x * T.camera.distance, T.camera.height, p.z - f.z * T.camera.distance),
+    aim: new THREE.Vector3(p.x, T.camera.lookHeight, p.z),
+  };
+}
+
+/** The part of the way to go after `steps` game steps, moving `rate` of what is left each step. */
+export function followShare(rate: number, steps: number): number {
+  return 1 - Math.pow(1 - rate, Math.max(0, steps));
+}
+
 /** Creates the avatar and adds it to the scene. */
 export function createAvatar(scene: THREE.Scene): Avatar {
-  const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
-  const brimMaterial = new THREE.MeshStandardMaterial({ color: T.player.noseColor, roughness: 0.85 });
+  const material = celVertexMaterial(); // cel-shaded like the street
+  const brimMaterial = celMaterial(T.player.noseColor);
   const bodyGeo = boxesGeometry(BODY);
   const legGeo = boxesGeometry(LEG);
   const armGeo = boxesGeometry(ARM);
@@ -120,6 +141,7 @@ export function createAvatar(scene: THREE.Scene): Avatar {
 
   let phase = 0;
   let last: { x: number; z: number } | null = null;
+  let view: { eye: THREE.Vector3; aim: THREE.Vector3; frame: number | undefined } | null = null; // the camera now
 
   /** Swings legs and arms by the distance walked since the last frame; settles them when standing still. */
   function walk(p: PlayerState): void {
@@ -135,13 +157,27 @@ export function createAvatar(scene: THREE.Scene): Avatar {
     rig.position.y = GAP + A.bobM * swing * swing;
   }
 
-  function sync(p: PlayerState, camera: THREE.PerspectiveCamera): void {
+  /** Glides the camera towards its spot behind the player; cuts there after a jump or with no frame. */
+  function follow(p: PlayerState, camera: THREE.PerspectiveCamera, frame: number | undefined): void {
+    const goal = cameraGoal(p);
+    const glide = view && frame !== undefined && view.frame !== undefined && view.eye.distanceTo(goal.eye) <= A.cameraSnapM;
+    if (view && glide) {
+      const steps = (frame ?? 0) - (view.frame ?? 0);
+      view.eye.lerp(goal.eye, followShare(A.cameraFollow, steps));
+      view.aim.lerp(goal.aim, followShare(A.cameraLookFollow, steps));
+      view.frame = frame;
+    } else {
+      view = { ...goal, frame };
+    }
+    camera.position.copy(view.eye);
+    camera.lookAt(view.aim);
+  }
+
+  function sync(p: PlayerState, camera: THREE.PerspectiveCamera, frame?: number): void {
     root.position.set(p.x, 0, p.z);
     root.rotation.y = (p.yawDeg * Math.PI) / 180;
     walk(p);
-    const f = forwardFromYaw(p.yawDeg);
-    camera.position.set(p.x - f.x * T.camera.distance, T.camera.height, p.z - f.z * T.camera.distance);
-    camera.lookAt(p.x, T.camera.lookHeight, p.z);
+    follow(p, camera, frame);
   }
 
   function measuredFacing(): { x: number; z: number } {

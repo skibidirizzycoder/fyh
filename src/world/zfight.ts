@@ -36,18 +36,23 @@ function facesClash(a: Bounds, b: Bounds, axis: number, minGap: number): boolean
   return aFaces.some((fa) => bFaces.some((fb) => Math.abs(fa - fb) < minGap - 1e-9));
 }
 
-/** Lists every pair of boxes that would z-fight, as "a / b" strings. */
+/**
+ * Lists every pair of boxes that would z-fight, as "a / b" strings (a before b in `boxes`, pairs in
+ * that order). Boxes are swept along x: once a box starts further right than another ends (plus
+ * minGap), neither their x faces nor their x ranges can meet, so the pair is skipped.
+ */
 export function findZFighting(boxes: readonly Box[], minGap: number): string[] {
-  const clashes: string[] = [];
-  for (let i = 0; i < boxes.length; i++) {
-    for (let j = i + 1; j < boxes.length; j++) {
-      const a = boxes[i];
-      const b = boxes[j];
-      if (!a || !b) continue;
-      const ba = bounds(a);
-      const bb = bounds(b);
-      if ([0, 1, 2].some((axis) => facesClash(ba, bb, axis, minGap))) clashes.push(`${a.id} / ${b.id}`);
+  const sorted = boxes.map((box, index) => ({ index, b: bounds(box) })).sort((p, q) => p.b.min[0] - q.b.min[0]);
+  const pairs: [number, number][] = [];
+  for (let s = 0; s < sorted.length; s++) {
+    const a = sorted[s];
+    if (!a) continue;
+    for (let t = s + 1; t < sorted.length; t++) {
+      const c = sorted[t];
+      if (!c || c.b.min[0] > a.b.max[0] + minGap) break; // everything after c starts even further right
+      if ([0, 1, 2].some((axis) => facesClash(a.b, c.b, axis, minGap))) pairs.push(a.index < c.index ? [a.index, c.index] : [c.index, a.index]);
     }
   }
-  return clashes;
+  pairs.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+  return pairs.map(([i, j]) => `${boxes[i]?.id ?? ''} / ${boxes[j]?.id ?? ''}`);
 }

@@ -6,11 +6,14 @@ import { KBIT_PROPS } from '../src/world/props/kbit.ts';
 import { PROPS_MIRA } from '../src/world/props/mira.ts';
 import { PROPS_STATIC } from '../src/world/props/static.ts';
 import { PROPS_TODAY } from '../src/world/props/today.ts';
+import { placed } from '../src/world/areas.ts';
 import { STREET_DETAIL } from '../src/world/street.ts';
 import type { Box } from '../src/world/zfight.ts';
 
 const byId = new Map(PROPS.map((p) => [p.id, p]));
-const STORY_PROPS: readonly Prop[] = [...PROPS_MIRA, ...PROPS_STATIC, ...KBIT_PROPS, ...PROPS_TODAY];
+// Where the story's props stand in the world: each moment's are moved into its area of the street (areas.ts).
+const STORY_PROPS: readonly Prop[] = [...PROPS_MIRA, ...PROPS_STATIC, ...KBIT_PROPS, ...PROPS_TODAY].map(placed);
+const SIGNS = ['shop_sign', 'town_hall_sign', 'pub_sign'].map((id) => byId.get(id)).filter((p): p is Prop => p !== undefined);
 
 /** True when two boxes overlap in all three axes by more than `eps`. */
 function intersects(a: Box, b: Box, eps = 1e-6): boolean {
@@ -67,9 +70,10 @@ describe('the shared street', () => {
     expect(byId.get('shop_sign')?.label).toBe('HOLLOW RECORDS');
   });
 
-  it('no detail pokes into a prop of a CD moment or of today\'s shop', () => {
+  it('no detail or name board pokes into a prop of a CD moment (where it is drawn) or of today\'s shop', () => {
+    expect(SIGNS.length).toBe(3);
     const clashes: string[] = [];
-    for (const d of STREET_DETAIL) {
+    for (const d of [...STREET_DETAIL, ...SIGNS]) {
       for (const p of STORY_PROPS) {
         if (shareAScene(d, p) && intersects(d, p)) clashes.push(`${d.id} / ${p.id}`);
       }
@@ -79,7 +83,7 @@ describe('the shared street', () => {
 
   it('no detail pokes into anything you can interact with', () => {
     const clashes = STREET_DETAIL.flatMap((d) =>
-      PROPS.filter((p) => p.interactable && shareAScene(d, p) && intersects(d, p)).map((p) => `${d.id} / ${p.id}`));
+      PROPS.map(placed).filter((p) => p.interactable && shareAScene(d, p) && intersects(d, p)).map((p) => `${d.id} / ${p.id}`));
     expect(clashes).toEqual([]);
   });
 });

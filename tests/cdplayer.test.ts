@@ -10,6 +10,7 @@ import base from '../src/story/content.json';
 import { propOverrides } from '../src/story/timeline.ts';
 import type { StoryContent } from '../src/story/types.ts';
 import { T } from '../src/tuning.ts';
+import { placed } from '../src/world/areas.ts';
 import { PROPS, visibleProps } from '../src/world/layout.ts';
 import { PROPS_PLAYER } from '../src/world/props/player.ts';
 
@@ -36,8 +37,9 @@ function started(story: StoryContent = content) {
 
 /** Stands the player just in front of a prop, facing it (-Z). */
 function standBefore(game: Game, id: string): void {
-  const p = PROPS.find((x) => x.id === id);
-  if (!p) throw new Error(`no prop ${id}`);
+  const raw = PROPS.find((x) => x.id === id);
+  if (!raw) throw new Error(`no prop ${id}`);
+  const p = placed(raw); // where it stands in the world (a moment's props are in its area of the street)
   game.state.player = { x: p.pos[0], z: p.pos[2] + 1, yawDeg: 0 };
 }
 

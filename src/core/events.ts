@@ -20,6 +20,7 @@ export interface GameEvents {
   'phone-select': { target: string };
   reputation: { level: number }; // the shop's reputation went up (number of CDs fixed)
   mute: Record<string, never>; // M pressed
+  area: { id: string; title: string }; // the player walked into an area of the street, or arrived somewhere (T.areas)
 }
 
 export type EventName = keyof GameEvents;
