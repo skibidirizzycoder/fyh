@@ -2,11 +2,11 @@
   "cd": {
     "id": "static",
     "artist": "The Static",
-    "title": "Feedback Summer",
+    "title": "Sweet Child O' Mine",
     "moment": "street_gig",
-    "date": "2 July 2004",
-    "situation": "The Static are playing outside the shop, but their battery amp keeps dying mid-chorus.",
-    "today": "The Static's 'Feedback Summer' went gold. Fans still leave guitar picks on the shop's windowsill."
+    "date": "6 August 1988",
+    "situation": "The Static are playing outside the shop, but their battery amp keeps dying halfway through the riff of 'Sweet Child O' Mine'.",
+    "today": "The Static's 'Sweet Child O' Mine' went gold. Fans still leave guitar picks on the shop's windowsill."
   },
   "actions": [
     {
@@ -15,7 +15,7 @@
       "label": "plugged The Static's amp into the shop",
       "prompt": "Plug in the amp",
       "requires": [],
-      "line": "You run the reel to the shop's outdoor socket. The amp hums, then ROARS. The drummer gives you a thumbs up.",
+      "line": "You run the reel to the shop's outdoor socket. The amp hums, then that riff ROARS down the street. The drummer gives you a thumbs up.",
       "lockedLine": "",
       "effects": {
         "show": ["static_cable_run", "static_cable_lead", "static_amp_live"],
@@ -28,7 +28,7 @@
       "label": "handed them the shop's microphone",
       "prompt": "Hand over the shop's mic",
       "requires": ["static_plug_amp"],
-      "line": "Their mic was held together with tape. Yours works. The whole street stops, packs in round the stage and sings the chorus back.",
+      "line": "Their mic was held together with tape. Yours works. The whole street packs in round the stage and sings 'Where do we go now?' right back at them.",
       "lockedLine": "A good mic won't help while their amp keeps dying. They need power first.",
       "effects": {
         "show": [
@@ -48,6 +48,6 @@
   ],
   "offline": {
     "headline": "Plugged-In Street Gig Makes The Static Stars",
-    "article": "In July 2004 The Static borrowed Hollow Records' socket and microphone, and a passing crowd filmed the whole set. 'Feedback Summer' sold out within a month, and its gold disc now hangs in the shop."
+    "article": "In August 1988 The Static borrowed Hollow Records' socket and microphone for their 'Sweet Child O' Mine', and a passing crowd sang every word while someone filmed it on a camcorder. The single sold out within a month, and its gold disc now hangs in the shop."
   }
 }

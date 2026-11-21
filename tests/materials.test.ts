@@ -2,11 +2,12 @@
 import { existsSync } from 'node:fs';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
+import { createAvatar } from '../src/player/avatar.ts';
 import { ERAS, T } from '../src/tuning.ts';
 import { GROUND, PROPS, propColor, propTexture, type Prop } from '../src/world/layout.ts';
 import {
-  celMaterial, createMaterials, hexToRgb, hsvToRgb, nudgeHue, rgbToHex, rgbToHsv, shadowTone, surfaceKey,
-  type Surface, type TextureLoad,
+  SHADE_ATTRIBUTE, celMaterial, celVertexMaterial, createMaterials, hexToRgb, hsvToRgb, nudgeHue, rgbToHex, rgbToHsv,
+  shadeColor, shadowHsv, shadowTone, surfaceKey, type Surface, type TextureLoad,
 } from '../src/world/materials.ts';
 
 const ALL = [GROUND, ...PROPS];
@@ -68,9 +69,9 @@ describe('shadow tone', () => {
       for (const era of ERAS) {
         const color = propColor(p, era);
         const [h, , v] = rgbToHsv(hexToRgb(color));
-        const [sh, , sv] = rgbToHsv(hexToRgb(shadowTone(color)));
+        const [sh, , sv] = shadowHsv(color); // before rounding to 8 bits, which moves dark hues a lot
         expect(sv, `${p.id} ${era}`).toBeLessThanOrEqual(v);
-        expect(hueGap(sh, c.shadowHue), `${p.id} ${era}`).toBeLessThanOrEqual(hueGap(h, c.shadowHue) + 1);
+        expect(hueGap(sh, c.shadowHue), `${p.id} ${era}`).toBeLessThanOrEqual(hueGap(h, c.shadowHue) + 1e-9);
       }
     }
   });
@@ -99,6 +100,31 @@ describe('cel material', () => {
     const s = patched(celMaterial('#7a4a3a'));
     const shade = s.uniforms.celShadow?.value as THREE.Color;
     expect(shade.getHexString()).toBe(shadowTone('#7a4a3a').slice(1));
+  });
+
+  it('a vertex-coloured cel material reads each vertex\'s shade tone', () => {
+    const m = celVertexMaterial();
+    expect(m.vertexColors).toBe(true);
+    const s = patched(m);
+    expect(s.vertexShader).toContain(`attribute vec3 ${SHADE_ATTRIBUTE};`);
+    expect(s.fragmentShader).toContain('vec3 shadeTone = vCelShade * diffuse;');
+    expect(shadeColor('#7a4a3a').getHexString()).toBe(shadowTone('#7a4a3a').slice(1));
+  });
+
+  it('the avatar is cel-shaded, and every vertex-coloured part carries its shade tones', () => {
+    const avatar = createAvatar(new THREE.Scene());
+    const meshes: THREE.Mesh[] = [];
+    avatar.root.traverse((o) => { if (o instanceof THREE.Mesh) meshes.push(o); });
+    expect(meshes.length).toBeGreaterThan(0);
+    for (const mesh of meshes) {
+      const m = mesh.material as THREE.Material;
+      expect(m.customProgramCacheKey(), mesh.name).toBe('cel');
+      if (!m.vertexColors) continue;
+      const shade = mesh.geometry.getAttribute(SHADE_ATTRIBUTE);
+      expect(shade, mesh.name).toBeDefined();
+      expect(shade.count, mesh.name).toBe(mesh.geometry.getAttribute('color').count);
+    }
+    avatar.dispose();
   });
 
   it('can glow (interactables) or not (decoration)', () => {

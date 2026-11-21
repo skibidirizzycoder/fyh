@@ -9,9 +9,9 @@ const items = phoneItems(content.cds, []);
 
 describe('phone outer screen', () => {
   it('shortens the month so the date fits', () => {
-    expect(shortDate('14 March 2004')).toBe('14 Mar 2004');
-    expect(shortDate('2 July 2004')).toBe('2 Jul 2004');
-    expect(shortDate('5 December 2004')).toBe('5 Dec 2004');
+    expect(shortDate('13 December 2002')).toBe('13 Dec 2002');
+    expect(shortDate('6 August 1988')).toBe('6 Aug 1988');
+    expect(shortDate('14 July 2017')).toBe('14 Jul 2017');
   });
 
   it('shows each 2004 moment\'s own time and date', () => {

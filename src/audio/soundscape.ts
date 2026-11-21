@@ -172,9 +172,27 @@ export interface Layer {
   samples(n: number, sampleRate: number): Float32Array;
 }
 
-/** The looping layers of each scene (the 2004 hum and crackle are separate, in ambience.ts). */
+/**
+ * Makes `n` samples that loop without a seam: `make` gives `fade` extra samples, and that tail is
+ * crossfaded (equal power) into the start, so the end of the loop runs straight on into its beginning.
+ */
+export function seamless(make: (length: number) => Float32Array, n: number, fade: number): Float32Array {
+  const f = Math.max(0, Math.min(fade, n));
+  const x = make(n + f);
+  const out = x.slice(0, n);
+  for (let i = 0; i < f; i++) {
+    const t = (i + 0.5) / f;
+    out[i] = (x[n + i] ?? 0) * Math.cos((t * Math.PI) / 2) + (x[i] ?? 0) * Math.sin((t * Math.PI) / 2);
+  }
+  return out;
+}
+
+/** The looping layers of each scene (the 2004 hum and crackle are separate, in ambience.ts). Each loops seamlessly. */
 export function sceneLayers(scene: SceneId): Layer[] {
-  return rawLayers(scene).map((l) => ({ ...l, samples: (n, sr) => normalize(l.samples(n, sr)) }));
+  return rawLayers(scene).map((l) => ({
+    ...l,
+    samples: (n, sr) => normalize(seamless((len) => l.samples(len, sr), n, Math.round(S.seamSec * sr))),
+  }));
 }
 
 function rawLayers(scene: SceneId): Layer[] {

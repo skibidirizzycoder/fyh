@@ -11,11 +11,16 @@
 // leaves the plain colour.
 //
 // Materials are shared per surface (colour + texture), so props of the same colour reuse one.
+// Merged meshes coloured per vertex (street decor, the avatar) use celVertexMaterial(): their
+// geometry carries each vertex's shade tone too, in the SHADE_ATTRIBUTE attribute (shadeColor()).
 
 import * as THREE from 'three';
 import { T } from '../tuning.ts';
 
 type Rgb = readonly [number, number, number];
+
+/** Name of the per-vertex shade tone attribute that celVertexMaterial() reads. */
+export const SHADE_ATTRIBUTE = 'celShade';
 
 /** What a prop's surface looks like in one era. */
 export interface Surface {
@@ -81,15 +86,20 @@ export function nudgeHue(from: number, to: number, maxDeg: number): number {
 }
 
 /**
- * The shade tone of a colour: value lowered, hue nudged towards T.cel.shadowHue, saturation
+ * The shade tone of a colour, in HSV: value lowered, hue nudged towards T.cel.shadowHue, saturation
  * raised a little (and at least T.cel.shadowMinSaturation, so even greys get a coloured shade).
  */
-export function shadowTone(hex: string, cel = T.cel): string {
+export function shadowHsv(hex: string, cel = T.cel): Rgb {
   const [h, s, v] = rgbToHsv(hexToRgb(hex));
   const grey = s < cel.shadowMinSaturation; // a grey has no hue worth keeping: take the shade hue
   const hue = grey ? cel.shadowHue : nudgeHue(h, cel.shadowHue, cel.shadowHueShift);
   const sat = Math.min(1, Math.max(s * cel.shadowSaturation, cel.shadowMinSaturation));
-  return rgbToHex(hsvToRgb([hue, sat, v * cel.shadowValue]));
+  return [hue, sat, v * cel.shadowValue];
+}
+
+/** The shade tone of a colour, as '#rrggbb'. */
+export function shadowTone(hex: string, cel = T.cel): string {
+  return rgbToHex(hsvToRgb(shadowHsv(hex, cel)));
 }
 
 /** The key of a surface's texture and tiling ('' without a texture). */
@@ -122,6 +132,9 @@ function fragmentHeader(): string {
 uniform vec3 celShadow;    // this material's shade tone (linear)
 uniform float celMapAll;   // 1: the texture covers every face; 0: only the front (+Z) face
 varying float vCelFront;   // 1 on the front (+Z) face of the unit box
+#ifdef CEL_VERTEX_SHADE
+varying vec3 vCelShade;    // vertex-coloured meshes: this vertex's shade tone (linear)
+#endif
 #define CEL_EDGE ${glsl(c.litEdge)}
 #define CEL_SOFT ${glsl(c.litSoftness)}
 #define CEL_GRADIENT ${glsl(c.litGradient)}
@@ -146,7 +159,11 @@ vec3 celLight( vec3 base, vec3 n ) {
   #endif
   float lit = smoothstep( CEL_EDGE - CEL_SOFT, CEL_EDGE + CEL_SOFT, nl );
   vec3 litTone = base * ( 1.0 - CEL_GRADIENT * ( 1.0 - saturate( nl ) ) );
-  vec3 shadeTone = max( celShadow + ( base - diffuse ) * CEL_SHADE_DETAIL, 0.0 ); // texture detail on the shade
+  #ifdef CEL_VERTEX_SHADE
+    vec3 shadeTone = vCelShade * diffuse;
+  #else
+    vec3 shadeTone = max( celShadow + ( base - diffuse ) * CEL_SHADE_DETAIL, 0.0 ); // texture detail on the shade
+  #endif
   return mix( shadeTone, litTone, lit ) * ( sun * CEL_SUN + sky * CEL_SKY );
 }
 `;
@@ -161,6 +178,17 @@ const MAP_FRAGMENT = /* glsl */ `
 #endif
 `;
 
+/** Vertex shader additions: the front-face flag, and each vertex's shade tone when it has one. */
+const VERTEX_HEADER = `varying float vCelFront;
+#ifdef CEL_VERTEX_SHADE
+attribute vec3 ${SHADE_ATTRIBUTE};
+varying vec3 vCelShade;
+#endif`;
+const VERTEX_MAIN = `vCelFront = step( 0.5, objectNormal.z );
+#ifdef CEL_VERTEX_SHADE
+vCelShade = ${SHADE_ATTRIBUTE};
+#endif`;
+
 const LAMBERT_OUT = 'vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + totalEmissiveRadiance;';
 
 /** Swaps the Lambert light sum for the two-tone cel light (the emissive glow stays on top). */
@@ -168,8 +196,8 @@ function patchShader(shader: THREE.WebGLProgramParametersWithUniforms, uniforms:
   shader.uniforms.celShadow = uniforms.celShadow;
   shader.uniforms.celMapAll = uniforms.celMapAll;
   shader.vertexShader = shader.vertexShader
-    .replace('#include <common>', '#include <common>\nvarying float vCelFront;')
-    .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvCelFront = step( 0.5, objectNormal.z );');
+    .replace('#include <common>', `#include <common>\n${VERTEX_HEADER}`)
+    .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>\n${VERTEX_MAIN}`);
   shader.fragmentShader = shader.fragmentShader
     .replace('#include <lights_lambert_pars_fragment>', `#include <lights_lambert_pars_fragment>\n${fragmentHeader()}`)
     .replace('#include <map_fragment>', MAP_FRAGMENT)
@@ -198,10 +226,45 @@ export function celMaterial(color: string, glow = false): THREE.MeshLambertMater
   return m;
 }
 
+/** The shade tone of a colour, as a linear colour (for the SHADE_ATTRIBUTE of a vertex-coloured mesh). */
+export function shadeColor(hex: string): THREE.Color {
+  return new THREE.Color(shadowTone(hex));
+}
+
+/** A cel material coloured per vertex: the geometry needs `color` and SHADE_ATTRIBUTE attributes. */
+export function celVertexMaterial(): THREE.MeshLambertMaterial {
+  const m = celMaterial('#ffffff');
+  m.vertexColors = true;
+  m.defines = { CEL_VERTEX_SHADE: '' };
+  return m;
+}
+
 // ---------- textures ----------
 
-/** The default loader: three's TextureLoader (relative URLs, so any base path works). */
-const loadWithThree: TextureLoad = (url, onLoad, onError) => new THREE.TextureLoader().load(url, onLoad, undefined, () => onError());
+let bitmapLoader: THREE.ImageBitmapLoader | null = null; // made on first use (unit tests have no createImageBitmap)
+
+/**
+ * The default loader: fetch + createImageBitmap (three's ImageBitmapLoader), relative URLs so any base
+ * path works. Unlike an <img>, a fetch does not hold up the page's load event, and the image is decoded
+ * off the main thread (with an <img>, the shipped page took 23-30 s to "load" on a software GPU).
+ */
+const loadAsBitmap: TextureLoad = (url, onLoad, onError) => {
+  bitmapLoader ??= new THREE.ImageBitmapLoader().setOptions({ imageOrientation: 'flipY' });
+  const texture = new THREE.Texture();
+  texture.flipY = false; // already flipped while decoding (WebGL ignores flipY for bitmaps)
+  bitmapLoader.load(url, (bitmap) => {
+    texture.image = bitmap;
+    texture.needsUpdate = true;
+    onLoad(texture);
+  }, undefined, () => onError());
+  return texture;
+};
+
+/** Frees a texture and, for a decoded bitmap, its image memory. */
+function freeTexture(t: THREE.Texture): void {
+  (t.image as { close?: () => void } | null)?.close?.();
+  t.dispose();
+}
 
 /** Sets colour space, filtering and tiling of a texture from tuning. */
 function setupTexture(t: THREE.Texture, repeat: Surface['repeat']): void {
@@ -223,7 +286,7 @@ interface TextureEntry {
 }
 
 /** Creates the material and texture library for the world. */
-export function createMaterials(load: TextureLoad = loadWithThree): Materials {
+export function createMaterials(load: TextureLoad = loadAsBitmap): Materials {
   const materials = new Map<string, THREE.MeshLambertMaterial>();
   const owned = new Set<THREE.MeshLambertMaterial>();
   const textures = new Map<string, TextureEntry>();
@@ -294,7 +357,7 @@ export function createMaterials(load: TextureLoad = loadWithThree): Materials {
     dispose() {
       materials.forEach((m) => m.dispose());
       owned.forEach((m) => m.dispose());
-      textures.forEach((e) => e.texture.dispose());
+      textures.forEach((e) => freeTexture(e.texture));
       materials.clear();
       owned.clear();
       textures.clear();

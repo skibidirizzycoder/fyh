@@ -2,20 +2,25 @@
 
 Branch: `feat/phone-static`. Owned paths: see `docs/prompts/05-agentic-workflow.md` (Part 5).
 
-## Status (2026-11-21, 15:25)
+## Status (2026-11-21, 16:45)
 
-**Done and on `main`:** A1 (phone), A2 (The Static), A3 (Mira's open mic), A4 (the screens,
-`checkpoint-10`), A5 (the phone feels alive, `checkpoint-12`).
-**Done, shipping now:** A6 (The Static after the fix) + the folded phone raised clear of Netlify's
-corner badge. Smoke `"ok":true`, `"static":{"payoffProps":33}`.
-**Queue:** M-A1/M-A2/M-A3 (the Messenger-style title, hand-made UI, checklist + payoff bubbles).
+**Done and on `main`:** A1-A6, the review fixes, M-A1/M-A2/M-A3 (`checkpoint-21`).
+**Shipping now:** the songs rework, our lane (the lead's request): Mira covers "Lose Yourself"
+(battle night, 13 December 2002), The Static cover "Sweet Child O' Mine" (street gig, 6 August
+1988). The rest (K-Bit → "Despacito", 14 July 2017; the shop closed in 2019; local real songs) is in
+the `feat/songs` pull request, because those files are Teammate B's and Claude's.
+**Queue:** A7-A9 (Round 3) once C7/C8 land (`cd-insert`, `area`, `locked` rows).
 
 **Live site check (15:15, real keys, production has no debug API):** https://flip-phone-2004-8a09.netlify.app
 loads and plays (title, Enter, phone, travel to 14 March 2004 and back, no script errors), but it
 serves an older build (no A4 screens, no A5 phone) and `/api/headline` returns 500 "server is
 missing SNOWFLAKE_ACCOUNT or SNOWFLAKE_TOKEN", so the paper there is always the offline edition.
 
-**Screenshots checked:** `artifacts/static-fixed.png` (packed crowd, arms up, set list by the mic),
+**Screenshots checked:** `artifacts/title.png` (logo leaning towards the mouse over the live street,
+boot screen, PRESS START), `artifacts/bubbles.png` (♪/♥ bubbles over The Static's crowd),
+`artifacts/tabloid.png` (paper UI), `artifacts/phone.png` (checklist), `artifacts/ending.png`
+(frames hung by hand, paper captions), `artifacts/narrow-today.png` and `artifacts/narrow-phone.png` (390x844:
+nothing overlaps), `artifacts/static-fixed.png` (packed crowd, arms up, set list by the mic),
 `artifacts/phone-connecting.png` ("Connecting..." + "14 March 2004", bars
 filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 Mar 2004, "Q: open"),
 `artifacts/title.png` (green LCD boot screen, centred, boot bar filling),
@@ -25,7 +30,19 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
 **Team decision needed:** the title look. `artifacts/title-variants.png` shows both; switch with
 `T.screens.titleVariant` (`'lcd'` green mono, the default, matches the phone; or `'colour'` blue screen).
 
+## Art requests
+
+- **`logo_flip_phone`** (transparent cut-out, landscape, about 1024x384): the words FLIP PHONE in chunky,
+  hand-drawn capital letters, off-white fill with a thick dark ink outline and a hard drop shadow,
+  "PHONE" in warm yellow, a tiny silver flip phone tucked into the "O". No other text. It replaces the
+  CSS logo in `.title-logo` (`src/ui/hud.ts` `titleScreen`).
+
 ## Requests for the director
+
+- **Bubbles over the right people (M-A3):** `hud.render(game)` has no camera, so the ♪/♥ bubbles pop
+  in a band across the middle of the screen (where the crowd is when you fix a CD, facing it). If
+  `main.ts` passed the camera (`hud.render(game, camera)`), I can pin each bubble over a person
+  that the fixing step shows (project their prop positions).
 
 - **Netlify:** the live site is behind `main` (no A4/A5): it needs `npm run checkpoint` from your
   linked folder. Its `/api/headline` returns 500 because `SNOWFLAKE_ACCOUNT`/`SNOWFLAKE_TOKEN` are
@@ -121,3 +138,56 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
 - **Checks:** `tests/static.test.ts` (step 2 shows exactly the exported list, crowd size and raised
   arms, the aisle, only the reel and mic are interactable, inside the street, no z-fighting or
   overlap except the amp light pair that swaps); `scripts/checks/static.ts` checks every payoff prop.
+
+## Task M-A3: checklist + payoff
+
+- **Checklist:** the phone menu is a checklist: a tick box before each CD (ticked once fixed, drawn in
+  CSS with `currentColor`, so it inverts on the selected row) and "1/3" by the TIME TRAVEL title.
+  Replaces the star.
+- **Payoff:** fixing a CD pops `T.screens.bubbles.count` (8) ♪/♥ speech bubbles (off-white, thick ink
+  outline) across the middle of the screen; each pops, floats up and fades in `sec` (1.2 s), with
+  a stagger. Seeded positions, so screenshots are stable. Only a new fix pops them: travelling,
+  restarting or the ending never do. `#bubbles` sits above the world and below the phone.
+- **Checks:** `scripts/checks/phone.ts` (one box per CD, ticks only on fixed CDs, "1/3"),
+  `scripts/checks/ui.ts` `checkBubbles` (count after a fix, clear of the dialogue, gone after the
+  burst, none on travel; screenshot `bubbles`).
+
+## Task M-A2: hand-made UI
+
+- **Look:** the era badge, prompt, dialogue, card, paper and the ending's captions are off-white paper
+  (`T.screens.paper`) with a thick ink outline (`outlinePx`), a hard offset shadow, chunky type
+  (`chunkyFont`) and a slight tilt (era -2°, prompt 1°, dialogue -0.6°, card 1.5°, paper -1.2°,
+  gold frames ±2°). 2004's era badge is older, yellower paper; the prompt is a yellow sticky note.
+  The tabloid red tops stay.
+- **Dialogue width:** at most `dialogueMaxPx` (720 px), so even a three-line line stays clear of the
+  open phone in the bottom-right.
+- **Cleanup:** dropped CSS variables nothing read (`--panel`, `--accent`, `--text-dim`, `--paper`,
+  `--ink`, the era badge colours, `--tabloid-paper`) and `T.screens.tabloidPaper`.
+
+## Task M-A1: title like Messenger's
+
+- **Live street:** the title no longer covers the world: the 3D street (today, boarded up) shows
+  through a shade (`T.screens.titleShade`, darker at the edges).
+- **Logo:** a chunky "FLIP PHONE" in CSS for now (off-white and yellow, thick ink outline, hard
+  shadow) that sways slowly and leans up to `logoTiltDeg` (10°) towards the mouse. The AI logo is
+  in Art requests.
+- **One button:** a big yellow PRESS START. A click starts the game the way Enter does (it sends an
+  Enter press; the input layer keeps presses until the next step) and does not also count as a
+  click in the world. Enter and Space still work. The boot screen (A4) stays as the shop's panel,
+  without its own "Press Enter" line.
+- **Checks:** `scripts/checks/ui.ts` checks the button (text, contrast) and the tilt (mouse
+  top-left vs bottom-right), and starts the game by clicking it.
+
+## The songs (lead's request, 16:30)
+
+- **Mapping (song themes → moments, each in its song's year):** Mira covers "Lose Yourself" at a
+  battle night (13 December 2002: one shot, frozen at the mic); The Static cover "Sweet Child O'
+  Mine" at their street gig (6 August 1988: the amp dies mid-riff); DJ K-Bit's "Despacito" remix
+  at the bus stop (14 July 2017: AirDrop it, the queue reaches for Shazam). The performers stay our
+  own characters; the original artists are only named.
+- **The real recordings are never committed:** the `feat/songs` branch plays your own copies from
+  `src/audio/local-songs/<cd>.mp3` (git-ignored) when present; otherwise the Creative Commons
+  stand-ins in `public/music/`. GitHub and the Netlify site never get the copyrighted audio.
+- Moment ids (`open_mic`, `street_gig`, `ringtone`) and every prop/action id are unchanged. Dates in
+  checks now come from the story files (`scripts/checks/phone.ts`); `shortDate` moved to
+  `src/ui/dates.ts` so Node checks can import it without CSS.
