@@ -31,6 +31,8 @@ from Claude to be heard (below).** Last gate: 195 unit tests, smoke `"ok":true`,
 
 - **F1 street life** at the bus stop: a bin, a newspaper box, pigeons (two on the roof), a dog with the queue.
   Draw calls on arrival: 42 (max 60). The walk to K-Bit is unchanged.
+- **F2 playtest** of `checkpoint-11` (real key presses in headless Chrome, whole game in a new order, ending,
+  play again, phone-size screen): 5 bugs written in `STATUS.md` under "Bugs". Sound not checked (can't hear).
 - **M-B1 every action makes a sound** (`src/audio/feel.ts`, `feel-player.ts`): footsteps (4 variants, ±12 %
   pitch, one every 0.32 s while walking), a plastic key click under every phone beep/blip (**live now**), a paper
   rustle when the card or newspaper opens, a soft rising/falling whoosh when the camera moves in/out.
@@ -57,6 +59,8 @@ from Claude to be heard (below).** Last gate: 195 unit tests, smoke `"ok":true`,
   - `panel: { name: 'card' | 'news'; open: boolean }` when the card or the newspaper appears / goes (paper).
   - `camera-zoom: { zoomIn: boolean }` when the dialogue camera eases in / back out.
   Once they're in `GameEvents`, delete the `FeelEvents` cast in `audio.ts` and `subscribeFeel` types itself.
+- **A `title` event** (or `game-end`) when the ending's "play again" returns to the title, so the music can stop
+  there (bug 5 in `STATUS.md`). Today the last game's song keeps playing on the title until Enter.
 - **`debug.ts`: please also show `audio.feel`** (`audio.feel()`, the last few feel sounds) so a smoke check
   can walk and see `step`, talk and see `voice:kbit`.
 
