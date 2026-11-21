@@ -1,0 +1,15 @@
+{
+  "_readme": "Images made by `npm run art` (scripts/art.ts). Add one, run it again: only missing files are made. Delete a file to make it again. Style is added to every prompt.",
+  "style": "Clean, readable game texture for a stylised low-poly 3D game set on a UK high street. Flat front-on view, no perspective, no frame or border, no watermark, no extra text except what is asked for.",
+  "images": [
+    { "name": "cover_mira", "size": "1024x1024", "prompt": "CD album cover, 2004 indie singer-songwriter debut called \"first songs\" by Mira. A young woman with an acoustic guitar on a small open-mic stage under warm string lights, slightly grainy film photo. The words \"MIRA\" and \"first songs\" in simple lowercase type." },
+    { "name": "cover_static", "size": "1024x1024", "prompt": "CD album cover, 2004 UK garage-rock band The Static, album \"Feedback Summer\". Four-piece band playing on a street corner in bright summer sun, cables everywhere, xeroxed punk zine collage style. The words \"THE STATIC\" and \"Feedback Summer\"." },
+    { "name": "cover_kbit", "size": "1024x1024", "prompt": "CD album cover, 2004 electronic producer DJ K-Bit, album \"Polyphonic\". A silver flip phone glowing on a dark blue background with pixel-art sound waves, Y2K chrome style. The words \"DJ K-BIT\" and \"Polyphonic\"." },
+    { "name": "window_2004", "size": "1536x1024", "prompt": "The inside of a small independent record shop seen through its front window in 2004: racks of CDs, a few faded band posters, a hand-written 'SALE' card, dusty and a bit empty, warm lamp light." },
+    { "name": "window_today", "size": "1536x1024", "prompt": "The inside of a busy modern independent record shop seen through its front window today: vinyl and CD racks, framed gold discs on the wall, plants, warm modern lighting, a few customers browsing (seen from behind)." },
+    { "name": "poster_open_mic", "size": "1024x1536", "prompt": "Photocopied 2004 flyer taped to a wall: 'OPEN MIC NIGHT - EVERY SUNDAY - HOLLOW RECORDS', hand-drawn guitar doodle, black ink on yellow paper." },
+    { "name": "poster_gig", "size": "1024x1536", "prompt": "2004 gig poster: 'THE STATIC - LIVE - FREE - 2 JULY', bold punk lettering, red and black screen print on newsprint, a bit torn at the corners." },
+    { "name": "brick_2004", "size": "1024x1024", "prompt": "Seamless tileable texture of an old red-brown brick wall with dirty mortar, evenly lit, front-on, fills the whole image." },
+    { "name": "pavement", "size": "1024x1024", "prompt": "Seamless tileable texture of grey UK pavement slabs seen from directly above, a few cracks and chewing-gum spots, evenly lit, fills the whole image." }
+  ]
+}

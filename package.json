@@ -14,7 +14,8 @@
     "snowflake:ping": "node scripts/snowflake-ping.ts",
     "ship": "node scripts/ship.ts",
     "checkpoint": "node scripts/checkpoint.ts make",
-    "checkpoint:play": "node scripts/checkpoint.ts play"
+    "checkpoint:play": "node scripts/checkpoint.ts play",
+    "art": "node scripts/art.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
