@@ -38,5 +38,25 @@ Director: moment looks, collisions, the rest of `docs/prompts/05-*`, Netlify dep
 
 **Claims (free tasks):**
 - F1 street life, DJ K-Bit's bus stop (`src/world/props/kbit.ts`): Teammate B, done 15:00 (bin, newspaper box, pigeons, a dog).
+- F2 playtest `checkpoint-11` (real key presses, headless Chrome; no sound): Teammate B, done 15:40. Bugs below.
+
+**Bugs** (F2 playtest of `checkpoint-11`: whole game in the order Static → K-Bit → Mira, ending, play again):
+1. **Revisiting a fixed moment shows the "before" line.** Fix The Static, go today, then Q → The Static. The
+   line still says "their battery amp keeps dying mid-chorus", but the amp is plugged in and the band is live.
+   Same for any fixed CD. (Claude: `travelLines.past` could have an "after" version.)
+2. **Console error on the newspaper:** `npm run checkpoint:play`, fix a CD, go today → `/api/headline` answers
+   500 (Snowflake refuses the trial account) and the browser logs "Failed to load resource: 500". The game
+   falls back to the offline edition correctly; only the console error is wrong (a 200/204 with
+   "offline" would be quiet).
+3. **E does nothing, silently,** with nothing in front of you or at an object you already used. So
+   `notHereLine` and `alreadyDoneLine` can never show when playing (only via the debug API).
+4. **Phone-size screen (390×844):** the open phone covers the dialogue, and the newspaper covers the card
+   Low priority: the game needs a keyboard anyway.
+5. **(Teammate B, needs an event)** After the ending, "Press Enter to play again" goes to the title, which
+   still plays the last game's music until Enter. Music resets on `game-start`; a `title` event would let it
+   stop on the title.
+Worked: Space/Enter start, Q/E ignored on the title, the phone list wraps, no walking with the phone open,
+walls stop you, second steps first give the right "not yet" line, mute survives travel, reputation 1→2→3
+with the right card and paper, the ending after 3 s, play again resets flags, CDs and the shop.
 
 **Next session:** read `AGENTS.md`, run `npm run gate`, run `npm run snowflake:ping` if `.env` is set.
