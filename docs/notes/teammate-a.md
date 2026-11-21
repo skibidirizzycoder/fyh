@@ -2,22 +2,20 @@
 
 Branch: `feat/phone-static`. Owned paths: see `docs/prompts/05-agentic-workflow.md` (Part 5).
 
-## Status (2026-11-21, 16:00)
+## Status (2026-11-21, 16:20)
 
-**Done and on `main`:** A1-A6 and the review fixes (F2 bug 4, `checkpoint-16`).
-**Done, shipping now:** M-A3 (phone checklist + ♪/♥ payoff bubbles) and M-A2 (hand-made paper UI).
-Smoke `"ok":true`, `"ui":{"bubbles":8,"discs":3,"narrowPanels":4}`, lowest contrast 5.45 (red
-"→ changes" on the card's paper).
-**Queue:** M-A1 (title over the live 3D street, chunky tilting logo, one PRESS START button). It
-needs the live street behind the title (the 3D world is drawn only in play; see requests) and the
-logo art (see Art requests).
+**Done and on `main`:** A1-A6, the review fixes (F2 bug 4), M-A3 and M-A2 (`checkpoint-20`).
+**Done, shipping now:** M-A1 (the title over the live street). Smoke `"ok":true`; button contrast
+13.64, every title line ≥ 8.91.
+**Queue:** Teammate A's list is done. Next: whatever the director adds, or a Free task.
 
 **Live site check (15:15, real keys, production has no debug API):** https://flip-phone-2004-8a09.netlify.app
 loads and plays (title, Enter, phone, travel to 14 March 2004 and back, no script errors), but it
 serves an older build (no A4 screens, no A5 phone) and `/api/headline` returns 500 "server is
 missing SNOWFLAKE_ACCOUNT or SNOWFLAKE_TOKEN", so the paper there is always the offline edition.
 
-**Screenshots checked:** `artifacts/bubbles.png` (♪/♥ bubbles over The Static's crowd),
+**Screenshots checked:** `artifacts/title.png` (logo leaning towards the mouse over the live street,
+boot screen, PRESS START), `artifacts/bubbles.png` (♪/♥ bubbles over The Static's crowd),
 `artifacts/tabloid.png` (paper UI), `artifacts/phone.png` (checklist), `artifacts/ending.png`
 (frames hung by hand, paper captions), `artifacts/narrow-today.png` and `artifacts/narrow-phone.png` (390x844:
 nothing overlaps), `artifacts/static-fixed.png` (packed crowd, arms up, set list by the mic),
@@ -29,6 +27,13 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
 
 **Team decision needed:** the title look. `artifacts/title-variants.png` shows both; switch with
 `T.screens.titleVariant` (`'lcd'` green mono, the default, matches the phone; or `'colour'` blue screen).
+
+## Art requests
+
+- **`logo_flip_phone`** (transparent cut-out, landscape, about 1024x384): the words FLIP PHONE in chunky,
+  hand-drawn capital letters, off-white fill with a thick dark ink outline and a hard drop shadow,
+  "PHONE" in warm yellow, a tiny silver flip phone tucked into the "O". No other text. It replaces the
+  CSS logo in `.title-logo` (`src/ui/hud.ts` `titleScreen`).
 
 ## Requests for the director
 
@@ -156,3 +161,17 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
   open phone in the bottom-right.
 - **Cleanup:** dropped CSS variables nothing read (`--panel`, `--accent`, `--text-dim`, `--paper`,
   `--ink`, the era badge colours, `--tabloid-paper`) and `T.screens.tabloidPaper`.
+
+## Task M-A1: title like Messenger's
+
+- **Live street:** the title no longer covers the world: the 3D street (today, boarded up) shows
+  through a shade (`T.screens.titleShade`, darker at the edges).
+- **Logo:** a chunky "FLIP PHONE" in CSS for now (off-white and yellow, thick ink outline, hard
+  shadow) that sways slowly and leans up to `logoTiltDeg` (10°) towards the mouse. The AI logo is
+  in Art requests.
+- **One button:** a big yellow PRESS START. A click starts the game the way Enter does (it sends an
+  Enter press; the input layer keeps presses until the next step) and does not also count as a
+  click in the world. Enter and Space still work. The boot screen (A4) stays as the shop's panel,
+  without its own "Press Enter" line.
+- **Checks:** `scripts/checks/ui.ts` checks the button (text, contrast) and the tilt (mouse
+  top-left vs bottom-right), and starts the game by clicking it.

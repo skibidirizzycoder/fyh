@@ -41,9 +41,63 @@
   text-align: center;
 }
 
-/* --- title: a 2004 phone booting up --- */
+/* --- title: over the live street (Messenger-style), a chunky logo, the shop's boot screen, one button --- */
+#title { background: radial-gradient(ellipse at center, transparent 0%, var(--title-shade) 70%), var(--title-shade); }
+.title-logo-sway { animation: logo-sway var(--logo-sway) ease-in-out infinite; }
+.title-logo {
+  margin: 0;
+  color: var(--paper-hand);
+  font: 900 clamp(36px, 8vw, 96px)/0.95 'Arial Black', Impact, sans-serif;
+  letter-spacing: 3px;
+  -webkit-text-stroke: 7px var(--paper-ink);
+  paint-order: stroke fill; /* the outline sits outside the letters, so they stay chunky */
+  text-shadow: 0 8px 0 var(--paper-ink);
+  transform: perspective(700px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) rotate(-3deg);
+  transition: transform 0.15s ease-out;
+}
+.title-logo span { display: inline-block; margin: 0 0.12em; }
+.title-logo span:last-child { color: var(--note); transform: rotate(4deg) translateY(6px); }
+.title-tagline {
+  display: inline-block;
+  margin: 16px 0 22px;
+  padding: 4px 14px;
+  border: var(--outline);
+  border-radius: 8px;
+  background: var(--paper-hand);
+  color: var(--paper-ink);
+  font: 800 16px/1.3 var(--chunky);
+  transform: rotate(1.5deg);
+}
+.title-start {
+  margin-top: 30px;
+  padding: 14px 46px;
+  border: 4px solid var(--paper-ink);
+  border-radius: 18px;
+  background: var(--note);
+  color: var(--paper-ink);
+  font: 900 30px/1 var(--chunky);
+  letter-spacing: 3px;
+  box-shadow: 0 7px 0 var(--paper-ink);
+  cursor: pointer;
+  animation: start-pulse 1.6s ease-in-out var(--boot-sec) infinite;
+}
+.title-start:hover, .title-start:focus-visible { outline: none; background: var(--paper-hand); }
+.title-start:active { box-shadow: 0 2px 0 var(--paper-ink); translate: 0 5px; }
+.title-hint {
+  margin: 18px 0 0;
+  padding: 3px 10px;
+  border: 2px solid var(--paper-ink);
+  border-radius: 6px;
+  background: var(--paper-hand);
+  color: var(--paper-ink);
+  font: 700 13px/1.2 var(--chunky);
+}
+@keyframes logo-sway { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1.5deg) translateY(-4px); } }
+@keyframes start-pulse { 50% { scale: 1.06; } }
+
+/* The shop's 2004 phone, booting up (two looks, picked in T.screens.titleVariant). */
 .boot {
-  width: min(540px, 88vw);
+  width: min(480px, 88vw);
   padding: 14px 26px 18px;
   box-sizing: border-box;
   border-radius: 14px;
@@ -58,19 +112,15 @@
 .boot-signal i:nth-child(4) { height: 14px; }
 .boot-battery { position: relative; display: block; width: 22px; height: 11px; border: 2px solid currentColor; box-sizing: border-box; }
 .boot-battery i { position: absolute; left: 1px; top: 1px; bottom: 1px; width: 13px; background: currentColor; }
-.boot-maker { font-size: 34px; letter-spacing: 8px; }
-.boot-tagline { font-size: 14px; margin-top: 2px; }
-.boot-shop { font-size: 30px; font-weight: 900; letter-spacing: 3px; margin-top: 20px; }
+.boot-shop { font-size: 30px; font-weight: 900; letter-spacing: 3px; }
 .boot-shop-sub { font-size: 14px; margin-top: 2px; }
 .boot-cds { display: flex; justify-content: center; gap: 28px; margin: 16px 0 14px; }
 .boot-cd { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; }
-.boot-bar { width: 70%; height: 12px; margin: 0 auto 12px; border: 2px solid currentColor; box-sizing: border-box; padding: 1px; }
+.boot-bar { width: 70%; height: 12px; margin: 0 auto 10px; border: 2px solid currentColor; box-sizing: border-box; padding: 1px; }
 .boot-bar i { display: block; height: 100%; width: 100%; background: currentColor; transform-origin: left; animation: boot-fill var(--boot-sec) steps(12) both; }
-.boot-start { font-size: 20px; font-weight: 800; animation: boot-blink var(--blink-sec) step-end var(--boot-sec) infinite; }
-.boot-keys { font-size: 12px; margin-top: 10px; }
+.boot-keys { font-size: 12px; }
 
 @keyframes boot-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes boot-blink { 50% { visibility: hidden; } }
 
 /* Look 1, "lcd": the phone's own green mono LCD, pixel text, a thick dark bezel. */
 .boot[data-variant='lcd'] {
@@ -95,8 +145,7 @@
   box-shadow: 0 0 0 14px var(--bezel), 0 18px 40px 14px rgba(0, 0, 0, 0.6);
   font-family: Tahoma, Verdana, system-ui, sans-serif;
 }
-.boot[data-variant='colour'] .boot-maker { font-style: italic; text-shadow: 0 2px 0 var(--colour-bottom); }
-.boot[data-variant='colour'] .boot-shop, .boot[data-variant='colour'] .boot-start { color: var(--colour-accent); }
+.boot[data-variant='colour'] .boot-shop { color: var(--colour-accent); font-style: italic; text-shadow: 0 2px 0 var(--colour-bottom); }
 
 /* --- discs (title: dusty; ending: gold) --- */
 .disc { display: block; border-radius: 50%; }
@@ -268,5 +317,6 @@
 .is-narrow .ending-title { font-size: 44px; letter-spacing: 8px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .boot-bar i, .boot-start, .bubble { animation: none; }
+  .boot-bar i, .title-start, .title-logo-sway, .bubble { animation: none; }
+  .title-logo { transition: none; }
 }

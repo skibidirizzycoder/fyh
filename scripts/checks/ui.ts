@@ -1,8 +1,9 @@
 // ui.ts — smoke checks for the title, card, newspaper and ending screens. Owner: Teammate A.
 // Proves, on the production build:
-//   title   a fresh page starts on the phone boot screen (chosen look, one dusty CD per CD, Enter
-//           starts play); both looks are drawn side by side for the team to pick
-//           (artifacts/title-variants.png); each look's text lines are readable
+//   title   a fresh page starts on the title over the live street: the logo leans towards the mouse,
+//           the shop's boot screen (chosen look, one dusty CD per CD), and the PRESS START button
+//           starts play; both boot looks are drawn side by side for the team to pick
+//           (artifacts/title-variants.png); each look's text lines and the button are readable
 //   tabloid with a CD fixed today, the card and the paper are tabloid pages whose red headers,
 //           headline and lists are readable
 //   ending  with every CD fixed, the ending is a wall with one gold disc per CD, readable captions
@@ -17,10 +18,10 @@ import type { Page } from 'playwright';
 import { content } from '../../src/story/content.ts';
 import { T } from '../../src/tuning.ts';
 import type { Snapshot } from '../../src/debug.ts';
-import { expect, hold, interact, measureContrast, restart, screenshot, state, step, tap, travel } from './tools.ts';
+import { expect, interact, measureContrast, restart, screenshot, state, step, tap, travel } from './tools.ts';
 
 const VARIANTS = ['lcd', 'colour'] as const;
-const BOOT_LINES = ['.boot-maker', '.boot-shop', '.boot-start', '.boot-keys']; // biggest to smallest text
+const BOOT_LINES = ['.boot-shop', '.boot-shop-sub', '.boot-keys']; // biggest to smallest text
 const POLL_MS = 100;
 const NARROW = { width: 390, height: 844 }; // a phone in portrait (F2 playtest, bug 4)
 
@@ -189,15 +190,30 @@ async function checkTitle(page: Page): Promise<void> {
   const variant = await boot.getAttribute('data-variant');
   expect(variant === T.screens.titleVariant, `title look is "${variant}", tuning says "${T.screens.titleVariant}"`);
   const text = (await boot.textContent()) ?? '';
-  expect(text.includes('HOLLOW RECORDS') && text.includes('Press Enter'), `title text is missing the shop or "Press Enter": ${text}`);
+  expect(text.includes('HOLLOW RECORDS'), `the boot screen is missing the shop: ${text}`);
+  const start = page.locator('#title .title-start');
+  expect((await start.isVisible()) && (await start.textContent()) === 'PRESS START', 'no PRESS START button on the title');
+  await measureContrast(page, '#title .title-start', 'titleStart');
+
+  // The logo leans towards the mouse: top-left tips it one way, bottom-right the other.
+  const tilt = async (x: number, y: number): Promise<string> => {
+    await page.mouse.move(x, y);
+    return page.locator('#title .title-logo').evaluate((e) => `${e.style.getPropertyValue('--tilt-x')} ${e.style.getPropertyValue('--tilt-y')}`);
+  };
+  const view = page.viewportSize() ?? { width: 1280, height: 720 };
+  const [topLeft, bottomRight] = [await tilt(0, 0), await tilt(view.width - 1, view.height - 1)];
+  const maxTilt = `${T.screens.logoTiltDeg.toFixed(2)}deg`;
+  expect(topLeft === `${maxTilt} -${maxTilt}` && bottomRight.startsWith('-'), `logo tilt: top-left "${topLeft}", bottom-right "${bottomRight}"`);
+  await tilt(view.width * 0.62, view.height * 0.4); // a little off-centre for the picture
   const shelf = await page.locator('#title .boot-cd').allTextContents();
   const artists = content.cds.map((c) => c.artist);
   expect(shelf.join('|') === artists.join('|'), `dusty CDs [${shelf.join()}], expected [${artists.join()}]`);
   await screenshot(page, 'title');
   await titleVariants(page);
 
-  const play = await hold(page, 'Enter', 1);
-  expect(play.scene === 'play' && !(await page.locator('#title').isVisible()), 'Enter did not leave the title screen');
+  await start.click({ force: true }); // force: it pulses, so it is never "stable" for Playwright
+  const play = await step(page, 1);
+  expect(play.scene === 'play' && !(await page.locator('#title').isVisible()), 'PRESS START did not leave the title screen');
 }
 
 /** Today with Mira fixed: the card and the paper are tabloid pages. */

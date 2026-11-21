@@ -1,7 +1,8 @@
 // hud.ts — all on-screen text, as plain HTML on top of the 3D canvas. Owner: Teammate A.
 // Each frame, render() makes the page match the game state.
-//   #title    a 2004 phone booting up: Hollow Records, three dusty CDs, "Press Enter"
-//             (two looks, T.screens.titleVariant: 'lcd' green mono screen or 'colour' screen)
+//   #title    over the live street (Messenger-style): a chunky FLIP PHONE logo that leans towards the
+//             mouse, the shop's 2004 phone boot screen (Hollow Records, three dusty CDs; two looks,
+//             T.screens.titleVariant: 'lcd' or 'colour') and one big PRESS START button
 //   #card     "Because you..." as a tabloid inside story  } both inside #today-papers: apart on
 //   #news     today's paper as a 2000s red-top front page } wide screens, stacked on narrow ones
 //   #ending   a wall of framed gold discs, one per CD
@@ -33,7 +34,7 @@ function disc(kind: 'dusty' | 'gold'): HTMLElement {
   return make('span', `disc disc-${kind}`);
 }
 
-/** The boot screen: phone maker logo, the shop, three dusty CDs, a progress bar and "Press Enter". */
+/** The boot screen: the shop, three dusty CDs, a progress bar and the keys. */
 export function bootScreen(cds: readonly LoadedCd[], variant: string): HTMLElement {
   const boot = make('div', 'boot');
   boot.dataset.variant = variant;
@@ -56,16 +57,45 @@ export function bootScreen(cds: readonly LoadedCd[], variant: string): HTMLEleme
 
   boot.append(
     status,
-    make('h1', 'boot-maker', 'FLIP PHONE'),
-    make('p', 'boot-tagline', 'Something old, into something modern.'),
     make('p', 'boot-shop', 'HOLLOW RECORDS'),
     make('p', 'boot-shop-sub', `Closed since 2004. ${cds.length} CDs nobody bought.`),
     shelf,
     bar,
-    make('p', 'boot-start', 'Press Enter to start'),
     make('p', 'boot-keys', 'W/S walk · A/D turn · E use · Q flip phone · M mute'),
   );
   return boot;
+}
+
+/** Starts the game the way Enter does: the input layer keeps a press until the next game step. */
+function pressStart(): void {
+  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', key: 'Enter' }));
+  window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Enter', key: 'Enter' }));
+}
+
+/** The title over the live street: chunky logo (leans towards the mouse), the boot screen, one big button. */
+function titleScreen(cds: readonly LoadedCd[]): HTMLElement[] {
+  const sway = make('div', 'title-logo-sway');
+  const logo = make('h1', 'title-logo');
+  logo.append(make('span', '', 'FLIP'), make('span', '', 'PHONE'));
+  sway.append(logo, make('p', 'title-tagline', 'Something old, into something modern.'));
+
+  const start = document.createElement('button');
+  start.type = 'button';
+  start.className = 'title-start';
+  start.textContent = 'PRESS START';
+  start.addEventListener('mousedown', (e) => e.stopPropagation()); // not also a click in the world (Mouse0 = use)
+  start.addEventListener('click', () => {
+    start.blur(); // so a later Enter is not a second click
+    pressStart();
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    const x = e.clientX / window.innerWidth - 0.5; // -0.5 (left) .. 0.5 (right)
+    const y = e.clientY / window.innerHeight - 0.5;
+    logo.style.setProperty('--tilt-x', `${(-y * 2 * T.screens.logoTiltDeg).toFixed(2)}deg`);
+    logo.style.setProperty('--tilt-y', `${(x * 2 * T.screens.logoTiltDeg).toFixed(2)}deg`);
+  });
+  return [sway, bootScreen(cds, T.screens.titleVariant), start, make('p', 'title-hint', 'Enter, Space or click')];
 }
 
 /** A number in [0, 1) from n, the same every run (so bubble layouts are stable in screenshots). */
@@ -159,7 +189,7 @@ export function createHud(root: HTMLElement, content: StoryContent, news: NewsDe
     card: el('card'), causes: el('card-causes'), change: el('card-change'), ending: el('ending'),
     news: el('news'), headline: el('news-headline'), article: el('news-article'), offline: el('news-offline'),
   };
-  parts.title.appendChild(bootScreen(content.cds, T.screens.titleVariant));
+  parts.title.append(...titleScreen(content.cds));
   parts.ending.append(...endingScreen(content));
   const bubbles = createBubbles(root);
 
@@ -236,6 +266,8 @@ function setCssColours(): void {
     '--lcd': T.phone.lcd,
     '--lcd-ink': T.phone.lcdInk,
     '--boot-sec': `${S.bootSec}s`,
+    '--title-shade': S.titleShade,
+    '--logo-sway': `${S.logoSwaySec}s`,
     '--blink-sec': `${S.blinkSec}s`,
     '--backdrop': S.backdrop,
     '--bezel': S.bezel,
