@@ -7,11 +7,13 @@
 //              strong vignette, then ordered dithering down to a few colour levels
 //   present -> full resolution with MSAA, cool tint, clean, light vignette
 // The sky (where nothing was drawn) gets a soft gradient: the fog colour at the horizon, deeper above.
+// The brightest pixels glow (bloom), and full-resolution scenes get FXAA after the ink (see passes.ts).
 // Ink, grain, vignette and dithering are worked out once per scene pixel, so they line up with
 // the chunky pixels.
 
 import * as THREE from 'three';
 import { CREASE_FULL, creaseOffset, msaaSamples, outlineWidth, renderSize, toScenePx, type Look } from './look.ts';
+import { createFxaa, createGlow, createQuad } from './passes.ts';
 
 type Uniforms = THREE.ShaderMaterial['uniforms'];
 
@@ -26,6 +28,8 @@ const vertexShader = /* glsl */ `
 const fragmentShader = /* glsl */ `
   uniform sampler2D tScene;
   uniform sampler2D tDepth;
+  uniform sampler2D tGlow;   // the blurred brightest light (bloom), added on top
+  uniform float glow;        // how strongly it is added (0 = off)
   uniform vec2 pixels;
   uniform float chunky;
   uniform vec3 tint;
@@ -184,12 +188,13 @@ const fragmentShader = /* glsl */ `
     vec3 c = texture2D(tScene, uv).rgb;
     if (texture2D(tDepth, uv).x >= 1.0) c = skyAt(uv);         // nothing drawn here: the sky
     if (outline > 0.0) c = mix(c, inkColor, inkAt(uv, c, px));  // ink outlines, graded with the scene
+    if (glow > 0.0) c += glow * texture2D(tGlow, uv).rgb;       // bloom, once per scene pixel
     float grey = dot(c, vec3(0.2126, 0.7152, 0.0722));
     c = mix(vec3(grey), c, saturation) * tint;                 // colour grade
     float d = distance(uv, vec2(0.5));
     c *= 1.0 - vignette * smoothstep(0.35, 0.85, d);           // vignette
     gl_FragColor = vec4(c, 1.0);
-    #include <colorspace_fragment>
+    gl_FragColor = sRGBTransferOETF(gl_FragColor);              // display colours, for the screen or FXAA's target
     // From here on the colour is in display (sRGB) values, so grain and colour levels are even from dark to light.
     gl_FragColor.rgb += (hash(uv * 1000.0 + frame) - 0.5) * grain;                       // film grain
     if (levels > 1.0) gl_FragColor.rgb = quantise(gl_FragColor.rgb, levels, bayer4(px)); // ordered dither
@@ -216,6 +221,8 @@ function makeMaterial(target: THREE.WebGLRenderTarget): THREE.ShaderMaterial {
     uniforms: {
       tScene: { value: target.texture },
       tDepth: { value: target.depthTexture },
+      tGlow: { value: null },
+      glow: { value: 0 },
       pixels: { value: new THREE.Vector2(1, 1) },
       chunky: { value: 0 },
       tint: { value: new THREE.Vector3(1, 1, 1) },
@@ -343,12 +350,11 @@ export function createPostFilter(width: number, height: number, maxSamples: numb
   const u = material.uniforms;
   const screen = { width, height, pixelHeight: 0, msaa: 0, maxSamples, scale: 1, look: null as Look | null, ink: true };
   screen.scale = resizeTarget(target, u, screen);
-  const quadGeometry = new THREE.PlaneGeometry(2, 2);
-  const quad = new THREE.Mesh(quadGeometry, material);
-  quad.frustumCulled = false;
-  const postScene = new THREE.Scene();
-  postScene.add(quad);
-  const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const quad = createQuad();
+  const glow = createGlow();
+  const fxaa = createFxaa();
+  fxaa.setSize(width, height);
+  if (u.tGlow) u.tGlow.value = glow.texture;
 
   return {
     setLook: (look) => {
@@ -360,6 +366,7 @@ export function createPostFilter(width: number, height: number, maxSamples: numb
       screen.look = look;
       setGrade(u, look);
       setSky(u, look);
+      if (u.glow) u.glow.value = look.bloom;
       setInk(u, look, screen.height, screen.scale);
       if (!screen.ink && u.outline) u.outline.value = 0;
     },
@@ -367,6 +374,7 @@ export function createPostFilter(width: number, height: number, maxSamples: numb
       screen.width = w;
       screen.height = h;
       screen.scale = resizeTarget(target, u, screen);
+      fxaa.setSize(w, h);
       if (screen.look) setInk(u, screen.look, h, screen.scale);
       if (!screen.ink && u.outline) u.outline.value = 0;
     },
@@ -378,14 +386,22 @@ export function createPostFilter(width: number, height: number, maxSamples: numb
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
       setDepthParams(u, camera); // after the scene draw, which brings the camera's matrices up to date
-      renderer.setRenderTarget(null);
-      renderer.render(postScene, postCamera);
+      const look = screen.look;
+      if (look && look.bloom > 0) {
+        const settings = { threshold: look.bloomThreshold, scale: look.bloomScale, spread: look.bloomSpread };
+        glow.render(renderer, quad, target.texture, target.width, target.height, settings);
+      }
+      const smooth = !!look && look.fxaa > 0 && screen.scale === 1; // chunky pixels stay hard
+      quad.draw(renderer, material, smooth ? fxaa.target : null);
+      if (smooth) fxaa.render(renderer, quad);
     },
     dispose: () => {
       target.depthTexture?.dispose();
       target.dispose();
       material.dispose();
-      quadGeometry.dispose();
+      glow.dispose();
+      fxaa.dispose();
+      quad.dispose();
     },
   };
 }

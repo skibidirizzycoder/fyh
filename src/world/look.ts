@@ -38,6 +38,16 @@ export interface Look {
   msaa: number;
   /** Sky gradient: how much darker the top of the sky is than the horizon, which keeps the fog colour (0 = flat). */
   skyDeepen: number;
+  /** Bloom: how strongly the blurred brightest light is added (0 = off). */
+  bloom: number;
+  /** Bloom: only light brighter than this glows (linear luminance; lit walls stay below it). */
+  bloomThreshold: number;
+  /** Bloom: the glow's resolution as a share of the scene's (chunky scenes: of their chunky pixels). */
+  bloomScale: number;
+  /** Bloom: glow texels between two of the blur's taps (bigger = wider glow). */
+  bloomSpread: number;
+  /** FXAA after the ink, at full resolution only (1 = on, 0 = off). */
+  fxaa: number;
 }
 
 /** Outline widths in the look are screen pixels on a screen this many lines tall (the unit, like metres). */
