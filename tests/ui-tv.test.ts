@@ -17,6 +17,10 @@ describe('the shop TV', () => {
     }
   });
 
+  it('starts every song at its chorus, not the intro', () => {
+    for (const [cd, v] of Object.entries(VIDEOS)) expect(v.startSec, cd).toBeGreaterThanOrEqual(30);
+  });
+
   it("is at least YouTube's minimum player size (200 x 200) and sits above the dialogue", () => {
     expect(T.tv.screenPx).toBeGreaterThanOrEqual(200);
     expect(T.tv.bottomPx).toBeGreaterThanOrEqual(140); // the three-line dialogue box reaches ~134 px up

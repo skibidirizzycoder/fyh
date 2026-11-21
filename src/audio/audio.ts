@@ -178,7 +178,7 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
     }
   }
 
-  const music = createMusicDirector(() => sound?.music ?? null, safely);
+  const music = createMusicDirector(() => sound?.music ?? null, safely, (on) => { const s = sound; if (s) safely(() => s.ambience.setUnderMusic(on)); });
 
   function resume(): void {
     if (sound?.ctx.state === 'suspended') sound.ctx.resume().catch(() => undefined);

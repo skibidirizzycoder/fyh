@@ -202,4 +202,9 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
 - No network until a song is wanted; off in test builds (smoke blocks outside network). If YouTube
   fails or times out (`T.tv.apiTimeoutSec`), or a video won't embed, that CD plays its CC stand-in
   (`audio.external()` in Teammate B's audio silences the built-in song only while the TV covers it).
-- To do by ear: `T.tv.videos[cd].startSec / lengthSec` (all start at 0:00 and play to the end).
+- Each video starts at its first chorus (Lose Yourself 1:38, Sweet Child O' Mine 0:59, Despacito 1:21),
+  found from the videos' own lyric captions and LRCLIB timings; checked in a real browser. At the end it
+  goes back to the chorus. The TV is the bare 200 x 200 player (YouTube's minimum), no caption.
+- Background under the songs: the era bed and soundscape duck to `T.audio.ambience.underMusic` (0.3)
+  whenever a song is wanted; crackle/hiss/hum, footsteps and dialogue blips are quieter; TV volume
+  85 in the past, 40 for K-Bit's leak (lead: "a lot of noise working against the music").

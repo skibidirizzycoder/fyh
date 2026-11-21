@@ -20,15 +20,17 @@ export interface MusicDirector {
 
 /**
  * `player()` returns the player once sound is unlocked (null before);
- * `run()` runs Web Audio code safely (audio.ts goes quiet if it throws).
+ * `run()` runs Web Audio code safely (audio.ts goes quiet if it throws);
+ * `onPick(playing)` hears after every change whether a song is wanted now (the background ducks under it).
  */
-export function createMusicDirector(player: () => MusicPlayer | null, run: (fn: () => void) => void): MusicDirector {
+export function createMusicDirector(player: () => MusicPlayer | null, run: (fn: () => void) => void, onPick?: (playing: boolean) => void): MusicDirector {
   const tracker = createMusicTracker();
   let rotation: ReturnType<typeof setTimeout> | null = null;
 
   function refresh(): void {
     const p = player();
     if (p) run(() => p.set(tracker.pick(), tracker.level()));
+    onPick?.(tracker.pick() !== null);
     if (rotation) clearTimeout(rotation);
     rotation = null;
     if (p && tracker.playlistLength() > 1) {

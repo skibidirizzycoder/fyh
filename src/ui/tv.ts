@@ -93,28 +93,27 @@ function make(tag: string, className: string, text?: string): HTMLElement {
   return el;
 }
 
-/** The TV's frame, screen (the player goes in `holder`) and credit line; hidden until a song plays. */
-function buildBox(root: HTMLElement): { box: HTMLElement; holder: HTMLElement; label: HTMLElement } {
+/** The TV: just the player (it goes in `holder`), at YouTube's smallest size; hidden until a song plays. */
+function buildBox(root: HTMLElement): { box: HTMLElement; holder: HTMLElement } {
   const box = make('div', 'tv');
   box.id = 'tv';
   box.hidden = true;
+  box.setAttribute('role', 'region');
   box.style.setProperty('--tv-frame', T.tv.frame);
-  box.style.setProperty('--tv-text', T.tv.text);
   box.style.setProperty('--tv-screen', `${T.tv.screenPx}px`);
   box.style.setProperty('--tv-left', `${T.tv.leftPx}px`);
   box.style.setProperty('--tv-bottom', `${T.tv.bottomPx}px`);
   const screen = make('div', 'tv-screen');
   const holder = make('div', 'tv-player'); // YouTube replaces this with its iframe
   screen.appendChild(holder);
-  const label = make('p', 'tv-label');
-  box.append(screen, label);
+  box.append(screen);
   root.appendChild(box);
-  return { box, holder, label };
+  return { box, holder };
 }
 
 /** Builds the TV. `enabled` is false in test builds. */
 export function createTv(root: HTMLElement, audio: TvAudio, enabled = T.tv.enabled && import.meta.env.MODE !== 'test'): Tv {
-  const { box, holder, label } = buildBox(root);
+  const { box, holder } = buildBox(root);
 
   let status: 'idle' | 'loading' | 'ready' | 'failed' = 'idle';
   let player: YtPlayer | null = null;
@@ -217,8 +216,8 @@ export function createTv(root: HTMLElement, audio: TvAudio, enabled = T.tv.enabl
       setExternal(covered());
       follow(want);
       box.hidden = !want || status !== 'ready';
-      const credit = want ? VIDEOS[want.cd]?.credit ?? '' : '';
-      if (label.textContent !== credit) label.textContent = credit;
+      const name = `Now playing: ${want ? VIDEOS[want.cd]?.credit ?? '' : ''}`;
+      if (box.getAttribute('aria-label') !== name) box.setAttribute('aria-label', name);
     },
   };
 }
