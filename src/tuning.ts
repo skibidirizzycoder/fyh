@@ -246,6 +246,7 @@ export const T = {
     attackSec: 0.005, // every note fades in this fast (no clicks)
     releaseSec: 0.05, // ...and fades out this fast
     beep: { note: 88, sec: 0.06, gain: 0.18, wave: 'square' }, // keypad (phone-move)
+    keyClick: { sec: 0.012, gain: 0.25, hz: 4500, q: 2 }, // the plastic key itself, under beep and blip
     blip: { note: 81, toNote: 93, sec: 0.08, gain: 0.2, wave: 'square' }, // select (phone-select)
     flipOpen: { note: 52, toNote: 64, sec: 0.05, gain: 0.3, noiseSec: 0.04, noiseGain: 0.35, noiseHz: 3200 },
     flipClose: { note: 64, toNote: 45, sec: 0.06, gain: 0.35, noiseSec: 0.05, noiseGain: 0.4, noiseHz: 1800 },
@@ -275,6 +276,26 @@ export const T = {
       seed: 2004, // crackle is random but the same every run
       '2004': { humHz: 55, humGain: 0.035, noiseGain: 0.03, noiseLowpassHz: 1200, cracklePerSec: 9, crackleGain: 0.12 },
       present: { humHz: 0, humGain: 0, noiseGain: 0.012, noiseLowpassHz: 6000, cracklePerSec: 0, crackleGain: 0 },
+    },
+
+    // Game feel: small sounds for everything you do (footsteps, paper, camera, voices). Not "cues": they
+    // are never the lastCue, so they can't hide the story sounds from the checks.
+    feel: {
+      seed: 31,
+      step: { variants: 4, sec: 0.07, gain: 0.12, fromHz: 1800, toHz: 500, q: 1.2, thumpNote: 40, thumpGain: 0.09, pitchJitter: 0.12, stepSec: 0.32 },
+      paper: { rustles: 4, gapSec: 0.045, sec: 0.07, gain: 0.3, minHz: 2500, maxHz: 6500, q: 1.5 },
+      zoom: { sec: 0.45, gain: 0.25, lowHz: 300, highHz: 1600, q: 2 }, // a soft whoosh: rising in, falling out
+      voice: {
+        blipSec: 0.06, gapSec: 0.085, gain: 0.16, maxBlips: 24, // one blip per syllable-ish, at most ~2 s
+        spread: 5, // semitones up from the speaker's note, picked by each letter
+        speakers: { // base MIDI note and wave per speaker
+          mira: { note: 74, wave: 'triangle' },
+          band: { note: 62, wave: 'square' },
+          kbit: { note: 79, wave: 'square' },
+          owner: { note: 57, wave: 'triangle' },
+        },
+        byMoment: { open_mic: 'mira', street_gig: 'band', ringtone: 'kbit' }, // who talks when the event doesn't say
+      },
     },
 
     // Each moment's own background (on top of the era hum/crackle above). Made in code, seeded.
