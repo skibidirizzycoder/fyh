@@ -23,6 +23,20 @@ Without it, the game still works and prints the offline edition.
 
 Controls: **W/S** walk, **A/D** turn, **E** or click to use, **Q** flip the phone (change era), **Enter** start.
 
+### For teammates
+
+```sh
+git clone https://github.com/skibidirizzycoder/fyh.git && cd fyh
+npm install                        # installs the pre-commit hook too
+npx playwright install chromium
+cp .env.example .env               # optional: Snowflake values (never commit .env)
+npm run gate                       # should pass before you change anything
+```
+
+Then read [AGENTS.md](AGENTS.md) (the rules) and [STATUS.md](STATUS.md) (where we are).
+The prompts that built this project are in [docs/prompts/](docs/prompts/). Read them to see
+how the harness was set up, or reuse them with your own agent.
+
 ## The loop
 
 This project uses a "game dev harness": small verified steps, where done means *shown working*.
@@ -121,7 +135,8 @@ src/story/     content.json, timeline (pure), validation
 src/ui/        on-screen text (HTML overlay)
 src/game.ts    game state and the title / play / ending scenes
 src/debug.ts   window.__game (dev and test builds only)
-scripts/       smoke test
+scripts/       smoke test, snowflake:ping
+docs/prompts/  the prompts that set up this project
 tests/         unit tests
 ```
 
