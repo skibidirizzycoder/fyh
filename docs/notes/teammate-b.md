@@ -51,6 +51,18 @@ from Claude to be heard (below).** Last gate: 195 unit tests, smoke `"ok":true`,
   Someone should play today with a fixed CD, set the right `bpm`, set `beat: 1`, and check it's in time.
 - **Swap any song** you don't like: keep the file name, update `public/music/CREDITS.md` and the `bpm`.
 
+## B8: the remaster sting (17:15)
+
+Back today after a fix (`reputation`): the tape rewinds (a rising, wobbling squeal over hiss, from 0.45 s so it
+clears the whoosh), the play key clunks at 1.25 s, and the remix snaps in at full level (no fade). The music is
+held silent through the rewind. Replaces the old `fanfare`. Measured in Chromium: peak 0.21, remix in at 1.35 s.
+
+## Waiting on events (for B11, B13)
+
+- **B11** needs the `area` event and the area ids (shop / square / bus stop?).
+- **B13** needs an event when the ending starts (e.g. `ending: {}`), to play the medley over the gold discs.
+  **Request for Claude:** please add `ending` with `cd-insert`, `title` and `area`.
+
 ## The demo's K-Bit moment, reworked (13 January 2017, on top of the lead's Despacito change)
 
 Same two key presses, about 30 s, a clear before and after:

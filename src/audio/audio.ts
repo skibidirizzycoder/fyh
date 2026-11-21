@@ -61,7 +61,7 @@ export function actionCue(actionId: string): CueName {
 }
 
 /** Cues that wait a moment so they don't land on top of the travel whoosh. */
-const DELAY: Partial<Record<CueName, number>> = { fanfare: T.audio.fanfare.delaySec };
+const DELAY: Partial<Record<CueName, number>> = { remaster: T.audio.remaster.delaySec };
 
 function defaultContext(): AudioContext | null {
   return typeof AudioContext === 'undefined' ? null : new AudioContext();
@@ -116,7 +116,7 @@ function subscribe(events: SoundEvents, a: {
   events.on('phone-move', () => play('beep'));
   events.on('phone-select', () => play('blip'));
   events.on('reputation', (e) => {
-    play('fanfare');
+    play('remaster'); // back today after a fix: the tape rewinds, then the remix comes in crisp
     music.reputation(e.level);
   });
 }
@@ -154,6 +154,7 @@ function playOn(s: Sound, name: CueName, insertAt: number | null): void {
   const spread = name === 'ringtone' ? playQueue(s) : 0; // and then the whole queue rings
   if (name === 'ringtone') s.ambience.bus(T.kbit.busAtSec); // ...and the bus comes. Nobody gets on.
   if (DUCK_CUES.includes(name)) s.music.duck(Math.max(cueLength(cue), spread));
+  if (name === 'remaster') s.music.hold(delay + cueLength(cue)); // silent through the rewind, then crisp
 }
 
 /** Creates the game's audio and subscribes it to game events. */

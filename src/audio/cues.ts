@@ -4,9 +4,9 @@
 
 import { T } from '../tuning.ts';
 
-export type CueName = 'beep' | 'blip' | 'flip-open' | 'flip-close' | 'ringtone' | 'whoosh' | 'chime' | 'nope' | 'fanfare' | 'beam' | 'cd-insert';
+export type CueName = 'beep' | 'blip' | 'flip-open' | 'flip-close' | 'ringtone' | 'whoosh' | 'chime' | 'nope' | 'remaster' | 'beam' | 'cd-insert';
 
-export const CUE_NAMES: readonly CueName[] = ['beep', 'blip', 'flip-open', 'flip-close', 'ringtone', 'whoosh', 'chime', 'nope', 'fanfare', 'beam', 'cd-insert'];
+export const CUE_NAMES: readonly CueName[] = ['beep', 'blip', 'flip-open', 'flip-close', 'ringtone', 'whoosh', 'chime', 'nope', 'remaster', 'beam', 'cd-insert'];
 
 /** One oscillator note. `toNote` slides the pitch during the note. */
 export interface Tone {
@@ -130,6 +130,26 @@ export function queueRingtones(): QueuePhone[] {
   }));
 }
 
+/** The remaster sting: a tape rewinding (a rising, wobbling squeal over hiss), then the play key's clunk. */
+function remaster(): Cue {
+  const r = T.audio.remaster;
+  const stepSec = r.rewindSec / r.steps;
+  const tones: Tone[] = Array.from({ length: r.steps }, (_, i) => {
+    const from = r.fromNote + ((r.toNote - r.fromNote) * i) / r.steps;
+    const wobble = i % 2 === 0 ? r.warble : -r.warble; // the tape's wow and flutter
+    return { at: i * stepSec, sec: stepSec, note: from, toNote: from + (r.toNote - r.fromNote) / r.steps + wobble, wave: 'sawtooth', gain: r.gain };
+  });
+  const c = r.clunk;
+  tones.push({ at: r.rewindSec, sec: c.sec, note: c.note, wave: 'sine', gain: c.gain });
+  return {
+    tones,
+    noises: [
+      { at: 0, sec: r.rewindSec, gain: r.hiss.gain, fromHz: r.hiss.fromHz, toHz: r.hiss.toHz, q: r.hiss.q },
+      { at: r.rewindSec, sec: c.sec, gain: c.noiseGain, fromHz: c.noiseHz, toHz: c.toHz, q: 1 },
+    ],
+  };
+}
+
 /** Builds the data for one cue. */
 export function buildCue(name: CueName): Cue {
   const a = T.audio;
@@ -152,8 +172,8 @@ export function buildCue(name: CueName): Cue {
       return arpeggio(a.chime);
     case 'nope':
       return arpeggio(a.nope);
-    case 'fanfare':
-      return arpeggio(a.fanfare);
+    case 'remaster':
+      return remaster();
     case 'beam':
       return beam();
     case 'cd-insert':
