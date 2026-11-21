@@ -104,6 +104,47 @@ export const T = {
     maxDrawCalls: 60, // smoke fails above this
   },
 
+  // --- Teammate B: all sound, generated in code (no sound files) ---
+  // Notes are MIDI numbers (60 = middle C, 69 = A 440 Hz). Times in seconds, gains 0..1.
+  // Song parts are lists of [step, note, lengthInSteps]; a step is one 16th note.
+  audio: {
+    master: 0.5, // overall volume
+    muteKey: 'KeyM',
+    ringtoneActions: ['kbit_ring_bus_stop'], // finishing these actions plays the ringtone instead of the chime
+    attackSec: 0.005, // every note fades in this fast (no clicks)
+    releaseSec: 0.05, // ...and fades out this fast
+    beep: { note: 88, sec: 0.06, gain: 0.18, wave: 'square' }, // keypad (phone-move)
+    blip: { note: 81, toNote: 93, sec: 0.08, gain: 0.2, wave: 'square' }, // select (phone-select)
+    flipOpen: { note: 52, toNote: 64, sec: 0.05, gain: 0.3, noiseSec: 0.04, noiseGain: 0.35, noiseHz: 3200 },
+    flipClose: { note: 64, toNote: 45, sec: 0.06, gain: 0.35, noiseSec: 0.05, noiseGain: 0.4, noiseHz: 1800 },
+    ringtone: {
+      // An ORIGINAL 2-bar polyphonic ringtone (A minor: Am - F - C - G). Up to 4 notes at once.
+      bpm: 140,
+      melody: { wave: 'square', gain: 0.16, notes: [
+        [0, 76, 2], [2, 79, 1], [3, 81, 1], [4, 76, 2], [6, 74, 2], [8, 72, 2], [10, 74, 1], [11, 76, 3],
+        [16, 81, 2], [18, 79, 1], [19, 76, 1], [20, 79, 2], [22, 81, 1], [23, 84, 3], [26, 83, 2], [28, 81, 4],
+      ] },
+      bass: { wave: 'triangle', gain: 0.3, notes: [
+        [0, 45, 3], [4, 45, 3], [8, 41, 3], [12, 41, 3], [16, 48, 3], [20, 48, 3], [24, 43, 3], [28, 43, 3],
+      ] },
+      chords: { wave: 'square', gain: 0.07, notes: [
+        [2, 60, 1], [2, 64, 1], [6, 60, 1], [6, 64, 1], [10, 57, 1], [10, 60, 1], [14, 57, 1], [14, 60, 1],
+        [18, 64, 1], [18, 67, 1], [22, 64, 1], [22, 67, 1], [26, 62, 1], [26, 67, 1], [30, 62, 1], [30, 67, 1],
+      ] },
+    },
+    whoosh: { sec: 0.9, gain: 0.8, fromHz: 250, toHz: 5000, q: 4 }, // travel: filtered noise sweep
+    chime: { notes: [76, 81, 88], gapSec: 0.08, sec: 0.5, gain: 0.2, wave: 'sine' }, // action-done
+    nope: { notes: [50, 46], gapSec: 0.12, sec: 0.14, gain: 0.2, wave: 'square' }, // action-locked
+    fanfare: { notes: [67, 72, 76, 79, 84], gapSec: 0.1, sec: 0.35, gain: 0.18, wave: 'square' }, // reputation
+    ambience: {
+      fadeSec: 1.2, // crossfade when you travel
+      loopSec: 2, // length of the looping noise buffers
+      seed: 2004, // crackle is random but the same every run
+      '2004': { humHz: 55, humGain: 0.035, noiseGain: 0.03, noiseLowpassHz: 1200, cracklePerSec: 9, crackleGain: 0.12 },
+      present: { humHz: 0, humGain: 0, noiseGain: 0.012, noiseLowpassHz: 6000, cracklePerSec: 0, crackleGain: 0 },
+    },
+  },
+
   ui: {
     panel: 'rgba(12, 12, 16, 0.88)',
     text: '#f4f4f6',
