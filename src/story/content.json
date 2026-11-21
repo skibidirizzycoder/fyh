@@ -13,16 +13,16 @@
       "id": "rep_open",
       "count": 1,
       "label": "Hollow Records is open again",
-      "line": "The boards are gone. The shop is open.",
-      "effects": { "show": ["lit_window", "open_sign"], "hide": ["boarded_window"] },
+      "line": "The boards are gone. The lights are on, there's music inside, and someone is already flicking through the racks.",
+      "effects": { "show": ["lit_window", "open_sign", "rep_customer"], "hide": ["boarded_window", "rep_door_boards"] },
       "offline": { "headline": "Hollow Records Reopens Its Doors", "article": "The corner record shop that closed in 2004 is open again. Locals say it all started with one forgotten CD." }
     },
     {
       "id": "rep_busy",
       "count": 2,
       "label": "the shop is busy every weekend",
-      "line": "There are posters in the window and a queue at the till.",
-      "effects": { "show": ["rep_posters"], "hide": [] },
+      "line": "There are posters in the window and a queue out of the door.",
+      "effects": { "show": ["rep_posters", "rep_window_poster_1", "rep_window_poster_2", "rep_queue_1", "rep_queue_2", "rep_queue_3", "rep_queue_4"], "hide": [] },
       "offline": { "headline": "Weekend Queues at Hollow Records", "article": "Two of the shop's forgotten 2004 CDs are now cult favourites. Fans travel across London to buy them where it all began." }
     },
     {
@@ -30,7 +30,7 @@
       "count": 3,
       "label": "the shop is a London landmark",
       "line": "A blue plaque by the door: 'Where the 2004 sound was discovered.'",
-      "effects": { "show": ["rep_plaque"], "hide": [] },
+      "effects": { "show": ["rep_plaque", "rep_neon", "rep_crowd_1", "rep_crowd_2", "rep_crowd_3", "rep_crowd_4", "rep_crowd_5"], "hide": [] },
       "offline": { "headline": "Blue Plaque for the Shop That Found the 2004 Sound", "article": "Three artists nobody had heard of in 2004 are now household names. All three were first championed by one small record shop on this corner." }
     }
   ],

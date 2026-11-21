@@ -233,6 +233,20 @@ export const T = {
     },
   },
 
+  // --- Teammate B: today's shop at each reputation level (where props stand: src/world/props/today.ts) ---
+  today: {
+    boards: '#7d6a50', // level 0: boarded up
+    litWindow: '#9fe0ff',
+    openSign: '#ff3b6b',
+    customer: '#d9734a',
+    posters: ['#ff9f1c', '#ff5fa2', '#39ff88'], // one per artist: Mira pink, K-Bit green
+    plaque: '#2f6fdb', // the blue plaque
+    neon: '#ff4fd8', // HOLLOW RECORDS in neon, level 3
+    gold: '#ffcc33',
+    frame: '#2a2522', // empty frames wait for gold discs
+    people: ['#5a6fa8', '#a8605a', '#6a9a62', '#9a7ab8', '#c9a227'],
+  },
+
   // --- Teammate B: DJ K-Bit's moment, "5 December 2004" (where props stand: src/world/props/kbit.ts) ---
   kbit: {
     shelterGlass: '#7f9fb0',
