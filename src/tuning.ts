@@ -54,8 +54,10 @@ export const T = {
       ambient: 0.9,
       tint: [1.1, 0.97, 0.8], // post filter: warm
       saturation: 0.8,
-      grain: 0.09, // post filter: grainy
+      grain: 0.04, // post filter: grainy (in display colour, one grain per chunky pixel)
       vignette: 0.45,
+      pixelHeight: 270, // post filter: drawn about this many lines tall, scaled up with chunky pixels
+      colorLevels: 24, // post filter: levels per channel, ordered (Bayer 4x4) dithering
       badgeText: '#ffcf7a',
     },
     present: {
@@ -70,6 +72,8 @@ export const T = {
       saturation: 1.05,
       grain: 0, // post filter: clean
       vignette: 0.15,
+      pixelHeight: 0, // post filter: full resolution (crisp)
+      colorLevels: 0, // post filter: no dithering
       badgeText: '#bfe6ff',
     },
   },

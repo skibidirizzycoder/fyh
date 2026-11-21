@@ -19,6 +19,7 @@ import { build, preview, type PreviewServer } from 'vite';
 import type { Snapshot } from '../src/debug.ts';
 import { content } from '../src/story/content.ts';
 import { T } from '../src/tuning.ts';
+import { renderSize } from '../src/world/look.ts';
 import { checkAudio } from './checks/audio.ts';
 import { checkKbit } from './checks/kbit.ts';
 import { checkMira } from './checks/mira.ts';
@@ -35,6 +36,7 @@ import {
 // Ports are picked free at start, so several agents can run smoke on one machine at once.
 const PROD = { outDir: 'dist', port: 0 };
 const TEST = { outDir: 'dist-test', port: 0 };
+const VIEWPORT = { width: 1280, height: 720 }; // device pixel ratio 1
 const STEP = 1 / T.loop.stepsPerSecond;
 const READ_FRAMES = Math.round(T.pitch.readSec * T.loop.stepsPerSecond);
 const started = Date.now();
@@ -286,6 +288,60 @@ async function checkLooks(page: Page): Promise<Record<string, number[]>> {
   return means;
 }
 
+/** A part of the 3D scene clear of every HUD panel (era badge, paper, card, prompt, dialogue). */
+const SCENE_CLIP = { x: 400, y: 100, width: 480, height: 400 };
+
+/** Rendered pixels of the scene: most distinct values in one channel, and the shortest run of equal pixels in a row or column. */
+async function pixelStats(page: Page): Promise<{ levels: number; shortestRun: number }> {
+  const png = await page.screenshot({ clip: SCENE_CLIP, animations: 'disabled' });
+  return page.evaluate(async (b64) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    await img.decode();
+    const [w, h] = [img.width, img.height];
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const g = c.getContext('2d');
+    if (!g) throw new Error('2D canvas unavailable for pixelStats');
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, w, h).data;
+    const levels = Math.max(...[0, 1, 2].map((k) => new Set(d.filter((_, i) => i % 4 === k)).size));
+    const same = (a: number, b: number): boolean => d[a] === d[b] && d[a + 1] === d[b + 1] && d[a + 2] === d[b + 2];
+    let shortestRun = Infinity;
+    // Runs along each row (step 1 pixel) and each column (step w pixels); the cut-off runs at the edges do not count.
+    const lines = [...Array.from({ length: h }, (_, y) => ({ start: y * w, step: 1, n: w })),
+      ...Array.from({ length: w }, (_, x) => ({ start: x, step: w, n: h }))];
+    for (const { start, step, n } of lines) {
+      let run = 1;
+      let atEdge = true;
+      for (let k = 1; k < n; k++) {
+        if (same((start + k * step) * 4, (start + (k - 1) * step) * 4)) run++;
+        else {
+          if (!atEdge) shortestRun = Math.min(shortestRun, run);
+          atEdge = false;
+          run = 1;
+        }
+      }
+    }
+    return { levels, shortestRun };
+  }, png.toString('base64'));
+}
+
+/** 2004 is drawn with chunky pixels and few colour levels; today has single pixels and smooth colour. */
+async function checkRetro(page: Page): Promise<Record<string, unknown>> {
+  const look = T.eras['2004'];
+  const { scale, height } = renderSize(VIEWPORT.width, VIEWPORT.height, look.pixelHeight);
+  await travel(page, content.cds[0]?.moment ?? '');
+  const past = await pixelStats(page);
+  expect(past.levels <= look.colorLevels, `2004 shows ${past.levels} levels in one colour channel, max ${look.colorLevels}`);
+  expect(past.shortestRun >= Math.max(2, scale - 1), `2004 has a run of ${past.shortestRun} equal pixels: not chunky (scale ${scale})`);
+  await travel(page, 'present');
+  const today = await pixelStats(page);
+  expect(today.shortestRun === 1 && today.levels > look.colorLevels, `today is not crisp: ${JSON.stringify(today)}`);
+  return { lines: height, scale, past, today };
+}
+
 /** Plays the whole demo in the test build. */
 async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
   await page.goto(`http://localhost:${TEST.port}/`);
@@ -303,6 +359,7 @@ async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
   await checkToday(page, pitch.s);
   const frames = await finishGame(page);
   const looks = await checkLooks(page);
+  const retro = await checkRetro(page);
   const team: Record<string, unknown> = {};
   for (const [name, check] of Object.entries(TEAM_CHECKS)) {
     try {
@@ -312,7 +369,7 @@ async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
     }
   }
   const news = { headline: pitch.s.news.status === 'ready' ? pitch.s.news.headline : '', apiCalls: api.calls.length, offlineMs };
-  return { headings, pitchSec: pitch.sec, drawCalls: pitch.s.drawCalls, frames, flags: pitch.s.flags, news, looks, team };
+  return { headings, pitchSec: pitch.sec, drawCalls: pitch.s.drawCalls, frames, flags: pitch.s.flags, news, looks, retro, team };
 }
 
 /** Runs everything and prints one JSON line. */
@@ -329,7 +386,7 @@ async function main(): Promise<void> {
     PROD.port = await freePort();
     TEST.port = await freePort();
     servers.push(await serve(PROD.outDir, PROD.port), await serve(TEST.outDir, TEST.port));
-    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+    const context = await browser.newContext({ viewport: VIEWPORT });
     await mockNewsApi(context);
     blockOutsideNetwork(context, errors);
     const prodPage = await context.newPage();
