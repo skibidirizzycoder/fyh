@@ -78,7 +78,7 @@ export async function waitForNews(page: Page): Promise<Snapshot> {
 
 /** Saves a screenshot to artifacts/<name>.png. */
 /** Screenshots wait for a frame from the software GPU; on a busy machine (several agents) that takes long. */
-const SHOT_TIMEOUT_MS = 120_000;
+export const SHOT_TIMEOUT_MS = 120_000;
 
 export async function screenshot(page: Page, name: string): Promise<void> {
   try {

@@ -69,6 +69,8 @@ export interface DebugApi {
   phoneTo(to: string): Snapshot;
   /** Real input: turn (A/D) and walk (W) to an interactable (around solid props) until it is targeted, then press E. */
   walkTo(objectId: string, maxFrames?: number): WalkResult;
+  /** Turns the ink outlines off or back on (for measuring them) and redraws the same frame. */
+  outlines(on: boolean): Snapshot;
   tuning: typeof T;
 }
 
@@ -88,6 +90,7 @@ export interface Runtime {
   avatar: Avatar;
   scene: THREE.Scene;
   drawCalls: () => number;
+  showOutlines: (on: boolean) => void;
 }
 
 const STEER_KEY: Record<Steer, string> = { walk: 'KeyW', left: 'KeyA', right: 'KeyD' };
@@ -141,6 +144,10 @@ export function installDebugApi(rt: Runtime): void {
       return state();
     },
     walkTo: (objectId, maxFrames = 20 * T.loop.stepsPerSecond) => walkTo(rt, objectId, maxFrames, tap),
+    outlines: (on) => {
+      rt.showOutlines(on);
+      return step(0); // redraw now
+    },
     tuning: T,
   };
 }

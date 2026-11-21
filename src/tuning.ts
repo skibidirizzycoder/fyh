@@ -72,6 +72,16 @@ export const T = {
       vignette: 0.45,
       pixelHeight: 180, // post filter: drawn about this many lines tall, scaled up with chunky pixels (the lead: 'a bit more pixelated')
       colorLevels: 24, // post filter: levels per channel, ordered (Bayer 4x4) dithering
+      // Ink outlines (post filter, src/world/post.ts). Widths are screen pixels on a 1080-line screen,
+      // rounded to whole scene pixels: 6 = one chunky pixel here, so the lines are as chunky as the rest.
+      outlinePx: 6, // 0 = no outlines
+      outlineColor: '#2a2d2f', // a darker blue-grey than today, so lines stay the darkest pixels at dusk (the grade warms it)
+      outlineDepth: 0.03, // ink the far side where the neighbours are this much nearer (fraction of the distance)
+      outlineColorEdge: 0.14, // ink the darker side where neighbour colours differ this much (0..1.7, 0 = off)
+      outlineCreaseDeg: 0, // no crease lines: at 180 lines they would be 2 chunky pixels thick (and too busy)
+      outlineCreaseTone: 0.03, // (when creases are on) their colour must change this much, so flat unlit markers stay clean
+      outlineBreakup: 0.6, // how much the lines fade in the noise's gaps (0 = solid lines)
+      outlineNoisePx: 72, // size of the noise patches that break the lines up
       badgeText: '#ffcf7a',
     },
     present: {
@@ -88,6 +98,15 @@ export const T = {
       vignette: 0.15,
       pixelHeight: 0, // post filter: full resolution (crisp)
       colorLevels: 0, // post filter: no dithering
+      // Ink outlines, like the reference game: about 2 px at 1080p, scaled with the screen.
+      outlinePx: 2, // 0 = no outlines
+      outlineColor: '#363a3c', // dark blue-grey ink, never pure black
+      outlineDepth: 0.03, // ink the far side where the neighbours are this much nearer (fraction of the distance)
+      outlineColorEdge: 0.14, // ink the darker side where neighbour colours differ this much (0..1.7, 0 = off)
+      outlineCreaseDeg: 40, // ink where a surface bends more than this (box edges); round props bend 22.5° per facet
+      outlineCreaseTone: 0.03, // ... and its colour changes at least this much (flat unlit markers get no inner lines)
+      outlineBreakup: 0.6, // how much the lines fade in the noise's gaps (0 = solid lines)
+      outlineNoisePx: 72, // size of the noise patches that break the lines up
       badgeText: '#bfe6ff',
     },
   },
@@ -236,7 +255,7 @@ export const T = {
     },
     ringtone: { // 5 December: cold grey dusk (still warmer and grainier than today)
       sky: '#8791a6', fogNear: 9, fogFar: 32, sunColor: '#ffd9b0', sunIntensity: 1.4, ambient: 0.8,
-      tint: [1.04, 0.98, 0.92], saturation: 0.72,
+      tint: [1.02, 0.98, 0.96], saturation: 0.72, // colder, so it stays apart from open_mic with ink lines on (smoke: looks)
     },
   },
 
