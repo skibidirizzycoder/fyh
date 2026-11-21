@@ -84,6 +84,13 @@ describe('DJ K-Bit props', () => {
     }
   });
 
+  it('stay between z = -4 and z = 1, close to the player\'s start, so the pitch is short', () => {
+    for (const p of KBIT_PROPS) {
+      expect(p.pos[2] - p.size[2] / 2, p.id).toBeGreaterThanOrEqual(-4);
+      expect(p.pos[2] + p.size[2] / 2, p.id).toBeLessThanOrEqual(1);
+    }
+  });
+
   it('never z-fight with each other or the 2004 street (all phones shown)', () => {
     expect(findZFighting([...street2004, ...KBIT_PROPS], T.world.surfaceGap / 2)).toEqual([]);
   });
