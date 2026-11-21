@@ -12,6 +12,8 @@ describe('lane ownership', () => {
 
   it('finds the lane for a branch, and none for main', () => {
     expect(laneForBranch('feat/sound-kbit')?.name).toBe('sound-kbit');
+    expect(laneForBranch('feat/sound-kbit-music')?.name).toBe('sound-kbit'); // a second session's branch
+    expect(laneForBranch('feat/sound-kbitx')).toBeUndefined();
     expect(laneForBranch('main')).toBeUndefined();
   });
 
