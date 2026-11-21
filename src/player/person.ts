@@ -459,7 +459,7 @@ export function cheerAmount(t: number): number {
   return ramp(t, 0, C.inShare) * (1 - ramp(t, 1 - C.outShare, 1));
 }
 
-/** Cheers on top of the pose: arms go up and out (elbows nearly straight) and the body hops. */
+/** Cheers on top of the pose: arms up and out over the head, the head tipped up, and hops with a crouch between them. */
 function poseCheer(person: Person, t: number): void {
   const C = G.cheer;
   const up = cheerAmount(t);
@@ -472,7 +472,12 @@ function poseCheer(person: Person, t: number): void {
     const fore = b[`forearm_${side}`];
     fore.rotation.x += (C.elbowDeg * DEG - fore.rotation.x) * up;
   }
-  person.rig.position.y += C.hopM * Math.abs(Math.sin(Math.PI * C.hops * t)) * up;
+  b.head.rotateX(C.lookUpDeg * DEG * up);
+  const air = Math.abs(Math.sin(Math.PI * C.hops * t)); // 0 on the ground, 1 at the top of a hop
+  const crouch = { thigh: (C.crouchDeg / 2) * DEG * up * (1 - air), knee: C.crouchDeg * DEG * up * (1 - air) };
+  poseLeg(person, 'l', crouch);
+  poseLeg(person, 'r', crouch);
+  person.rig.position.y = GAP - (P.hipY - ankleY() - legHeight(crouch)) + C.hopM * air * up;
 }
 
 /** Keeps the head level and facing ahead whatever the body does (it undoes the spine's lean, twist and tilt), then turns it by `look`. */
