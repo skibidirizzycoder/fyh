@@ -5,7 +5,7 @@ import { inflateSync } from 'node:zlib';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import {
-  advancePhase, createPerson, createPersonTextures, gaitBlend, headGeometry, posePerson, strideLength, type Gait, type Person, type PersonImage,
+  advancePhase, createPerson, createPersonTextures, easePose, gaitBlend, headGeometry, posePerson, strideLength, type Gait, type Person, type PersonImage,
 } from '../src/player/person.ts';
 import { T } from '../src/tuning.ts';
 
@@ -234,6 +234,20 @@ describe('how round people move', () => {
       }
     }
     person.dispose();
+  });
+
+});
+
+describe('how round people move, step by step', () => {
+  it('ease speed and turning into the pose by game steps: a stop glides to standing, never past it', () => {
+    const lag = P.gait.poseEaseSec * T.loop.stepsPerSecond;
+    expect(easePose(WALK, 0, undefined)).toBe(0); // no game steps (tests, first frame): straight there
+    expect(easePose(WALK, 0, 0)).toBe(WALK); // a redraw with no new step: unchanged
+    expect(easePose(WALK, 0, lag)).toBeCloseTo(WALK / Math.E, 9);
+    expect(easePose(WALK, 0, 1)).toBeGreaterThan(WALK * 0.9); // one step after stopping, still nearly walking
+    expect(easePose(WALK, 0, 1000)).toBeGreaterThanOrEqual(0);
+    expect(easePose(WALK, 0, 1000)).toBeCloseTo(0, 9);
+    expect(easePose(0, RUN, 3)).toBeCloseTo(easePose(easePose(0, RUN, 1), RUN, 2), 9); // steps add up
   });
 
   it('move the stride with the distance walked: one stride length is one full cycle', () => {
