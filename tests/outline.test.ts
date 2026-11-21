@@ -123,3 +123,27 @@ describe('anti-aliasing and sky', () => {
     expect(T.limits.maxPixelRatio).toBe(2);
   });
 });
+
+describe('bloom and FXAA', () => {
+  const scenes = [lookFor('present', null), ...[null, ...content.cds.map((c) => c.moment)].map((m) => lookFor('2004', m))];
+  const luminance = (hex: string): number => {
+    const c = new Color(hex); // linear, like the scene the bloom reads
+    return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+  };
+
+  it('the sky never glows: every bloom threshold is above its sky, but below the markers', () => {
+    for (const look of scenes) {
+      if (look.bloom <= 0) continue;
+      expect(look.bloomThreshold, look.sky).toBeGreaterThan(luminance(look.sky));
+      expect(look.bloomThreshold, look.sky).toBeLessThan(luminance(T.interact.markerColor));
+    }
+  });
+
+  it('the glow is worked out at a lower resolution, and FXAA is on for every scene (it only runs at full resolution)', () => {
+    for (const look of scenes) {
+      expect(look.bloomScale, look.sky).toBeGreaterThan(0);
+      expect(look.bloomScale, look.sky).toBeLessThanOrEqual(1);
+      expect(look.fxaa, look.sky).toBe(1);
+    }
+  });
+});
