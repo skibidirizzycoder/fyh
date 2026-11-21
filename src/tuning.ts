@@ -470,6 +470,12 @@ export const T = {
     cameraFollow: 0.12, // each step (60 a second) the camera moves this part of the way to its spot behind you...
     cameraLookFollow: 0.2, // ...and its aim this part of the way to you, so it glides after you instead of jerking
     cameraSnapM: 3, // the camera cuts instead of gliding when its spot jumps further than this (travel, restart)
+    talkCloser: 0.25, // while a dialogue line shows the camera comes this part of its distance closer...
+    talkLowerM: 0.45, // ...and this much lower...
+    talkEase: 0.05, // ...easing in (and back out after) this part of the way each step
+    cheerSec: 1.2, // when a CD is fixed the camera pushes in and back out over this long...
+    cheerCloser: 0.3, // ...coming this part of its distance closer at the peak...
+    cheerTiltDeg: 4, // ...with this much tilt
   },
 
   // The high street's three areas, one after another along +X (the shop faces +Z). Every visit starts at
@@ -477,6 +483,25 @@ export const T = {
   // Each 2004 moment's props are laid out around the shop in their own files and drawn in their
   // moment's area, moved along x by its shiftX (src/world/areas.ts).
   // Walking into an area's span of x emits the `area` event; between two spans the area stays as it was.
+  life: { // street life in the areas (src/world/life.ts), all by game time
+    presentClock: '17:55', // the tower clock today; in a moment it shows the phone's time (T.phone.momentTimes). It runs on from there
+    hourHand: { length: 0.45, width: 0.08 },
+    minuteHand: { length: 0.62, width: 0.06 },
+    pubGlow: '#ffd98a', // the pub sign is lit with this glow...
+    pubGlowIntensity: 0.35,
+    pubFlickerHz: 12, // ...which may dip this many times a second...
+    pubFlickerShare: 0.1, // ...this share of those times...
+    pubFlickerDim: 0.15, // ...to this much of itself
+    pigeon: '#6f7480',
+    pigeonHomes: [[24.8, 1.4], [25.5, 1.9], [31.2, 1.3], [31.9, 1.75], [32.6, 1.1]] as [number, number][], // x, z by the kerb, clear of the gig crowd
+    pigeonArea: { x: [24, 34], z: [0.9, 2.15] }, // where they may hop (clear of the memorial, the lamp and the crowd)
+    pigeonScareM: 2.2, // they hop away when you come this close...
+    pigeonFleeM: 3.2, // ...until they are this far from you...
+    pigeonHopMs: 3, // ...at this speed (m/s), hopping this high...
+    pigeonHopM: 0.18,
+    pigeonHopHz: 5, // ...this many hops a second
+    pigeonHomeMs: 0.35, // when you are gone they walk back home this fast
+  },
   areas: {
     list: [
       { id: 'shop', title: 'Hollow Records', x: [-99, 7.5], shiftX: 0 },
