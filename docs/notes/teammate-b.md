@@ -53,7 +53,8 @@ from Claude to be heard (below).** Last gate: 195 unit tests, smoke `"ok":true`,
 
 - **Please emit these four events** (add them to `GameEvents`; the shapes are in `src/audio/feel-player.ts`,
   `FeelEvents`, and audio already listens for them, so nothing else is needed):
-  - `walk: { moving: boolean }` when the player starts / stops moving (footsteps).
+  - `footstep: {}` each time the player has walked `T.audio.feel.step.strideM` (0.9 m), counted in fixed
+    steps. (Changed from `walk: { moving }`: a timer in audio kept stepping while the game was paused.)
   - `dialogue: { line: string; speaker?: string }` from `say()` when a line appears. `speaker` is optional
     (`mira` / `band` / `kbit` / `owner`); without it, the moment decides.
   - `panel: { name: 'card' | 'news'; open: boolean }` when the card or the newspaper appears / goes (paper).
@@ -61,6 +62,10 @@ from Claude to be heard (below).** Last gate: 195 unit tests, smoke `"ok":true`,
   Once they're in `GameEvents`, delete the `FeelEvents` cast in `audio.ts` and `subscribeFeel` types itself.
 - **A `title` event** (or `game-end`) when the ending's "play again" returns to the title, so the music can stop
   there (bug 5 in `STATUS.md`). Today the last game's song keeps playing on the title until Enter.
+- **`LESSONS.md` (not in my lane; `scripts/lanes.ts` doesn't let teammates add to it), please add:**
+  - A voice played NaN notes for speaker "toString" — cause: `name in obj` also finds Object.prototype keys — rule: look up ids with `Object.hasOwn`.
+  - Wind clicked every 8 s at the bus stop — cause: generated loops end where they don't begin — rule: crossfade a generated loop's tail into its start (`seamless()`), and test the seam.
+  - Footsteps kept going while the game was paused — cause: a real-time `setInterval` in audio — rule: sounds that follow gameplay are driven by game events in fixed steps, never by audio timers.
 - **`debug.ts`: please also show `audio.feel`** (`audio.feel()`, the last few feel sounds) so a smoke check
   can walk and see `step`, talk and see `voice:kbit`.
 
