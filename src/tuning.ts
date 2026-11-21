@@ -132,6 +132,26 @@ export const T = {
     gold: '#ffcc33', // a fixed CD turns gold
   },
 
+  // Life in the air (src/world/particles.ts): one cloud of soft round dots per scene, one draw call.
+  // Metres and seconds. fall: downwards per second (negative rises); drift: sideways (+X) per second;
+  // wobble: metres of sway at wobbleHz. Sparse on purpose: each scene's look (smoke `looks`) barely moves.
+  particles: {
+    seed: 1987, // the motes start in the same random spots every run
+    box: [18, 5, 16] as const, // metres (x, y, z) in front of the camera that the motes fill; they wrap at its edges
+    floorM: 0.1, // the box's bottom, just above the ground
+    aheadM: 6, // the box's centre sits this far in front of the camera
+    spritePx: 64, // the soft round dot is drawn on a canvas this big...
+    softCore: 0.35, // ...solid in the middle, fading out from this far (0..1) to its edge
+    paceMin: 0.5, // each mote moves at its own pace, from this...
+    paceRange: 1, // ...to this much more
+    kinds: {
+      dust: { count: 70, size: 0.05, color: '#ffe2a6', opacity: 0.6, fall: -0.02, drift: 0.06, wobble: 0.2, wobbleHz: 0.12 }, // warm 2004 light
+      snow: { count: 220, size: 0.08, color: '#ffffff', opacity: 0.85, fall: 0.8, drift: 0.15, wobble: 0.25, wobbleHz: 0.25 }, // December
+      pollen: { count: 30, size: 0.07, color: '#f6f0c2', opacity: 0.55, fall: 0.04, drift: 0.2, wobble: 0.35, wobbleHz: 0.08 }, // today
+    },
+    byScene: { open_mic: 'dust', street_gig: 'dust', ringtone: 'snow', present: 'pollen' } as Record<string, 'dust' | 'snow' | 'pollen'>,
+  },
+
   pitch: {
     maxAutopilotSec: 45, // smoke: playing the demo route (2 CDs) must take at most this much game time
     readSec: 2.5, // smoke: pause after each line of dialogue, as if the presenter reads it
