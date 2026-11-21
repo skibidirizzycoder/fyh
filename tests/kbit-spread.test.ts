@@ -8,9 +8,44 @@ import { KBIT_PROPS } from '../src/world/props/kbit.ts';
 
 const Q = T.kbit.spread;
 
-describe('the beam', () => {
-  it('lasts T.kbit.beamSec, so an IrDA progress bar on the phone can end with it', () => {
-    expect(cueLength(buildCue('beam'))).toBeCloseTo(T.kbit.beamSec, 1);
+describe('the AirDrop', () => {
+  const airdrop = buildCue('beam');
+
+  it('lasts T.kbit.beamSec, so an AirDrop sheet on the phone can end with it', () => {
+    expect(cueLength(airdrop)).toBeCloseTo(T.kbit.beamSec, 1);
+  });
+
+  it('swooshes upward, then pings "received" after the swoosh, rising', () => {
+    const swoosh = airdrop.noises[0];
+    expect((swoosh?.toHz ?? 0) > (swoosh?.fromHz ?? 0)).toBe(true);
+    const pings = airdrop.tones;
+    expect(pings.length).toBeGreaterThanOrEqual(2);
+    expect(pings[0]?.at ?? 0).toBeGreaterThanOrEqual(swoosh?.sec ?? Infinity);
+    expect((pings[1]?.note ?? 0) > (pings[0]?.note ?? 0)).toBe(true);
+  });
+});
+
+describe('the scene: heads down, then phones UP', () => {
+  const ring = content.actions.find((a) => a.id === 'kbit_ring_bus_stop');
+  const props = new Map(KBIT_PROPS.map((p) => [p.id, p]));
+
+  it('on arrival the queue is looking down at dark phones; the ring swaps each for a raised blue one', () => {
+    for (let i = 1; i <= 4; i++) {
+      const down = props.get(`kbit_queue_phone_${i}`);
+      const up = props.get(`kbit_shazam_${i}`);
+      expect(down?.startsHidden ?? false).toBe(false);
+      expect(up?.startsHidden).toBe(true);
+      expect(ring?.effects.hide).toContain(down?.id);
+      expect(ring?.effects.show).toContain(up?.id);
+      expect((up?.pos[1] ?? 0) > (down?.pos[1] ?? 0) + 0.3).toBe(true); // held up, over their heads
+      expect(up?.pos[2]).toBe(down?.pos[2]); // same person
+    }
+  });
+
+  it('the bus pulls in as the ringtones of the queue end (the punchline: nobody gets on)', () => {
+    const spreadEnd = Math.max(...queueRingtones().map((p) => p.delaySec + cueLength(p.cue)));
+    const busEnd = T.kbit.busAtSec + T.audio.soundscape.ringtone.bus.sec;
+    expect(Math.abs(busEnd - spreadEnd)).toBeLessThan(1.5);
   });
 });
 
