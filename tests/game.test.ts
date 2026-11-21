@@ -34,15 +34,49 @@ describe('phone state', () => {
   });
 
   it('opens, wraps around the menu both ways, and selects', () => {
-    let phone = stepPhone(closedPhone(items, TODAY), { ...NO_KEYS, toggle: true }).phone;
+    const here = content.cds[0]?.moment ?? '';
+    const all = phoneItems(content.cds, ['mira'], content.cds.map((c) => c.moment), here); // in 2004, every moment visited
+    expect(all.every((i) => !i.locked)).toBe(true);
+    let phone = stepPhone(closedPhone(all, here), { ...NO_KEYS, toggle: true }).phone;
     expect(phone.open).toBe(true);
     phone = stepPhone(phone, { ...NO_KEYS, up: true }).phone;
-    expect(phone.index).toBe(items.length - 1);
+    expect(phone.index).toBe(all.length - 1);
     phone = stepPhone(phone, { ...NO_KEYS, down: true }).phone;
     expect(phone.index).toBe(0);
     const chosen = stepPhone(phone, { ...NO_KEYS, select: true });
-    expect(chosen.command).toEqual({ type: 'select', target: items[0]?.target });
+    expect(chosen.command).toEqual({ type: 'select', target: all[0]?.target });
     expect(chosen.phone.open).toBe(false);
+  });
+
+  it('lists a moment you have not been to as locked, and Up/Down skip it', () => {
+    const [mira, staticCd, kbit] = content.cds;
+    if (!mira || !staticCd || !kbit) throw new Error('need 3 CDs');
+    const rows = phoneItems(content.cds, [], [kbit.moment], kbit.moment); // in K-Bit's moment, the only one visited
+    expect(rows.map((i) => [i.target, i.locked])).toEqual([[TODAY, false], [kbit.moment, false], [mira.moment, true], [staticCd.moment, true]]);
+    let phone = stepPhone(closedPhone(rows, kbit.moment), { ...NO_KEYS, toggle: true }).phone;
+    expect(phone.index).toBe(0); // "Back to today" first
+    phone = stepPhone(phone, { ...NO_KEYS, down: true }).phone;
+    expect(phone.index).toBe(1);
+    phone = stepPhone(phone, { ...NO_KEYS, down: true }).phone;
+    expect(phone.index).toBe(0); // skipped both locked rows and wrapped
+    phone = stepPhone(phone, { ...NO_KEYS, up: true }).phone;
+    expect(phone.index).toBe(1);
+  });
+
+  it('a fixed moment can always be chosen (revisit); today, "Back to today" is last and locked', () => {
+    const rows = phoneItems(content.cds, ['static'], [], TODAY);
+    expect(rows[0]).toMatchObject({ target: 'street_gig', fixed: true, locked: false });
+    expect(rows.at(-1)).toMatchObject({ target: TODAY, locked: true });
+    expect(rows.filter((i) => i.locked).map((i) => i.target)).toEqual(['open_mic', 'ringtone', TODAY]);
+  });
+
+  it('with nothing to choose, E is a "locked" command and the phone stays open', () => {
+    const rows = phoneItems(content.cds, [], [], TODAY);
+    const phone = stepPhone(closedPhone(rows, TODAY), { ...NO_KEYS, toggle: true }).phone;
+    expect(stepPhone(phone, { ...NO_KEYS, down: true }).phone.index).toBe(phone.index); // nowhere to move
+    const chosen = stepPhone(phone, { ...NO_KEYS, select: true });
+    expect(chosen.command).toEqual({ type: 'locked', target: rows[phone.index]?.target });
+    expect(chosen.phone.open).toBe(true);
   });
 
   it('ignores menu keys while closed', () => {
@@ -51,16 +85,30 @@ describe('phone state', () => {
 });
 
 describe('the game', () => {
-  it('Q, Down, E travels to the second CD\'s moment', () => {
+  it('Q, Down, E travels to the second moment you have been to', () => {
     const { game, tap, heard } = started();
+    const [first, second] = content.cds;
+    game.travel(first?.moment ?? '');
+    game.travel(second?.moment ?? '');
+    game.travel(TODAY);
+    heard.length = 0;
     tap('KeyQ');
     expect(game.state.phone.open).toBe(true);
     tap('ArrowDown');
     tap('KeyE');
     expect(game.state.phone.open).toBe(false);
     expect(game.state.era).toBe('2004');
-    expect(game.state.moment).toBe(content.cds[1]?.moment);
-    expect(heard).toEqual(['game-start', 'phone-open', 'phone-select', 'travel']);
+    expect(game.state.moment).toBe(second?.moment);
+    expect(heard).toEqual(['phone-open', 'phone-select', 'travel']);
+  });
+
+  it('the phone cannot take you to a moment you have not been to: E says to use the CD player', () => {
+    const { game, tap } = started();
+    tap('KeyQ');
+    tap('KeyE');
+    expect(game.state.era).toBe('present');
+    expect(game.state.phone.open).toBe(true);
+    expect(game.state.dialogue).toBe(content.cdPlayer.phoneLockedLine);
   });
 
   it('does not walk while the phone is open', () => {

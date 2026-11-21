@@ -11,7 +11,12 @@ export const T = {
 
   player: {
     speed: 3, // metres per second
+    accelSec: 0.2, // W/S eases in: from standing to full speed in this long...
+    decelSec: 0.15, // ...and eases out: from full speed to standing after you let go
     turnSpeedDeg: 150, // degrees per second (A/D)
+    turnAccelSec: 0.1, // A/D eases in: from still to full turning speed in this long...
+    turnDecelSec: 0.05, // ...and eases out when you let go
+    easeSnap: 1e-9, // a ramp this close to its end counts as there (float rounding), so ramps take exactly sec / dt steps
     startX: 0,
     startZ: 3,
     startYawDeg: 0, // 0 = facing -Z (towards the shop)
@@ -82,7 +87,7 @@ export const T = {
       outlineCreaseTone: 0.03, // (when creases are on) their colour must change this much, so flat unlit markers stay clean
       outlineBreakup: 0.6, // how much the lines fade in the noise's gaps (0 = solid lines)
       outlineNoisePx: 72, // size of the noise patches that break the lines up
-      msaa: 0, // post filter: no anti-aliasing, the pixels stay hard
+      msaa: 4, // post filter: MSAA samples, only for full-resolution moments (2017); chunky pixels never get it
       skyDeepen: 0.3, // sky gradient: the top of the sky is this much darker than the horizon (0 = flat)
       badgeText: '#ffcf7a',
     },
@@ -141,6 +146,39 @@ export const T = {
     offlineInk: '#8a1c1c', // "offline edition" label
   },
 
+  // The CD player outside the shop today: the time machine (props in src/world/props/player.ts).
+  cdPlayer: {
+    insertSec: 0.8, // E at a CD: it goes into the player at once, you arrive in its 2004 moment this much later
+    crate: '#9c7a4f', // the wooden crate it stands on
+    crateSlat: '#6f5233', // darker slats on the crate's front
+    body: '#2b2e33', // the boombox
+    grille: '#121315', // its two speakers
+    trim: '#c3c8ce', // the silver CD lid and handle
+    display: '#7cf2c4', // a small lit display
+    cds: { mira: '#f06595', static: '#ff922b', kbit: '#51cf66' } as Record<string, string>, // one clear colour per CD
+    gold: '#ffcc33', // a fixed CD turns gold
+  },
+
+  // Life in the air (src/world/particles.ts): one cloud of soft round dots per scene, one draw call.
+  // Metres and seconds. fall: downwards per second (negative rises); drift: sideways (+X) per second;
+  // wobble: metres of sway at wobbleHz. Sparse on purpose: each scene's look (smoke `looks`) barely moves.
+  particles: {
+    seed: 1987, // the motes start in the same random spots every run
+    box: [18, 5, 16] as const, // metres (x, y, z) in front of the camera that the motes fill; they wrap at its edges
+    floorM: 0.1, // the box's bottom, just above the ground
+    aheadM: 6, // the box's centre sits this far in front of the camera
+    spritePx: 64, // the soft round dot is drawn on a canvas this big...
+    softCore: 0.35, // ...solid in the middle, fading out from this far (0..1) to its edge
+    paceMin: 0.5, // each mote moves at its own pace, from this...
+    paceRange: 1, // ...to this much more
+    kinds: {
+      dust: { count: 70, size: 0.05, color: '#ffe2a6', opacity: 0.6, fall: -0.02, drift: 0.06, wobble: 0.2, wobbleHz: 0.12 }, // warm 2004 light
+      snow: { count: 220, size: 0.08, color: '#ffffff', opacity: 0.85, fall: 0.8, drift: 0.15, wobble: 0.25, wobbleHz: 0.25 }, // December
+      pollen: { count: 30, size: 0.07, color: '#f6f0c2', opacity: 0.55, fall: 0.04, drift: 0.2, wobble: 0.35, wobbleHz: 0.08 }, // today
+    },
+    byScene: { open_mic: 'dust', street_gig: 'dust', ringtone: 'snow', present: 'pollen' } as Record<string, 'dust' | 'snow' | 'pollen'>,
+  },
+
   pitch: {
     maxAutopilotSec: 45, // smoke: playing the demo route (2 CDs) must take at most this much game time
     readSec: 2.5, // smoke: pause after each line of dialogue, as if the presenter reads it
@@ -154,7 +192,7 @@ export const T = {
     connectSec: 0.9, // after choosing a moment: "Connecting..." with the signal bars filling...
     staticSec: 0.35, // ...then a burst of static, then the phone flips shut
     blinkSec: 0.8, // one on/off cycle of the selected row's cursor
-    momentTimes: { open_mic: '19:30', street_gig: '15:10', ringtone: '16:45' } as Record<string, string>, // outer screen clock in 2004
+    momentTimes: { open_mic: '21:30', street_gig: '15:10', ringtone: '17:45' } as Record<string, string>, // outer screen clock in each past moment
     foldedWidthPx: 96, // the closed phone
     foldedBottomPx: 64, // the closed phone sits lower than the open one, clear of a host's corner badge (Netlify's is ~50 px tall)
     outerScreen: '#0d1b2a', // the closed phone's small outer screen...
@@ -177,7 +215,7 @@ export const T = {
     endKey: '#c92a2a',
   },
   static: {
-    // The Static's street gig, 2 July 2004 (props in src/world/props/static.ts).
+    // The Static's street gig, 6 August 1988 (props in src/world/props/static.ts).
     stage: '#3b3f47', // low wooden-pallet stage, painted black-ish
     amp: '#1c1c1f',
     ampDead: '#e03131', // the amp's light while it keeps cutting out...
@@ -201,7 +239,7 @@ export const T = {
     banknote: '#69db7c', // a fiver poking out of the tip jar
   },
   mira: {
-    // Mira's open mic, 14 March 2004 (props in src/world/props/mira.ts).
+    // Mira's battle night, 13 December 2002 (props in src/world/props/mira.ts).
     cd: '#d0d8e0', // her dropped demo CD on the bench
     listeningPost: '#8a3fb0',
     sign: '#ffd166', // "OPEN MIC" board on the listening post
@@ -344,16 +382,21 @@ export const T = {
 
   // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
   moments: {
-    open_mic: { // 14 March: evening, dusk light
+    // Each moment is in its own year, so each looks like the screens of its time (overrides on the 2004 era):
+    // 1988 is a worn VHS tape (fewer, chunkier pixels, few colours, heavy grain), 2002 the era's retro
+    // pixels, 2017 a phone photo (full resolution, light grain, a little extra colour).
+    open_mic: { // 13 December 2002, 21:30: battle night, winter evening light (the era's retro pixels)
       sky: '#7a5873', fogNear: 10, fogFar: 34, sunColor: '#ffb27a', sunIntensity: 1.5, ambient: 0.75,
       tint: [1.12, 0.94, 0.86],
     },
-    street_gig: { // 2 July: bright summer afternoon
-      sky: '#f2c36b', sunColor: '#fff2cc', sunIntensity: 3.1, ambient: 1.05, tint: [1.1, 1.0, 0.8], saturation: 0.9,
+    street_gig: { // 6 August 1988: bright summer afternoon on a worn VHS tape
+      sky: '#f2c36b', sunColor: '#fff2cc', sunIntensity: 3.1, ambient: 1.05, tint: [1.1, 1.0, 0.8], saturation: 0.82,
+      pixelHeight: 144, colorLevels: 12, grain: 0.09, vignette: 0.42,
     },
-    ringtone: { // 5 December: cold grey dusk (still warmer and grainier than today)
+    ringtone: { // 13 January 2017: cold grey dusk, like a phone photo (sharp, light grain; still warmer than today)
       sky: '#8791a6', fogNear: 9, fogFar: 32, sunColor: '#ffd9b0', sunIntensity: 1.4, ambient: 0.8,
-      tint: [1.0, 0.98, 0.98], saturation: 0.72, // colder, so it stays apart from open_mic with ink lines on (smoke: looks)
+      tint: [1.02, 0.98, 0.96], saturation: 0.72, // colder, so it stays apart from open_mic with ink lines on (smoke: looks)
+      pixelHeight: 0, colorLevels: 0, grain: 0.015, outlinePx: 2, // sharp like today, so today's thin ink
     },
   },
 
@@ -394,10 +437,21 @@ export const T = {
       ] },
     },
     whoosh: { sec: 0.9, gain: 0.8, fromHz: 250, toHz: 5000, q: 4 }, // travel: filtered noise sweep
+    // The CD player is the time machine (cd-insert): tray out, disc clicks in, tray in, spin-up, laser seeks,
+    // and the travel whoosh lands at whooshAtSec (later if travel comes early).
+    cdInsert: {
+      whooshAtSec: 1.05,
+      motor: { sec: 0.18, note: 50, toNote: 53, gain: 0.05, noiseHz: 900, noiseGain: 0.12 }, // tray motor whine
+      trays: [0, 0.36], // tray out, tray back in (motor runs, then a clunk)
+      clunk: { sec: 0.07, note: 33, gain: 0.3, noiseHz: 1400, toHz: 500, noiseGain: 0.3 },
+      click: { at: 0.27, sec: 0.02, hz: 5200, q: 3, gain: 0.45, note: 96, toneGain: 0.05 }, // the disc snaps onto the spindle
+      spin: { at: 0.62, sec: 0.75, fromNote: 36, toNote: 74, gain: 0.11, hissFromHz: 400, hissToHz: 3200, hissGain: 0.1 },
+      seek: { notes: [100, 103, 98], at: [0.84, 0.94, 1.02], sec: 0.025, gain: 0.04 }, // the laser finding the track
+    },
     chime: { notes: [76, 81, 88], gapSec: 0.08, sec: 0.5, gain: 0.2, wave: 'sine' }, // action-done
     nope: { notes: [50, 46], gapSec: 0.12, sec: 0.14, gain: 0.2, wave: 'square' }, // action-locked
     fanfare: { notes: [67, 72, 76, 79, 84], gapSec: 0.1, sec: 0.35, gain: 0.18, wave: 'square', delaySec: 0.7 }, // reputation; waits for the travel whoosh
-    beam: { notes: [86, 93], chirps: 14, chirpSec: 0.035, gain: 0.12, wave: 'square', doneNotes: [84, 96], doneGapSec: 0.09, doneSec: 0.08, doneGain: 0.18 }, // infrared handshake, then "got it"
+    beam: { notes: [86, 93], chirps: 30, chirpSec: 0.035, gain: 0.12, wave: 'square', doneNotes: [84, 96], doneGapSec: 0.09, doneSec: 0.08, doneGain: 0.18 }, // infrared handshake, then "got it"
     ambience: {
       fadeSec: 1.2, // crossfade when you travel
       loopSec: 2, // length of the looping noise buffers
@@ -460,7 +514,7 @@ export const T = {
       fadeSec: 1.5, // crossfade between songs
       todaySwitchSec: 30, // today, with several fixed CDs: next song after this long
       duckGain: 0.3, // music volume while a whoosh, chime or ringtone plays
-      duckCues: ['whoosh', 'chime', 'ringtone', 'beam'],
+      duckCues: ['whoosh', 'chime', 'ringtone', 'beam', 'cd-insert'],
       duckAttackSec: 0.05,
       duckReleaseSec: 0.5,
       past: { lowpassHz: 2500, gain: 0.7 }, // "2004 style": muffled, mono
@@ -472,10 +526,16 @@ export const T = {
       // Clips are cut on a measured beat (beatOffsetSec 0). bpm was MEASURED, not heard, and the
       // detector was unsure (see docs/notes/teammate-b.md), so the code beat is off (beat: 0)
       // until someone confirms by ear that it plays in time; then set beat: 1.
+      // `file` is the Creative Commons stand-in (in git, deployed). `real` is used only when your own copy
+      // of the real song is in src/audio/local-songs/<cd>.mp3 (git-ignored, see src/audio/songs.ts): the
+      // part played (startSec, lengthSec: whole bars at bpm) and its tempo. Set them by ear.
       cds: {
-        mira: { file: 'music/mira.mp3', gain: 0.9, bpm: 68, beatOffsetSec: 0, beat: 0, past: { silentUntil: 'mira_play_cd' } },
-        static: { file: 'music/static.mp3', gain: 0.8, bpm: 104.5, beatOffsetSec: 0, beat: 0, past: { brokenUntil: 'static_plug_amp', liveAfter: 'static_give_mic' } },
-        kbit: { file: 'music/kbit.mp3', gain: 0.8, bpm: 163.5, beatOffsetSec: 0, beat: 0, past: { leakUntil: 'kbit_beam_track' } },
+        mira: { file: 'music/mira.mp3', gain: 0.9, bpm: 68, beatOffsetSec: 0, beat: 0, past: { silentUntil: 'mira_play_cd' },
+          real: { song: "Lose Yourself (Eminem)", startSec: 0, lengthSec: 39.3, bpm: 171 } }, // 28 bars: the "one shot" intro
+        static: { file: 'music/static.mp3', gain: 0.8, bpm: 104.5, beatOffsetSec: 0, beat: 0, past: { brokenUntil: 'static_plug_amp', liveAfter: 'static_give_mic' },
+          real: { song: "Sweet Child O' Mine (Guns N' Roses)", startSec: 0, lengthSec: 40.32, bpm: 125 } }, // 21 bars: the riff
+        kbit: { file: 'music/kbit.mp3', gain: 0.8, bpm: 163.5, beatOffsetSec: 0, beat: 0, past: { leakUntil: 'kbit_beam_track' },
+          real: { song: 'Despacito (Luis Fonsi ft. Daddy Yankee)', startSec: 0, lengthSec: 40.45, bpm: 89 } }, // 15 bars: the intro
       },
     },
   },
@@ -494,7 +554,7 @@ export const T = {
     people: ['#5a6fa8', '#a8605a', '#6a9a62', '#9a7ab8', '#c9a227'],
   },
 
-  // --- Teammate B: DJ K-Bit's moment, "5 December 2004" (where props stand: src/world/props/kbit.ts) ---
+  // --- Teammate B: DJ K-Bit's moment, "13 January 2017" (where props stand: src/world/props/kbit.ts) ---
   kbit: {
     shelterGlass: '#7f9fb0',
     shelterFrame: '#3b4048',
@@ -516,6 +576,17 @@ export const T = {
     pigeon: '#8a8f99',
     dog: '#b07a45',
     dogHead: '#8f5f33',
+    // The demo's payoff: shared timings (Teammate A's phone screen and bubbles read these too).
+    beamSec: 1.25, // the infrared transfer: the beam sound lasts this long (an IrDA progress bar can match it)
+    spread: {
+      // After your phone rings, the queue catches it: each phone joins one ringtone beat after the last.
+      gapSec: 0.43, // = one beat of the ringtone (140 bpm); phone i starts at (i + 1) * gapSec
+      phones: ['kbit_queue_phone_1', 'kbit_queue_phone_2', 'kbit_queue_phone_3', 'kbit_queue_phone_4'],
+      octaves: [1, 0, -1, 1], // each phone plays it an octave up/down: a cheap tinny speaker, a bassy one...
+      waves: ['triangle', 'sawtooth', 'square', 'triangle'],
+      pans: [-0.6, -0.2, 0.25, 0.65], // spread across the queue, left to right
+      gain: 0.7, // each queue phone, relative to yours (the chorus has to swell)
+    },
   },
 
   ui: {

@@ -1,4 +1,4 @@
-// static.ts — props for The Static's moment: "2 July 2004: street gig". Owner: Teammate A.
+// static.ts — props for The Static's moment: "6 August 1988: street gig". Owner: Teammate A.
 // A low stage in front of the shop with the band, a drum kit, a dead amp and a mic stand.
 // An orange cable reel sits beside the stage; the shop's outdoor socket is on the wall.
 //   static_plug_amp  shows the cable (socket -> reel) and swaps the amp's red light for green

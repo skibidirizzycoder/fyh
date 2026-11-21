@@ -45,6 +45,7 @@ export interface Cd {
   moment: string; // id of its 2004 moment, e.g. "street_gig"
   date: string; // shown in the phone menu, e.g. "2 July 2004"
   situation: string; // what is going wrong in that moment (shown when you arrive)
+  fixedSituation?: string; // what you see when you come back after fixing it (missing: content.json's "fixedSituation")
   today?: string; // what is different today once this CD is fixed (optional)
 }
 
@@ -72,10 +73,19 @@ export interface NewsContent {
   offline: Record<string, Article>; // "default" plus one per change id, shown when the LLM is unavailable
 }
 
+/** Text for the CD player outside the shop today. May use {artist}, {title} and {date}. */
+export interface CdPlayerText {
+  prompt: string; // shown when a CD is targeted, e.g. "Put Mira's CD in the player"
+  line: string; // dialogue while the CD goes in, before you travel
+  phoneLockedLine: string; // choosing a moment on the phone that still needs its CD
+}
+
 /** src/story/content.json: the text shared by every CD. */
 export interface BaseContent {
   intro: string;
   travelLines: { present: string; past: string }; // past may use {date} and {situation}
+  fixedSituation: string; // {situation} on coming back to a fixed moment, for CDs without their own; may use {artist}
+  cdPlayer: CdPlayerText;
   alreadyDoneLine: string;
   notHereLine: string;
   ending: string;
@@ -93,6 +103,8 @@ export interface LoadedCd extends Cd {
 export interface StoryContent {
   intro: string;
   travelLines: { present: string; past: string };
+  fixedSituation: string;
+  cdPlayer: CdPlayerText;
   alreadyDoneLine: string;
   notHereLine: string;
   ending: string;

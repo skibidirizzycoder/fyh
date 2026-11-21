@@ -63,6 +63,26 @@ describe('news desk', () => {
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
+  it('when the server says Snowflake is offline (200, no error logged), prints the offline edition with its reason', async () => {
+    const fetchFn = answer({ offline: true, reason: 'Snowflake refused: Cortex said 403' });
+    const desk = createNewsDesk({ content, fetchFn });
+    desk.request(ALL);
+    await settle();
+    expect(desk.current()).toMatchObject({ status: 'ready', ...offlineNews(content, ALL), offline: true, reason: 'server offline: Snowflake refused: Cortex said 403' });
+    desk.request(ALL);
+    await settle();
+    expect(fetchFn).toHaveBeenCalledTimes(2); // not cached: it may work next time
+  });
+
+  it('a build without the endpoint (api: false) never asks, and prints the offline edition at once', () => {
+    const fetchFn = answer(PAPER);
+    const desk = createNewsDesk({ content, fetchFn, api: false });
+    desk.request(ALL);
+    expect(desk.current()).toMatchObject({ status: 'ready', ...offlineNews(content, ALL), offline: true, reason: 'no-api', ms: 0 });
+    expect(fetchFn).not.toHaveBeenCalled();
+    expect(desk.requestCount()).toBe(0);
+  });
+
   it('on a bad reply shape, prints the offline edition', async () => {
     const desk = createNewsDesk({ content, fetchFn: answer({ nope: true }) });
     desk.request([]);

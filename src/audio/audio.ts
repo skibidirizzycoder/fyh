@@ -7,12 +7,14 @@
 import type { GameEvents } from '../core/events.ts';
 import { T, type Era } from '../tuning.ts';
 import { createAmbience, type Ambience } from './ambience.ts';
-import { buildCue, cueLength, type Cue, type CueName } from './cues.ts';
-import { createFeel, subscribeFeel, type FeelSource } from './feel-player.ts';
+import { buildCue, cueLength, queueRingtones, whooshDelay, type Cue, type CueName } from './cues.ts';
+import { createFeel, subscribeFeel, type Feel, type FeelSource } from './feel-player.ts';
 import { createMusicDirector, type MusicDirector } from './music-director.ts';
 import { createMusicPlayer, type MusicPlayer } from './music.ts';
 import { sceneFor, type SceneId } from './soundscape.ts';
+import type { UpcomingSource } from './upcoming.ts';
 import { makeNoiseBuffer, playCue } from './synth.ts';
+import { cutSection, songFor } from './songs.ts';
 
 /** The game events sound reacts to. */
 export type SoundEvent = Extract<keyof GameEvents, 'game-start' | 'mute' | 'travel' | 'action-done' | 'action-locked' | 'phone-open' | 'phone-close' | 'phone-move' | 'phone-select' | 'reputation'>;
@@ -67,17 +69,20 @@ function defaultContext(): AudioContext | null {
 
 type Sound = { ctx: AudioContext; master: GainNode; noise: AudioBuffer; ambience: Ambience; music: MusicPlayer };
 
-type CdMusic = { file: string };
 const DUCK_CUES: readonly string[] = T.audio.music.duckCues;
 
-/** Fetches and decodes every CD song that has a file. Failures stay silent (the song just won't play). */
+/**
+ * Fetches and decodes every CD's song (your local copy of the real song if there is one, else the
+ * stand-in; see songs.ts). A full local song is cut to its section. Failures stay silent.
+ */
 function loadSongs(ctx: AudioContext, music: MusicPlayer): void {
-  for (const [cd, cfg] of Object.entries(T.audio.music.cds as Readonly<Record<string, CdMusic>>)) {
-    if (!cfg.file) continue; // no MP3 yet: don't even ask (a 404 is a console error)
-    fetch(cfg.file)
+  for (const cd of Object.keys(T.audio.music.cds)) {
+    const song = songFor(cd);
+    if (!song) continue; // no MP3 yet: don't even ask (a 404 is a console error)
+    fetch(song.url)
       .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
       .then((bytes) => ctx.decodeAudioData(bytes))
-      .then((buffer) => music.addSong(cd, buffer))
+      .then((buffer) => music.addSong(cd, song.section ? cutSection(ctx, buffer, song.section.startSec, song.section.lengthSec) : buffer))
       .catch(() => undefined);
   }
 }
@@ -116,6 +121,39 @@ function subscribe(events: SoundEvents, a: {
   });
 }
 
+/**
+ * Events the game doesn't send yet: the feel events requested from Claude (feel-player.ts) and the round 3
+ * events announced in the backlog (upcoming.ts). Harmless until sent; they work as soon as they are.
+ */
+function subscribeAhead(events: SoundEvents, a: { feel: Feel; play: (name: CueName) => void; music: MusicDirector }): void {
+  events.on('travel', (e) => a.feel.travel(e.moment));
+  subscribeFeel(events as unknown as FeelSource, a.feel);
+  const upcoming = events as unknown as UpcomingSource;
+  upcoming.on('cd-insert', () => a.play('cd-insert'));
+}
+
+/** The bus queue catches your ringtone: each phone joins in turn, panned to where it stands. Returns how long it lasts. */
+function playQueue(s: Sound): number {
+  let end = 0;
+  for (const phone of queueRingtones()) {
+    const pan = s.ctx.createStereoPanner();
+    pan.pan.value = phone.pan;
+    pan.connect(s.master);
+    playCue(s.ctx, pan, phone.cue, s.noise, phone.delaySec);
+    end = Math.max(end, phone.delaySec + cueLength(phone.cue));
+  }
+  return end;
+}
+
+/** Plays a cue now (the whoosh waits for a CD's spin-up), the queue after the ringtone, and ducks the music. */
+function playOn(s: Sound, name: CueName, insertAt: number | null): void {
+  const cue = buildCue(name);
+  const delay = name === 'whoosh' ? whooshDelay(insertAt, s.ctx.currentTime) : DELAY[name] ?? 0;
+  playCue(s.ctx, s.master, cue, s.noise, delay);
+  const spread = name === 'ringtone' ? playQueue(s) : 0; // and then the whole queue rings
+  if (DUCK_CUES.includes(name)) s.music.duck(Math.max(cueLength(cue), spread));
+}
+
 /** Creates the game's audio and subscribes it to game events. */
 export function createAudio(events: SoundEvents, options: AudioOptions = {}): GameAudio {
   const makeContext = options.makeContext ?? defaultContext;
@@ -125,6 +163,7 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
   let era: Era = 'present';
   let scene: SceneId = 'present';
   let sound: Sound | null = null;
+  let insertAt: number | null = null; // audio-clock time the last CD went into the player
   /** Runs some Web Audio code; if it throws, sound switches off for good instead of breaking the game. */
   function safely(fn: () => void): void {
     if (broken) return;
@@ -164,9 +203,8 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
     const s = sound;
     if (!s || muted) return;
     safely(() => {
-      const cue = buildCue(name);
-      playCue(s.ctx, s.master, cue, s.noise, DELAY[name] ?? 0);
-      if (DUCK_CUES.includes(name)) s.music.duck(cueLength(cue));
+      if (name === 'cd-insert') insertAt = s.ctx.currentTime;
+      playOn(s, name, insertAt);
     });
   }
 
@@ -193,8 +231,7 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
   }, () => {
     broken = true; // a feel sound failed to build: go quiet, as for any audio failure (failed() reports it)
   });
-  events.on('travel', (e) => feel.travel(e.moment));
-  subscribeFeel(events as unknown as FeelSource, feel); // events requested from Claude; harmless until sent
+  subscribeAhead(events, { feel, play, music });
 
   // The browser may suspend audio (e.g. a background tab); any key or click wakes it up again.
   options.target?.addEventListener('keydown', resume);

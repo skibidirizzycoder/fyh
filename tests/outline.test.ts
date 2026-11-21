@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { Color } from 'three';
 import { content } from '../src/story/content.ts';
 import { ERAS, T } from '../src/tuning.ts';
-import { creaseOffset, lookFor, outlineWidth, renderSize, toScenePx } from '../src/world/look.ts';
+import { creaseOffset, lookFor, msaaSamples, outlineWidth, renderSize, toScenePx } from '../src/world/look.ts';
 
 const SCREENS = [720, 768, 900, 1080, 1200, 1440, 1600, 1800, 2160];
 
@@ -39,9 +39,13 @@ describe('outline width', () => {
     }
   });
 
-  it('2004 (every moment) is exactly one chunky pixel wide on common screens', () => {
+  it('every pixelated past moment is exactly one chunky pixel wide; a sharp one (2017) inks like today', () => {
     for (const m of [null, ...content.cds.map((c) => c.moment)]) {
       const look = lookFor('2004', m);
+      if (look.pixelHeight === 0) {
+        expect(look.outlinePx, String(m)).toBe(lookFor('present', null).outlinePx);
+        continue;
+      }
       for (const h of SCREENS) {
         const { scale } = renderSize(h * 16 / 9, h, look.pixelHeight);
         expect(outlineWidth(look.outlinePx, h, scale), `${String(m)} at ${h} px`).toBe(1);
@@ -92,9 +96,20 @@ describe('outline look', () => {
 });
 
 describe('anti-aliasing and sky', () => {
-  it('today is anti-aliased (MSAA); 2004 never is, so its pixels stay hard', () => {
-    expect(lookFor('present', null).msaa).toBeGreaterThan(1);
-    for (const m of [null, ...content.cds.map((c) => c.moment)]) expect(lookFor('2004', m).msaa, String(m)).toBe(0);
+  it('every full-resolution scene (today, 2017) gets MSAA; chunky scenes never do, so their pixels stay hard', () => {
+    const scenes = [lookFor('present', null), ...[null, ...content.cds.map((c) => c.moment)].map((m) => lookFor('2004', m))];
+    for (const look of scenes) {
+      const { scale } = renderSize(1920, 1080, look.pixelHeight);
+      const samples = msaaSamples(look.msaa, scale, 16);
+      if (look.pixelHeight > 0) expect(samples, look.sky).toBe(0);
+      else expect(samples, look.sky).toBeGreaterThan(1);
+    }
+  });
+
+  it('MSAA never asks for more samples than the GPU has (a software GPU has 0)', () => {
+    expect(msaaSamples(4, 1, 0)).toBe(0);
+    expect(msaaSamples(4, 1, 2)).toBe(2);
+    expect(msaaSamples(4, 3, 8)).toBe(0);
   });
 
   it('every scene has a soft sky gradient that never goes black', () => {

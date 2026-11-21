@@ -11,7 +11,7 @@
 // the chunky pixels.
 
 import * as THREE from 'three';
-import { CREASE_FULL, creaseOffset, outlineWidth, renderSize, toScenePx, type Look } from './look.ts';
+import { CREASE_FULL, creaseOffset, msaaSamples, outlineWidth, renderSize, toScenePx, type Look } from './look.ts';
 
 type Uniforms = THREE.ShaderMaterial['uniforms'];
 
@@ -247,12 +247,12 @@ function makeMaterial(target: THREE.WebGLRenderTarget): THREE.ShaderMaterial {
 
 /**
  * Resizes the scene textures. Scaled-up pixels are sampled nearest and never anti-aliased (chunky);
- * full size is sampled linearly with `msaa` samples. Returns the scale.
+ * full size is sampled linearly with MSAA (see msaaSamples). Returns the scale.
  */
-function resizeTarget(target: THREE.WebGLRenderTarget, uniforms: Uniforms, width: number, height: number, pixelHeight: number, msaa: number): number {
-  const size = renderSize(width, height, pixelHeight);
+function resizeTarget(target: THREE.WebGLRenderTarget, uniforms: Uniforms, screen: TargetSize): number {
+  const size = renderSize(screen.width, screen.height, screen.pixelHeight);
   const filter = size.scale > 1 ? THREE.NearestFilter : THREE.LinearFilter;
-  const samples = size.scale > 1 ? 0 : msaa;
+  const samples = msaaSamples(screen.msaa, size.scale, screen.maxSamples);
   if (target.texture.magFilter !== filter || target.samples !== samples) {
     target.texture.minFilter = filter;
     target.texture.magFilter = filter;
@@ -263,6 +263,15 @@ function resizeTarget(target: THREE.WebGLRenderTarget, uniforms: Uniforms, width
   (uniforms.pixels?.value as THREE.Vector2).set(size.width, size.height);
   if (uniforms.chunky) uniforms.chunky.value = size.scale > 1 ? 1 : 0;
   return size.scale;
+}
+
+/** What the scene textures are sized from: the screen in device pixels and the look's pixels and MSAA. */
+interface TargetSize {
+  width: number;
+  height: number;
+  pixelHeight: number;
+  msaa: number;
+  maxSamples: number;
 }
 
 /** Sets the colour grade, grain, vignette and dithering uniforms. */
@@ -332,8 +341,8 @@ export function createPostFilter(width: number, height: number, maxSamples: numb
   const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthTexture: new THREE.DepthTexture(1, 1) });
   const material = makeMaterial(target);
   const u = material.uniforms;
-  const screen = { width, height, pixelHeight: 0, msaa: -1, scale: 1, look: null as Look | null, ink: true };
-  screen.scale = resizeTarget(target, u, width, height, 0, 0);
+  const screen = { width, height, pixelHeight: 0, msaa: 0, maxSamples, scale: 1, look: null as Look | null, ink: true };
+  screen.scale = resizeTarget(target, u, screen);
   const quadGeometry = new THREE.PlaneGeometry(2, 2);
   const quad = new THREE.Mesh(quadGeometry, material);
   quad.frustumCulled = false;
@@ -343,10 +352,10 @@ export function createPostFilter(width: number, height: number, maxSamples: numb
 
   return {
     setLook: (look) => {
-      if (look.pixelHeight !== screen.pixelHeight || Math.min(look.msaa, maxSamples) !== screen.msaa) { // only resize when the look changes
+      if (look.pixelHeight !== screen.pixelHeight || look.msaa !== screen.msaa) { // only resize when the look changes
         screen.pixelHeight = look.pixelHeight;
-        screen.msaa = Math.min(look.msaa, maxSamples);
-        screen.scale = resizeTarget(target, u, screen.width, screen.height, screen.pixelHeight, screen.msaa);
+        screen.msaa = look.msaa;
+        screen.scale = resizeTarget(target, u, screen);
       }
       screen.look = look;
       setGrade(u, look);
@@ -357,7 +366,7 @@ export function createPostFilter(width: number, height: number, maxSamples: numb
     setSize: (w, h) => {
       screen.width = w;
       screen.height = h;
-      screen.scale = resizeTarget(target, u, w, h, screen.pixelHeight, Math.max(0, screen.msaa));
+      screen.scale = resizeTarget(target, u, screen);
       if (screen.look) setInk(u, screen.look, h, screen.scale);
       if (!screen.ink && u.outline) u.outline.value = 0;
     },

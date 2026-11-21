@@ -10,7 +10,7 @@
 // and the checkpoint folder has no .env, so the newspaper is always the offline edition there.
 
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { checkpoints, tagCheckpoint } from './tag.ts';
 
@@ -20,6 +20,11 @@ const NETLIFY = 'npx -y netlify-cli@27.20.1';
 /** Deploys the gated production build (dist/) to the linked Netlify site, only with `--deploy`
  *  (`npm run checkpoint -- --deploy`). Skips if not linked. */
 function deployLive(tag: string): void {
+  const local = existsSync('src/audio/local-songs') ? readdirSync('src/audio/local-songs').filter((f) => f.endsWith('.mp3')) : [];
+  if (local.length > 0) {
+    console.log(`checkpoint: NOT deploying: src/audio/local-songs has copyrighted songs (${local.join(', ')}). Move them out and build again.`);
+    return;
+  }
   if (!process.argv.includes('--deploy')) {
     console.log('checkpoint: local only (add -- --deploy to update the live site).');
     return;
