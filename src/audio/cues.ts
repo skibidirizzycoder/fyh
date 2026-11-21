@@ -4,9 +4,9 @@
 
 import { T } from '../tuning.ts';
 
-export type CueName = 'beep' | 'blip' | 'flip-open' | 'flip-close' | 'ringtone' | 'whoosh' | 'chime' | 'nope' | 'fanfare' | 'beam';
+export type CueName = 'beep' | 'blip' | 'flip-open' | 'flip-close' | 'ringtone' | 'whoosh' | 'chime' | 'nope' | 'fanfare' | 'beam' | 'cd-insert';
 
-export const CUE_NAMES: readonly CueName[] = ['beep', 'blip', 'flip-open', 'flip-close', 'ringtone', 'whoosh', 'chime', 'nope', 'fanfare', 'beam'];
+export const CUE_NAMES: readonly CueName[] = ['beep', 'blip', 'flip-open', 'flip-close', 'ringtone', 'whoosh', 'chime', 'nope', 'fanfare', 'beam', 'cd-insert'];
 
 /** One oscillator note. `toNote` slides the pitch during the note. */
 export interface Tone {
@@ -77,6 +77,33 @@ function beam(): Cue {
   return { tones: [...chirps, ...done], noises: [] };
 }
 
+/** The CD player: tray out (motor + clunk), the disc clicks in, tray in, the disc spins up, the laser seeks. */
+function cdInsert(): Cue {
+  const c = T.audio.cdInsert;
+  const tones: Tone[] = [];
+  const noises: NoiseBurst[] = [];
+  for (const at of c.trays) {
+    tones.push({ at, sec: c.motor.sec, note: c.motor.note, toNote: c.motor.toNote, wave: 'square', gain: c.motor.gain });
+    noises.push({ at, sec: c.motor.sec, gain: c.motor.noiseGain, fromHz: c.motor.noiseHz, toHz: c.motor.noiseHz, q: 2 });
+    const end = at + c.motor.sec;
+    tones.push({ at: end, sec: c.clunk.sec, note: c.clunk.note, wave: 'sine', gain: c.clunk.gain });
+    noises.push({ at: end, sec: c.clunk.sec, gain: c.clunk.noiseGain, fromHz: c.clunk.noiseHz, toHz: c.clunk.toHz, q: 1 });
+  }
+  noises.push({ at: c.click.at, sec: c.click.sec, gain: c.click.gain, fromHz: c.click.hz, toHz: c.click.hz, q: c.click.q });
+  tones.push({ at: c.click.at, sec: c.click.sec, note: c.click.note, wave: 'square', gain: c.click.toneGain });
+  const s = c.spin;
+  tones.push({ at: s.at, sec: s.sec, note: s.fromNote, toNote: s.toNote, wave: 'sine', gain: s.gain });
+  tones.push({ at: s.at, sec: s.sec, note: s.fromNote + 12, toNote: s.toNote + 12, wave: 'triangle', gain: s.gain / 3 });
+  noises.push({ at: s.at, sec: s.sec, gain: s.hissGain, fromHz: s.hissFromHz, toHz: s.hissToHz, q: 0.7 });
+  c.seek.notes.forEach((note, i) => tones.push({ at: c.seek.at[i] ?? 0, sec: c.seek.sec, note, wave: 'square', gain: c.seek.gain }));
+  return { tones, noises };
+}
+
+/** How long the travel whoosh waits after a CD went in at `insertAt` (audio clock): it lands on the spin-up. */
+export function whooshDelay(insertAt: number | null, now: number): number {
+  return insertAt === null ? 0 : Math.max(0, insertAt + T.audio.cdInsert.whooshAtSec - now);
+}
+
 /** Builds the data for one cue. */
 export function buildCue(name: CueName): Cue {
   const a = T.audio;
@@ -103,6 +130,8 @@ export function buildCue(name: CueName): Cue {
       return arpeggio(a.fanfare);
     case 'beam':
       return beam();
+    case 'cd-insert':
+      return cdInsert();
   }
 }
 
