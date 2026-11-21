@@ -7,7 +7,9 @@
 import type { GameEvents } from '../core/events.ts';
 import { T, type Era } from '../tuning.ts';
 import { createAmbience, type Ambience } from './ambience.ts';
-import { buildCue, type CueName } from './cues.ts';
+import { buildCue, cueLength, type CueName } from './cues.ts';
+import { createMusicDirector, type MusicDirector } from './music-director.ts';
+import { createMusicPlayer, type MusicPlayer } from './music.ts';
 import { makeNoiseBuffer, playCue } from './synth.ts';
 
 /** The game events sound reacts to. */
@@ -26,6 +28,8 @@ export interface AudioOptions {
 }
 
 export interface GameAudio {
+  /** What the CD music plays now, e.g. "mira:2004", "static:2004-broken", "kbit:today" ("" = none). */
+  nowPlaying(): string;
   /** Name of the last sound played, e.g. "ringtone" (null before any). */
   lastCue(): CueName | null;
   /** Every cue played so far, oldest first. */
@@ -41,9 +45,11 @@ export interface GameAudio {
   dispose(): void;
 }
 
-/** The cue for a finished action: the ringtone for K-Bit's bus stop, a chime otherwise. */
+/** The cue for a finished action: K-Bit's beam and ringtone are special, everything else chimes. */
 export function actionCue(actionId: string): CueName {
-  return (T.audio.ringtoneActions as readonly string[]).includes(actionId) ? 'ringtone' : 'chime';
+  if ((T.audio.ringtoneActions as readonly string[]).includes(actionId)) return 'ringtone';
+  if ((T.audio.beamActions as readonly string[]).includes(actionId)) return 'beam';
+  return 'chime';
 }
 
 /** Cues that wait a moment so they don't land on top of the travel whoosh. */
@@ -53,7 +59,56 @@ function defaultContext(): AudioContext | null {
   return typeof AudioContext === 'undefined' ? null : new AudioContext();
 }
 
-type Sound = { ctx: AudioContext; master: GainNode; noise: AudioBuffer; ambience: Ambience };
+type Sound = { ctx: AudioContext; master: GainNode; noise: AudioBuffer; ambience: Ambience; music: MusicPlayer };
+
+type CdMusic = { file: string };
+const DUCK_CUES: readonly string[] = T.audio.music.duckCues;
+
+/** Fetches and decodes every CD song that has a file. Failures stay silent (the song just won't play). */
+function loadSongs(ctx: AudioContext, music: MusicPlayer): void {
+  for (const [cd, cfg] of Object.entries(T.audio.music.cds as Readonly<Record<string, CdMusic>>)) {
+    if (!cfg.file) continue; // no MP3 yet: don't even ask (a 404 is a console error)
+    fetch(cfg.file)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+      .then((bytes) => ctx.decodeAudioData(bytes))
+      .then((buffer) => music.addSong(cd, buffer))
+      .catch(() => undefined);
+  }
+}
+
+/** Routes each game event to its sound and to the music. */
+function subscribe(events: SoundEvents, a: {
+  play: (name: CueName) => void;
+  unlock: () => void;
+  toggleMute: () => boolean;
+  setEra: (era: Era) => void;
+  music: MusicDirector;
+}): void {
+  const { play, unlock, toggleMute, setEra, music } = a;
+  events.on('game-start', () => {
+    unlock();
+    music.reset();
+  });
+  events.on('mute', () => toggleMute());
+  events.on('travel', (e) => {
+    setEra(e.era);
+    play('whoosh');
+    music.travel(e.era, e.moment);
+  });
+  events.on('action-done', (e) => {
+    play(actionCue(e.actionId));
+    music.actionDone(e.actionId);
+  });
+  events.on('action-locked', () => play('nope'));
+  events.on('phone-open', () => play('flip-open'));
+  events.on('phone-close', () => play('flip-close'));
+  events.on('phone-move', () => play('beep'));
+  events.on('phone-select', () => play('blip'));
+  events.on('reputation', (e) => {
+    play('fanfare');
+    music.reputation(e.level);
+  });
+}
 
 /** Creates the game's audio and subscribes it to game events. */
 export function createAudio(events: SoundEvents, options: AudioOptions = {}): GameAudio {
@@ -63,7 +118,6 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
   let broken = false;
   let era: Era = 'present';
   let sound: Sound | null = null;
-
   /** Runs some Web Audio code; if it throws, sound switches off for good instead of breaking the game. */
   function safely(fn: () => void): void {
     if (broken) return;
@@ -73,6 +127,8 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
       broken = true;
     }
   }
+
+  const music = createMusicDirector(() => sound?.music ?? null, safely);
 
   function resume(): void {
     if (sound?.ctx.state === 'suspended') sound.ctx.resume().catch(() => undefined);
@@ -87,7 +143,9 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
         master.gain.value = muted ? 0 : T.audio.master;
         master.connect(ctx.destination);
         const noise = makeNoiseBuffer(ctx, T.audio.ambience.loopSec, T.audio.ambience.seed);
-        sound = { ctx, master, noise, ambience: createAmbience(ctx, master, era) };
+        const music = createMusicPlayer(ctx, master);
+        sound = { ctx, master, noise, ambience: createAmbience(ctx, master, era), music };
+        loadSongs(ctx, music);
       }
       resume();
     });
@@ -96,7 +154,12 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
   function play(name: CueName): void {
     played.push(name);
     const s = sound;
-    if (s && !muted) safely(() => playCue(s.ctx, s.master, buildCue(name), s.noise, DELAY[name] ?? 0));
+    if (!s || muted) return;
+    safely(() => {
+      const cue = buildCue(name);
+      playCue(s.ctx, s.master, cue, s.noise, DELAY[name] ?? 0);
+      if (DUCK_CUES.includes(name)) s.music.duck(cueLength(cue));
+    });
   }
 
   function toggleMute(): boolean {
@@ -106,27 +169,18 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
     return muted;
   }
 
-  events.on('game-start', unlock);
-  events.on('mute', () => toggleMute());
-  events.on('travel', (e) => {
-    era = e.era;
+  subscribe(events, { play, unlock, toggleMute, music, setEra: (e) => {
+    era = e;
     const s = sound;
-    if (s) safely(() => s.ambience.setEra(era));
-    play('whoosh');
-  });
-  events.on('action-done', (e) => play(actionCue(e.actionId)));
-  events.on('action-locked', () => play('nope'));
-  events.on('phone-open', () => play('flip-open'));
-  events.on('phone-close', () => play('flip-close'));
-  events.on('phone-move', () => play('beep'));
-  events.on('phone-select', () => play('blip'));
-  events.on('reputation', () => play('fanfare'));
+    if (s) safely(() => s.ambience.setEra(e));
+  } });
 
   // The browser may suspend audio (e.g. a background tab); any key or click wakes it up again.
   options.target?.addEventListener('keydown', resume);
   options.target?.addEventListener('pointerdown', resume);
 
   return {
+    nowPlaying: music.nowPlaying,
     lastCue: () => played.at(-1) ?? null,
     history: () => played,
     isMuted: () => muted,
@@ -136,11 +190,13 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
     era: () => era,
     failed: () => broken,
     dispose() {
+      music.dispose();
       options.target?.removeEventListener('keydown', resume);
       options.target?.removeEventListener('pointerdown', resume);
       const s = sound;
       sound = null;
       if (s) safely(() => {
+        s.music.stop();
         s.ambience.stop();
         s.ctx.close().catch(() => undefined);
       });

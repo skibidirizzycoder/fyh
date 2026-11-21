@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { T, type Era } from '../tuning.ts';
 import { GROUND, PROPS, propColor, visibleProps, type Prop } from './layout.ts';
+import { lookFor } from './look.ts';
 
 export interface PropView {
   prop: Prop;
@@ -77,7 +78,7 @@ export function buildWorld(): WorldView {
       if (view.prop.interactable) (view.mesh.material as THREE.MeshStandardMaterial).color.set(color);
       else view.mesh.material = sharedMaterial(color);
     }
-    const look = T.eras[era];
+    const look = lookFor(era, moment);
     scene.background = new THREE.Color(look.sky);
     scene.fog = new THREE.Fog(look.sky, look.fogNear, look.fogFar);
     sun.color.set(look.sunColor);

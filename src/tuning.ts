@@ -193,8 +193,24 @@ export const T = {
     caption: '#fff3bf',
   },
 
+  // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
+  moments: {
+    open_mic: { // 14 March: evening, dusk light
+      sky: '#7a5873', fogNear: 10, fogFar: 34, sunColor: '#ffb27a', sunIntensity: 1.5, ambient: 0.75,
+      tint: [1.12, 0.94, 0.86],
+    },
+    street_gig: { // 2 July: bright summer afternoon
+      sky: '#f2c36b', sunColor: '#fff2cc', sunIntensity: 3.1, ambient: 1.05, tint: [1.1, 1.0, 0.8], saturation: 0.9,
+    },
+    ringtone: { // 5 December: cold grey dusk (still warmer and grainier than today)
+      sky: '#8791a6', fogNear: 9, fogFar: 32, sunColor: '#ffd9b0', sunIntensity: 1.4, ambient: 0.8,
+      tint: [1.04, 0.98, 0.92], saturation: 0.72,
+    },
+  },
+
   limits: {
     maxDrawCalls: 60, // smoke fails above this
+    minLookDistance: 18, // smoke: mean scene colours of any two scenes differ by at least this (0..441)
   },
 
   // --- Teammate B: all sound, generated in code (no sound files) ---
@@ -204,6 +220,7 @@ export const T = {
     master: 0.5, // overall volume
     muteKey: 'KeyM',
     ringtoneActions: ['kbit_ring_bus_stop'], // finishing these actions plays the ringtone instead of the chime
+    beamActions: ['kbit_beam_track'], // ...and these play the infrared beam
     attackSec: 0.005, // every note fades in this fast (no clicks)
     releaseSec: 0.05, // ...and fades out this fast
     beep: { note: 88, sec: 0.06, gain: 0.18, wave: 'square' }, // keypad (phone-move)
@@ -229,6 +246,7 @@ export const T = {
     chime: { notes: [76, 81, 88], gapSec: 0.08, sec: 0.5, gain: 0.2, wave: 'sine' }, // action-done
     nope: { notes: [50, 46], gapSec: 0.12, sec: 0.14, gain: 0.2, wave: 'square' }, // action-locked
     fanfare: { notes: [67, 72, 76, 79, 84], gapSec: 0.1, sec: 0.35, gain: 0.18, wave: 'square', delaySec: 0.7 }, // reputation; waits for the travel whoosh
+    beam: { notes: [86, 93], chirps: 14, chirpSec: 0.035, gain: 0.12, wave: 'square', doneNotes: [84, 96], doneGapSec: 0.09, doneSec: 0.08, doneGain: 0.18 }, // infrared handshake, then "got it"
     ambience: {
       fadeSec: 1.2, // crossfade when you travel
       loopSec: 2, // length of the looping noise buffers
@@ -236,6 +254,46 @@ export const T = {
       '2004': { humHz: 55, humGain: 0.035, noiseGain: 0.03, noiseLowpassHz: 1200, cracklePerSec: 9, crackleGain: 0.12 },
       present: { humHz: 0, humGain: 0, noiseGain: 0.012, noiseLowpassHz: 6000, cracklePerSec: 0, crackleGain: 0 },
     },
+
+    // The CD music: in 2004 the raw/broken/ignored version, today the modern remix (+ a code beat).
+    // A CD's `file` stays '' until its MP3 is in public/music/ (a missing file would log a 404).
+    music: {
+      busGain: 0.55, // music sits under the dialogue
+      fadeSec: 1.5, // crossfade between songs
+      todaySwitchSec: 30, // today, with several fixed CDs: next song after this long
+      duckGain: 0.3, // music volume while a whoosh, chime or ringtone plays
+      duckCues: ['whoosh', 'chime', 'ringtone', 'beam'],
+      duckAttackSec: 0.05,
+      duckReleaseSec: 0.5,
+      past: { lowpassHz: 2500, gain: 0.7 }, // "2004 style": muffled, mono
+      broken: { cutHz: 0.6 }, // the dying amp: the song cuts in and out this many times a second
+      live: { lowpassHz: 9000, gain: 1 }, // The Static with the shop's mic: opens up, louder
+      leak: { lowpassHz: 4000, highpassHz: 1500, gain: 0.12 }, // tinny spill from K-Bit's headphones
+      today: { levelGain: [0, 0.7, 0.85, 1], beatGain: [0, 0.3, 0.45, 0.6] }, // by reputation level 0-3
+      beat: { kickHz: 130, kickEndHz: 45, kickSec: 0.25, kickGain: 0.9, hatSec: 0.04, hatGain: 0.22, seed: 909 },
+      // Clips are cut on a measured beat (beatOffsetSec 0). bpm was MEASURED, not heard, and the
+      // detector was unsure (see docs/notes/teammate-b.md), so the code beat is off (beat: 0)
+      // until someone confirms by ear that it plays in time; then set beat: 1.
+      cds: {
+        mira: { file: 'music/mira.mp3', gain: 0.9, bpm: 68, beatOffsetSec: 0, beat: 0, past: { silentUntil: 'mira_play_cd' } },
+        static: { file: 'music/static.mp3', gain: 0.8, bpm: 104.5, beatOffsetSec: 0, beat: 0, past: { brokenUntil: 'static_plug_amp', liveAfter: 'static_give_mic' } },
+        kbit: { file: 'music/kbit.mp3', gain: 0.8, bpm: 163.5, beatOffsetSec: 0, beat: 0, past: { leakUntil: 'kbit_beam_track' } },
+      },
+    },
+  },
+
+  // --- Teammate B: today's shop at each reputation level (where props stand: src/world/props/today.ts) ---
+  today: {
+    boards: '#7d6a50', // level 0: boarded up
+    litWindow: '#9fe0ff',
+    openSign: '#ff3b6b',
+    customer: '#d9734a',
+    posters: ['#ff9f1c', '#ff5fa2', '#39ff88'], // one per artist: Mira pink, K-Bit green
+    plaque: '#2f6fdb', // the blue plaque
+    neon: '#ff4fd8', // HOLLOW RECORDS in neon, level 3
+    gold: '#ffcc33',
+    frame: '#2a2522', // empty frames wait for gold discs
+    people: ['#5a6fa8', '#a8605a', '#6a9a62', '#9a7ab8', '#c9a227'],
   },
 
   // --- Teammate B: DJ K-Bit's moment, "5 December 2004" (where props stand: src/world/props/kbit.ts) ---
@@ -245,6 +303,8 @@ export const T = {
     shelterRoof: '#2f343b',
     signPole: '#2a2a2a',
     sign: '#e23b3b', // the bus stop sign: interactable
+    signBand: '#f4f4f0', // the "BUS" band on the sign
+    timetable: '#f2e6b8', // paper timetable on the pole
     people: ['#5a6fa8', '#a8605a', '#6a9a62', '#9a7ab8'], // the queue, one coat colour each
     flipPhone: '#c0c6cc', // everyone in the queue has one
     kbitBody: '#1e1e28',

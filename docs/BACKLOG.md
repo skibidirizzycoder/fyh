@@ -9,11 +9,18 @@
 2. **Then take your next task below, straight away.** Don't wait for a reply or a merge.
 3. **Want to play everyone's work together?** `npm run checkpoint:play` builds the newest *tested*
    checkpoint in a separate folder and serves it at http://localhost:4300. Your branch isn't touched.
-   Claude tags a checkpoint (`npm run checkpoint`) after each round of ships.
+   Every successful ship tags a checkpoint by itself.
 4. **Queue empty?** Take a Free task (put your name next to it in `STATUS.md` first) and tell the lead.
    Your agent can run the whole queue by itself: `docs/prompts/08-autonomous-lane.md`.
-   **Two sessions at once?** Give the second its own branch named after your lane, e.g.
-   `feat/phone-static-screens` (from `main`). `ship` accepts it.
+   **Run two sessions at once (recommended).** Your next two tasks touch different files, so a
+   second agent builds one while the first builds the other. Give it its own folder and branch:
+   ```sh
+   git fetch origin
+   git worktree add ../fyh-2 -b feat/<your-lane>-2 origin/main   # e.g. feat/phone-static-2
+   cd ../fyh-2 && npm ci
+   ```
+   Then paste prompt 08 there with `Only task: A4` (or `B4`) at the end. Smoke picks free ports, so
+   both sessions can run the gate at the same time, and `ship` accepts the branch.
 5. **Keep these ids.** Other people's tests and the smoke run use them: `mira_take_cd`,
    `mira_play_cd`, `mira_cd`, `listening_post`, `static_plug_amp`, `static_give_mic`,
    `static_cable_reel`, `static_mic`, `kbit_*` actions, `rep_open`, `rep_busy`, `rep_landmark`,
@@ -24,9 +31,11 @@
 
 ## Teammate A: `feat/phone-static`
 
+Two sessions: A4 in one, A5 in the other.
+
 - [x] A1. The flip phone's look
 - [x] A2. The Static's street gig
-- [ ] **A3. Mira's open mic (14 March 2004).** You now own `src/story/cds/mira.json`,
+- [x] **A3. Mira's open mic (14 March 2004).** You now own `src/story/cds/mira.json`,
   `src/world/props/mira.ts` and `scripts/checks/mira.ts`. Make it an open mic night outside the
   shop: a mic and small amp by the window, string lights, a few bored listeners who turn round (or
   appear) after step 2, and Mira with a guitar. Rewrite the text in your voice (`situation`, lines,
@@ -40,11 +49,20 @@
   screenshot and let the team pick. Checks in `scripts/checks/ui.ts`: contrast of each screen and
   screenshots of the title and the ending.
 
+- [ ] **A5. The phone feels alive.** In your phone files: while travelling, the LCD shows
+  "Connecting..." with the signal bars filling, then a burst of static before you arrive; the
+  closed phone shows a small outer screen with the date and time where you are; the selected row
+  blinks like a 2004 menu. Checks in `scripts/checks/phone.ts` (read `data-state`, screenshot it).
+- [ ] **A6. The Static after the fix:** the crowd you show with `static_give_mic` gets bigger and
+  closer (more people, some with their arms up), plus a dropped set list and a tip jar. Your props only.
+
 ## Teammate B: `feat/sound-kbit`
+
+Two sessions: B3/B5/B6 in one (they all touch `src/audio/`), B4 in the other.
 
 - [x] B1. All sound effects, made in code
 - [x] B2. DJ K-Bit's bus stop
-- [ ] **B3. The CD music**: `docs/prompts/06-teammate-b-cd-music.md`. **Don't wait for a song
+- [ ] **B3. The CD music**: code merged; **the MP3s are still missing, so it's silent. Don't wait for a song
   pick:** if the team hasn't chosen, use the ★ picks in `docs/music-shortlist.md` (anyone can swap a
   file later). ccMixter files download with the track page as the `Referer` (e.g. `curl -e <page> -o …`).
   No trimming tool? Commit the full MP3 and play a 30–45 s section (`start` and `length` in `T.audio.music`).
@@ -60,6 +78,11 @@
 - [ ] **B5. K-Bit polish** (from your notes): a timetable panel and a "BUS" band on the stop, a
   bigger phone for K-Bit, and an infrared "beam" sound for step 1.
 
+- [ ] **B6. Each moment sounds like its time and place**: open mic = evening pub murmur and
+  clinking glasses; street gig = busy summer street and a distant ice-cream van; ringtone = December
+  wind, traffic and a bus pulling in; today = quieter, modern traffic. In `src/audio/`, driven by the
+  `travel` event (it has `moment`). Checks in `scripts/checks/audio.ts`.
+
 ## Free (anyone: claim it in STATUS.md first)
 
 - [ ] F1. **Street life:** decoration that makes your own moment feel alive (pigeons, bins, a bike,
@@ -70,9 +93,10 @@
 ## Claude (director)
 
 - [x] Foundation, merges, used objects stop glowing, `ship` + checkpoints
-- [ ] C1. Each moment gets its own look: open mic = evening with warm lights, street gig = bright
-  summer afternoon, ringtone craze = cold December dusk.
-- [ ] C2. The player can't walk through props (collisions).
+- [x] C1. Each moment gets its own look (evening / summer afternoon / December dusk), measured in smoke
+- [ ] C2. The player can't walk through props (collisions). *Helper agent, branch `director/collisions`.*
+- [ ] C5. The shared street and the player look like a real place and a real person (shop front,
+  neighbouring buildings, kerb; a low-poly person instead of the cylinder). *Helper agent, `director/street`.*
 - ~~C3. The rest of `docs/prompts/05-agentic-workflow.md`~~ **Cut:** `ship` already enforces
   ownership and the gate. We build the game instead.
-- [ ] C4. Deploy each checkpoint to Netlify, so the team plays it in a browser (needs `netlify login` from the lead).
+- [x] C4. `npm run checkpoint` deploys to https://flip-phone-2004-8a09.netlify.app (ships don't: free-plan credits).
