@@ -72,34 +72,48 @@ describe('/api/headline', () => {
     expect(fetchFn).not.toHaveBeenCalled();
   });
 
-  it('says which variable is missing, without calling Snowflake', async () => {
+  // Snowflake unavailable: 200 { offline: true, reason }, so the browser logs no error (STATUS bug 2).
+  it('says which variable is missing, as an offline answer, without calling Snowflake', async () => {
     vi.stubEnv('SNOWFLAKE_TOKEN', '');
     const fetchFn = cortexSays('{}');
     const res = await handleHeadline(post({ flags: [] }), { fetchFn });
-    expect(res.status).toBe(500);
-    expect((await res.json()).error).toContain('SNOWFLAKE_TOKEN');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.offline).toBe(true);
+    expect(body.reason).toContain('SNOWFLAKE_TOKEN');
+    expect(body.headline).toBeUndefined();
     expect(fetchFn).not.toHaveBeenCalled();
   });
 
-  it('turns a Snowflake error into 502 and never echoes the token or account', async () => {
+  it('turns a Snowflake error into an offline answer and never echoes the token or account', async () => {
     const res = await handleHeadline(post({ flags: [] }), { fetchFn: cortexSays('', 401) });
     const text = await res.text();
-    expect(res.status).toBe(502);
+    expect(res.status).toBe(200);
+    expect(JSON.parse(text).offline).toBe(true);
     expect(text).toContain('401');
     expect(text).not.toContain(TOKEN);
     expect(text).not.toContain(ACCOUNT);
   });
 
-  it('turns a non-JSON model reply into 502', async () => {
-    const res = await handleHeadline(post({ flags: [] }), { fetchFn: cortexSays('I cannot help with that.') });
-    expect(res.status).toBe(502);
+  it('turns a trial account refusal (403) into an offline answer', async () => {
+    const res = await handleHeadline(post({ flags: [] }), { fetchFn: cortexSays('', 403) });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ offline: true, reason: expect.stringContaining('403') });
   });
 
-  it('turns a timeout into 504', async () => {
+  it('turns a non-JSON model reply into an offline answer', async () => {
+    const res = await handleHeadline(post({ flags: [] }), { fetchFn: cortexSays('I cannot help with that.') });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ offline: true, reason: expect.stringContaining('not { headline, article }') });
+  });
+
+  it('turns a timeout into an offline answer', async () => {
     const fetchFn = vi.fn(async () => {
       throw new DOMException('timed out', 'TimeoutError');
     });
-    expect((await handleHeadline(post({ flags: [] }), { fetchFn })).status).toBe(504);
+    const res = await handleHeadline(post({ flags: [] }), { fetchFn });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ offline: true, reason: expect.stringContaining('timed out') });
   });
 
   it('only accepts POST', async () => {
