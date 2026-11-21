@@ -129,3 +129,19 @@ describe('paper, camera and keys', () => {
     }
   });
 });
+
+describe('robustness', () => {
+  it('a speaker or moment that is a built-in object name falls back to the owner', () => {
+    expect(speakerFor(null, 'toString')).toBe('owner');
+    expect(speakerFor('constructor')).toBe('owner');
+    expect(speakerFor('__proto__', 'hasOwnProperty')).toBe('owner');
+    expect(voiceCue('hello', speakerFor('constructor')).tones[0]?.note).toBe(F.voice.speakers.owner.note + ('he'.charCodeAt(0) + 'he'.charCodeAt(1)) % (F.voice.spread + 1));
+  });
+
+  it('a strange dialogue event never throws into the game', () => {
+    const { audio, events, send } = setup();
+    events.emit('travel', { to: 'x', era: '2004', moment: 'constructor' });
+    expect(() => send('dialogue', { line: 'hello there', speaker: 'toString' })).not.toThrow();
+    expect(audio.feel()).toEqual(['voice:owner']);
+  });
+});

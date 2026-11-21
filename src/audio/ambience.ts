@@ -16,8 +16,8 @@ export interface Ambience {
 }
 
 /** A looping buffer source filled with the given samples. */
-function loop(ctx: BaseAudioContext, samples: Float32Array): AudioBufferSourceNode {
-  const buffer = ctx.createBuffer(1, samples.length, ctx.sampleRate);
+function loop(ctx: BaseAudioContext, samples: Float32Array, sampleRate = ctx.sampleRate): AudioBufferSourceNode {
+  const buffer = ctx.createBuffer(1, samples.length, sampleRate);
   buffer.getChannelData(0).set(samples);
   const src = ctx.createBufferSource();
   src.buffer = buffer;
@@ -64,9 +64,10 @@ function buildScene(ctx: BaseAudioContext, out: AudioNode, scene: SceneId): { be
   const bed = ctx.createGain();
   bed.gain.value = 0;
   bed.connect(out);
-  const n = Math.round(T.audio.soundscape.loopSec * ctx.sampleRate);
+  const rate = Math.min(ctx.sampleRate, T.audio.soundscape.sampleRate); // the context resamples it
+  const n = Math.round(T.audio.soundscape.loopSec * rate);
   const sources = sceneLayers(scene).map((layer) => {
-    const src = loop(ctx, layer.samples(n, ctx.sampleRate));
+    const src = loop(ctx, layer.samples(n, rate), rate);
     const g = ctx.createGain();
     g.gain.value = layer.gain;
     src.connect(g).connect(bed);

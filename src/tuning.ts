@@ -303,10 +303,11 @@ export const T = {
       loopSec: 8, // looping layers are this long, so repeats are hard to hear
       seed: 77,
       fadeSec: 1.5,
+      sampleRate: 24000, // scene layers are made at this rate (all below 12 kHz): half the work of 48 kHz
       layerRms: 0.25, // every layer is scaled to this loudness; its `gain` then sets how loud it is
       open_mic: { // a pub-ish evening: murmuring people and clinking glasses
         babble: { gain: 0.08, voices: 6, syllableHz: 4, lowHz: 250, highHz: 1100 },
-        clinks: { gain: 0.05, perSec: 0.7, minHz: 2600, maxHz: 5200, decaySec: 0.2 },
+        clinks: { gain: 0.05, perSec: 0.7, minHz: 2600, maxHz: 4200, decaySec: 0.2 },
       },
       street_gig: { // a busy summer street, a little chatter, an ice-cream van far away
         traffic: { gain: 0.1, carsPerSec: 0.4, lowpassHz: 350, passSec: 2.5 },
