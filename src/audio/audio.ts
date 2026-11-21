@@ -126,6 +126,7 @@ function subscribeAhead(events: SoundEvents, a: { feel: Feel; play: (name: CueNa
   subscribeFeel(events as unknown as FeelSource, a.feel);
   const upcoming = events as unknown as UpcomingSource;
   upcoming.on('cd-insert', () => a.play('cd-insert'));
+  upcoming.on('title', () => a.music.reset()); // back on the title: the last game's song fades out
 }
 
 /** The bus queue catches your ringtone: each phone joins in turn, panned to where it stands. Returns how long it lasts. */
