@@ -1,44 +1,49 @@
-# Teammate A — progress notes (phone look + The Static)
+# Teammate A — phone-static lane notes
 
-Branch: `feat/phone-static`. Waiting for the "Foundation: CD moments" commit on `main`
-before writing code (it brings `PhoneState`, the CD JSON format and the stub files).
+Branch: `feat/phone-static`. Owned paths: see `docs/prompts/05-agentic-workflow.md` (Part 5).
 
-## Decisions
+## Status (2026-11-21)
 
-- **Phone shell:** silver clamshell. Brushed-silver gradient, dark hinge, grey keypad (0-9, *, #),
-  bottom-right of the screen, `id="phone"`. Pale green LCD with dark pixel text, signal and
-  battery icons, selected row inverted, fixed CDs marked with ★. Flip animation about 0.25 s
-  (in the `phone` section of `src/tuning.ts`).
+**Done:** both tasks from `docs/prompts/03-teammate-a-phone-and-the-static.md`. `npm run gate`
+passes: 122 unit tests, smoke `"ok":true`, `pitchSec` 26.8, max draw calls 19, phone LCD contrast 10.45:1.
+Team block in smoke.json:
+`"phone":{"items":4,"widthPx":220,"flipSec":0.25,"starred":["street_gig"]},"static":{"walkFrames":[89,2]}`.
 
-## The Static — draft text
+**Ready to merge:** yes. Branch is merged with `main` at `145f38f`.
 
-cd:
-  artist: The Static
-  title: Feedback Summer
-  moment: street_gig
-  date: 2 July 2004
-  situation: The Static are playing outside Hollow Records, but their battery amp keeps dying mid-chorus.
+**Screenshots checked:** `artifacts/phone.png` (phone open in 2 July 2004, The Static row selected
+with ★ and ◄, clear of the dialogue), `artifacts/static-arrive.png` (stage, band, red amp light,
+reel and mic markers), `artifacts/static-fixed.png` (green amp light, cable, crowd either side).
 
-action 1 — static_plug_amp (objectId: static_cable_reel)
-  prompt: Plug in the amp
-  label: plugged The Static's amp into the shop
-  line: You run the cable reel to the shop's outdoor socket. The amp hums, then ROARS. The singer gives you a thumbs up.
-  lockedLine: (none — first step)
+## Requests for the director
 
-action 2 — static_give_mic (objectId: static_mic, requires static_plug_amp)
-  prompt: Hand them the shop's mic
-  label: handed The Static the shop's microphone
-  line: Their mic was held together with tape. Yours works. The whole street turns round for the chorus.
-  lockedLine: You could hand them a mic... but there's no point while their amp keeps dying.
+- `src/ui/hud.ts`: after an action is done, its prompt still shows (e.g. "E — Hand over the shop's
+  mic" stays up once the mic is handed over). Hide the prompt, or show `alreadyDoneLine`, when the
+  targeted object's action is already in the flags.
+- `npm install` on Windows rewrites `package-lock.json` (drops about 32 lines of other-platform
+  optional packages). I never commit it; teammates on Windows should use `npm ci`.
 
-offline newspaper:
-  headline: Street Gig Outside Hollow Records Becomes Summer Legend
-  article: The Static's "Feedback Summer" was recorded the week after their famous plugged-in gig outside Hollow Records. Fans still leave guitar picks on the shop's windowsill.
+## Task 1: the phone's look
 
-props (2004, moments: ['street_gig']), kept 0.02 apart:
-  static_stage      low box ~3 x 0.3 x 2, in front of the right building
-  static_amp        box on stage, near edge
-  static_cable_reel interactable cylinder on the ground beside the stage
-  static_drums      3 cylinders (kick + 2 toms) on stage
-  static_mic        interactable thin cylinder stand at the front of the stage
-  static_banner     thin box "THE STATIC" banner behind the stage
+- **Shell:** silver clamshell (chosen by Teammate A). Brushed-silver gradient lid and base, dark
+  hinge, nav ring with OK and up/down arrows, green call and red end keys, a 0-9 * # keypad with
+  letters. 220 px wide, bottom-right, 104 px up so it never covers `#dialogue`; scaled to 0.8 in
+  windows shorter than 680 px.
+- **LCD:** pale green with dark text, signal bars, where you are now, battery, "TIME TRAVEL", one
+  row per moment (artist over date), "Back to today", soft keys "E: Go" / "Q: Close". The selected
+  row is inverted; fixed CDs show ★; the moment you are in shows ◄. The LCD uses only two colours,
+  so its measured contrast is the contrast of that pair.
+- **Flip:** the lid swings open around the hinge while the phone rises, for `T.phone.flipSec`;
+  closing plays it backwards, then sets `hidden`. `#phone[data-state]` is
+  opening / open / closing / closed. Reduced-motion users get no animation.
+- All numbers and colours: `T.phone` in `src/tuning.ts`.
+
+## Task 2: The Static (2 July 2004, `street_gig`)
+
+- **Props** (`src/world/props/static.ts`, colours in `T.static`): stage, singer and guitarist (with
+  guitar), kick, snare and cymbal, a banner on two poles, the amp with a red light, an orange cable
+  reel (`static_cable_reel`), the shop's outdoor socket and the mic stand (`static_mic`).
+- **Step 1, plug in the amp:** shows the cable from socket to reel; the amp light turns green.
+- **Step 2, hand over the mic** (locked until step 1): a crowd of three appears either side of the stage.
+- **Text:** all placeholders replaced in `src/story/cds/static.json`, including the offline paper:
+  "Plugged-In Street Gig Makes The Static Stars".
