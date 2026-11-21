@@ -9,7 +9,7 @@ export async function checkKbit(page: Page): Promise<Record<string, unknown>> {
   const s = await travel(page, 'ringtone');
   expect(s.moment === 'ringtone', 'could not travel to ringtone');
   expect(s.visibleMeshes.includes('kbit_bus_stop'), 'the bus stop is not in the ringtone moment');
-  await screenshot(page, 'moment-ringtone');
+  await screenshot(page, 'kbit-arrive'); // moment-ringtone.png (after the fix) is smoke's
   // TODO(Teammate B): bus stop locked first, both actions with walkTo(), lastCue "ringtone",
   // travel to 'present', assert gold_kbit is in visibleMeshes.
   return {};

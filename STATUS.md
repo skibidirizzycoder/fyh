@@ -33,6 +33,8 @@ to access this endpoint", legacy `SNOWFLAKE.CORTEX.COMPLETE` is blocked for new 
 - GitHub Pages has no endpoint, so the paper is always the offline edition there.
 
 **Now (hackathon day):** teammates build on `feat/phone-static` and `feat/sound-kbit` from the
-prompts in `docs/prompts/03-*` and `04-*`. Claude: polish Mira's moment and today's shop, then merge.
+prompts in `docs/prompts/03-*` and `04-*` (Teammate B's sound + K-Bit v1 is merged). Next for the
+director: run `docs/prompts/05-agentic-workflow.md` (measure, lanes, ownership hook, diff review,
+contracts), then polish Mira's moment and today's shop, then merge.
 
 **Next session:** read `AGENTS.md`, run `npm run gate`, run `npm run snowflake:ping` if `.env` is set.

@@ -100,6 +100,9 @@ Each returns `__game.state()`: `moment`, `flags`, `fixedCds`, `visibleMeshes`, `
 
 **Safety net:** if a CD isn't working by 16:15, we ship without it. Two CDs still demo well.
 
+**Team workflow** (lanes, ownership check, diff review, measure): `docs/prompts/05-agentic-workflow.md`.
+Each teammate's first message to their agent is at the bottom of that file.
+
 ## Git, step by step
 
 ```sh
