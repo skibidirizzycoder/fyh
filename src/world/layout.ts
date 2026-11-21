@@ -63,10 +63,12 @@ const STREET: readonly Prop[] = [
     texture: { '2004': 'textures/brick_2004.png' }, textureRepeat: [4, 2] }, // bare brick in 2004; painted over today
   { id: 'shop_sign', shape: 'box', eras: BOTH, pos: [0, 3.4, mountOn(WALL_FRONT_Z, 0.1)], size: [6.4, 0.66, 0.1], color: S.sign, label: S.signText },
   { id: 'shop_door', shape: 'box', eras: BOTH, pos: [2.5, standOn(0, 2.2), mountOn(WALL_FRONT_Z, DOOR_DEPTH)], size: [1.2, 2.2, DOOR_DEPTH], color: S.door },
-  { id: 'left_building', shape: 'box', eras: BOTH, pos: [-6.5, standOn(0, 5), -4], size: [3, 5, 4], color: S.leftBuilding },
-  { id: 'right_building', shape: 'box', eras: BOTH, pos: [6.5, standOn(0, 6), -4], size: [3, 6, 4], color: S.rightBuilding },
+  { id: 'left_building', shape: 'box', eras: BOTH, pos: [-6.5, standOn(0, 5), -4], size: [3, 5, 4], color: S.leftBuilding,
+    texture: { '2004': 'textures/facade_2004_a.png', present: 'textures/facade_today_a.png' } }, // painted front (street.ts adds its shop and windows on top)
+  { id: 'right_building', shape: 'box', eras: BOTH, pos: [6.5, standOn(0, 6), -4], size: [3, 6, 4], color: S.rightBuilding,
+    texture: { '2004': 'textures/facade_2004_b.png', present: 'textures/facade_today_b.png' } },
   { id: 'lamp_post', shape: 'cylinder', eras: BOTH, pos: [-3.5, standOn(0, 4), -3], size: [0.2, 4, 0.2], color: S.lamp },
-  { id: 'bench', shape: 'box', eras: BOTH, pos: [-2, standOn(0, 0.5), 0], size: [2, 0.5, 0.6], color: S.bench },
+  { id: 'bench', shape: 'box', eras: BOTH, pos: [-2, standOn(0, 0.5), 0], size: [2, 0.5, 0.6], color: S.bench, texture: 'textures/wood.png', textureRepeat: [2, 1] },
 
   // --- 2004, every moment ---
   { id: 'window_display', shape: 'box', eras: PAST, pos: [-1.5, standOn(0, 1.8) + 0.5, mountOn(WALL_FRONT_Z, 0.1)], size: [3, 1.8, 0.1], color: '#c8963c', texture: 'textures/window_2004.png' },
