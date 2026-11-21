@@ -46,6 +46,42 @@ describe('scene looks', () => {
   });
 });
 
+describe('tape and camera effects', () => {
+  const vhs = lookFor('2004', 'street_gig'); // 1988
+  const phone = lookFor('2004', 'ringtone'); // 2017
+  const tape = (l: typeof vhs): number[] => [l.scanlines, l.chromaBleed, l.tracking];
+
+  it('are off unless a moment turns them on', () => {
+    for (const look of [lookFor('present', null), lookFor('2004', null), lookFor('2004', 'open_mic')]) {
+      expect(tape(look)).toEqual([0, 0, 0]);
+      expect(look.blackLevel).toBe(0);
+    }
+  });
+
+  it('1988 is a worn VHS tape: faint scanlines, a little bleed, a rolling tracking band, lifted blacks', () => {
+    expect(vhs.scanlines).toBeGreaterThan(0);
+    expect(vhs.scanlines).toBeLessThan(0.25); // faint: the scene stays readable
+    expect(vhs.chromaBleed).toBeGreaterThan(0);
+    expect(vhs.chromaBleed).toBeLessThanOrEqual(2); // a little, in scene pixels
+    expect(vhs.tracking).toBeGreaterThan(0);
+    expect(Number.isInteger(vhs.tracking)).toBe(true); // whole scene pixels: chunky blocks stay whole
+    expect(vhs.trackingSec).toBeGreaterThan(2); // slow
+    expect(vhs.trackingBand).toBeGreaterThan(0);
+    expect(vhs.trackingBand).toBeLessThan(0.25);
+    expect(vhs.blackLevel).toBeGreaterThan(0);
+    expect(vhs.blackLevel).toBeLessThan(0.15);
+  });
+
+  it('2017 is a phone camera: no tape, crushed blacks, a light vignette and a warm grade', () => {
+    expect(tape(phone)).toEqual([0, 0, 0]);
+    expect(phone.blackLevel).toBeLessThan(0);
+    expect(phone.blackLevel).toBeGreaterThan(-0.15);
+    expect(phone.vignette).toBeLessThan(lookFor('2004', null).vignette); // a touch, not the era's heavy one
+    expect(phone.tint[0]).toBeGreaterThan(phone.tint[1]);
+    expect(phone.tint[1]).toBeGreaterThan(phone.tint[2]);
+  });
+});
+
 describe('render size', () => {
   it('pixelHeight 0 draws at the full (whole-pixel) screen size', () => {
     expect(renderSize(1280, 720, 0)).toEqual({ width: 1280, height: 720, scale: 1 });

@@ -8,12 +8,15 @@
 //   present -> full resolution with MSAA, cool tint, clean, light vignette
 // The sky (where nothing was drawn) gets a soft gradient: the fog colour at the horizon, deeper above.
 // The brightest pixels glow (bloom), and full-resolution scenes get FXAA after the ink (see passes.ts).
+// Moments can add a worn VHS tape (scanlines, red/blue bleed, a rolling tracking band, lifted blacks)
+// or a phone camera's crushed blacks; the tape moves with game time, so step() stays exact.
 // Ink, grain, vignette and dithering are worked out once per scene pixel, so they line up with
 // the chunky pixels.
 
 import * as THREE from 'three';
 import { CREASE_FULL, creaseOffset, msaaSamples, outlineWidth, renderSize, toScenePx, type Look } from './look.ts';
 import { createFxaa, createGlow, createQuad } from './passes.ts';
+import { T } from '../tuning.ts';
 
 type Uniforms = THREE.ShaderMaterial['uniforms'];
 
@@ -50,6 +53,11 @@ const fragmentShader = /* glsl */ `
   uniform float inkBreakup;
   uniform float inkNoise;    // 1 / size of the breakup noise's patches, in scene pixels
   uniform vec2 fog;          // fog near and far: lines fade out with the objects
+  uniform float seconds;     // game time
+  uniform float scanlines;   // VHS: how much darker every other scene row is (0 = off)
+  uniform float chromaBleed; // VHS: scene pixels red and blue smear sideways (0 = off)
+  uniform vec3 tracking;     // VHS tracking band: most sideways shift (scene pixels, 0 = off), seconds to roll down, band height (share of the screen)
+  uniform float blackLevel;  // > 0 lifts the blacks (worn tape), < 0 crushes them (phone camera)
   uniform vec3 skyColor;     // the sky at the horizon (the fog colour)
   uniform float skyDeepen;   // how much darker the top of the sky is
   uniform vec3 viewUp;       // the world's up direction, in view space
@@ -59,6 +67,10 @@ const fragmentShader = /* glsl */ `
   const float GAP_FROM = 0.55; // breakup: noise above this starts fading the lines (about a third of the area)
   const float GAP_TO = 0.8;    // ... and from here on they fade by the full inkBreakup
   const float SKY_SPAN = 0.6;  // the sky reaches its deepest colour this high (sine of the angle above the horizon)
+  const float BLEED = 0.6;     // VHS: how much of the red and blue comes from the side
+  const float WOBBLE_ROWS = 90.0;  // VHS: the tracking band's wave, in waves per screen height
+  const float WOBBLE_SPEED = 7.0;  // ... and how fast it ripples (radians per second)
+  const float HISS = 0.12;     // VHS: noise in the tracking band (display colour)
 
   // Cheap pseudo-random number from a 2D position.
   float hash(vec2 p) {
@@ -182,11 +194,37 @@ const fragmentShader = /* glsl */ `
     return skyColor * (1.0 - skyDeepen * up);
   }
 
+  // VHS tracking at height y (0..1 up the screen): (sideways shift in whole scene pixels, how deep in the band).
+  vec2 trackingAt(float y) {
+    if (tracking.x <= 0.0) return vec2(0.0);
+    float band = 1.0 - fract(seconds / tracking.y);             // the band rolls from the top to the bottom
+    float near = 1.0 - smoothstep(0.0, tracking.z, abs(y - band));
+    float wave = sin(y * WOBBLE_ROWS + seconds * WOBBLE_SPEED);
+    return vec2(floor(tracking.x * near * wave + 0.5), near);
+  }
+
+  // The scene's colour at uv before the ink: what was drawn there, or the sky.
+  vec3 baseAt(vec2 uv) {
+    return texture2D(tDepth, uv).x >= 1.0 ? skyAt(uv) : texture2D(tScene, uv).rgb;
+  }
+
+  // Moves a display colour's black level: b > 0 lifts it (greyish blacks), b < 0 crushes it.
+  vec3 blacks(vec3 c, float b) {
+    return b >= 0.0 ? b + c * (1.0 - b) : max(c + b, 0.0) / (1.0 + b);
+  }
+
   void main() {
     vec2 px = floor(vUv * pixels);                              // which scene pixel this is
-    vec2 uv = chunky > 0.5 ? (px + 0.5) / pixels : vUv;         // chunky: its centre, so the whole block matches
-    vec3 c = texture2D(tScene, uv).rgb;
-    if (texture2D(tDepth, uv).x >= 1.0) c = skyAt(uv);         // nothing drawn here: the sky
+    vec2 track = trackingAt((px.y + 0.5) / pixels.y);          // VHS: this row may slip sideways
+    px.x += track.x;
+    vec2 uv = chunky > 0.5 ? (px + 0.5) / pixels               // chunky: its centre, so the whole block matches
+                           : vUv + vec2(track.x / pixels.x, 0.0);
+    vec3 c = baseAt(uv);
+    if (chromaBleed > 0.0) {                                    // VHS: red smears right, blue smears left
+      vec2 side = vec2(chromaBleed / pixels.x, 0.0);
+      c.r = mix(c.r, baseAt(uv - side).r, BLEED);
+      c.b = mix(c.b, baseAt(uv + side).b, BLEED);
+    }
     if (outline > 0.0) c = mix(c, inkColor, inkAt(uv, c, px));  // ink outlines, graded with the scene
     if (glow > 0.0) c += glow * texture2D(tGlow, uv).rgb;       // bloom, once per scene pixel
     float grey = dot(c, vec3(0.2126, 0.7152, 0.0722));
@@ -196,7 +234,10 @@ const fragmentShader = /* glsl */ `
     gl_FragColor = vec4(c, 1.0);
     gl_FragColor = sRGBTransferOETF(gl_FragColor);              // display colours, for the screen or FXAA's target
     // From here on the colour is in display (sRGB) values, so grain and colour levels are even from dark to light.
+    gl_FragColor.rgb = blacks(gl_FragColor.rgb, blackLevel);                              // lifted or crushed blacks
     gl_FragColor.rgb += (hash(uv * 1000.0 + frame) - 0.5) * grain;                       // film grain
+    gl_FragColor.rgb += (hash(uv * 977.0 + frame) - 0.5) * HISS * track.y;               // VHS: hiss in the band
+    gl_FragColor.rgb *= 1.0 - scanlines * mod(px.y, 2.0);                                // VHS scanlines, whole scene rows
     if (levels > 1.0) gl_FragColor.rgb = quantise(gl_FragColor.rgb, levels, bayer4(px)); // ordered dither
   }
 `;
@@ -223,6 +264,11 @@ function makeMaterial(target: THREE.WebGLRenderTarget): THREE.ShaderMaterial {
       tDepth: { value: target.depthTexture },
       tGlow: { value: null },
       glow: { value: 0 },
+      seconds: { value: 0 },
+      scanlines: { value: 0 },
+      chromaBleed: { value: 0 },
+      tracking: { value: new THREE.Vector3(0, 1, 0.1) },
+      blackLevel: { value: 0 },
       pixels: { value: new THREE.Vector2(1, 1) },
       chunky: { value: 0 },
       tint: { value: new THREE.Vector3(1, 1, 1) },
@@ -306,6 +352,14 @@ function setInk(u: Uniforms, look: Look, screenHeight: number, scale: number): v
   (u.fog?.value as THREE.Vector2).set(look.fogNear, look.fogFar);
 }
 
+/** Sets the tape and camera uniforms: VHS scanlines, bleed and tracking band, and the black level. */
+function setTape(u: Uniforms, look: Look): void {
+  if (u.scanlines) u.scanlines.value = look.scanlines;
+  if (u.chromaBleed) u.chromaBleed.value = look.chromaBleed;
+  (u.tracking?.value as THREE.Vector3).set(look.tracking, Math.max(look.trackingSec, Number.EPSILON), look.trackingBand);
+  if (u.blackLevel) u.blackLevel.value = look.blackLevel;
+}
+
 /** Sets the sky gradient uniforms: the look's sky colour at the horizon, deepened towards the top. */
 function setSky(u: Uniforms, look: Look): void {
   (u.skyColor?.value as THREE.Color).set(look.sky);
@@ -367,6 +421,7 @@ export function createPostFilter(width: number, height: number, maxSamples: numb
       setGrade(u, look);
       setSky(u, look);
       if (u.glow) u.glow.value = look.bloom;
+      setTape(u, look);
       setInk(u, look, screen.height, screen.scale);
       if (!screen.ink && u.outline) u.outline.value = 0;
     },
@@ -383,6 +438,7 @@ export function createPostFilter(width: number, height: number, maxSamples: numb
     },
     render: (renderer, scene, camera, frame) => {
       if (u.frame) u.frame.value = frame % 1000;
+      if (u.seconds) u.seconds.value = frame / T.loop.stepsPerSecond; // game time: exact with step()
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
       setDepthParams(u, camera); // after the scene draw, which brings the camera's matrices up to date
