@@ -513,6 +513,25 @@ export const T = {
   },
 
   // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
+  tv: {
+    // The shop TV (src/ui/tv.ts): each CD's real song from its official YouTube video. Owner: Teammate A.
+    // YouTube's embed rules: the player stays visible, at least 200 x 200 px, and nothing covers it.
+    enabled: true,
+    apiUrl: 'https://www.youtube.com/iframe_api',
+    apiTimeoutSec: 8, // no YouTube by then: the CDs play their Creative Commons stand-ins
+    screenPx: 200, // the smallest YouTube allows
+    leftPx: 16,
+    bottomPx: 150, // clear of the dialogue box (three lines reach ~134 px up)
+    frame: '#1f1d1b',
+    volume: { '2004': 85, '2004-broken': 100, '2004-live': 100, '2004-leak': 40, today: 100 } as Record<string, number>, // 0-100, by music mode
+    // startSec: each song starts at its first chorus (from the videos' own lyric captions, and LRCLIB lyric
+    // timings for Lose Yourself, which has no captions); at the end it goes back there. lengthSec 0 = to the end.
+    videos: {
+      mira: { id: 'xFYQQPAOz7Y', startSec: 98, lengthSec: 0, credit: 'Lose Yourself · Eminem' }, // "You better lose yourself..." at 1:39
+      static: { id: '1w7OgIMMRc4', startSec: 59, lengthSec: 0, credit: "Sweet Child O' Mine · Guns N' Roses" }, // "Whoa, oh, oh, sweet child..." at ~1:00
+      kbit: { id: 'kJQP7kiw5Fk', startSec: 81, lengthSec: 0, credit: 'Despacito · Luis Fonsi ft. Daddy Yankee' }, // "Des-pa-ci-to" at 1:23
+    },
+  },
   moments: {
     // Each moment is in its own year, so each looks like the screens of its time (overrides on the 2004 era):
     // 1988 is a worn VHS tape (fewer, chunkier pixels, few colours, heavy grain), 2002 the era's retro
@@ -595,9 +614,10 @@ export const T = {
     beam: { swooshSec: 0.35, swooshGain: 0.35, swooshFromHz: 600, swooshToHz: 5000, swooshQ: 3, pingAt: 0.4, pingNotes: [88, 95], pingGapSec: 0.11, pingSec: 0.32, pingGain: 0.16, wave: 'sine' },
     ambience: {
       fadeSec: 1.2, // crossfade when you travel
+      underMusic: 0.3, // era bed + moment soundscape volume while a song plays (TV or built-in), so the song is heard
       loopSec: 2, // length of the looping noise buffers
       seed: 2004, // crackle is random but the same every run
-      '2004': { humHz: 55, humGain: 0.035, noiseGain: 0.03, noiseLowpassHz: 1200, cracklePerSec: 9, crackleGain: 0.12 },
+      '2004': { humHz: 55, humGain: 0.025, noiseGain: 0.02, noiseLowpassHz: 1200, cracklePerSec: 9, crackleGain: 0.06 },
       present: { humHz: 0, humGain: 0, noiseGain: 0.012, noiseLowpassHz: 6000, cracklePerSec: 0, crackleGain: 0 },
     },
 
@@ -605,11 +625,11 @@ export const T = {
     // are never the lastCue, so they can't hide the story sounds from the checks.
     feel: {
       seed: 31,
-      step: { variants: 4, sec: 0.07, gain: 0.12, fromHz: 1800, toHz: 500, q: 1.2, thumpNote: 40, thumpGain: 0.09, pitchJitter: 0.12, strideM: 0.9 }, // game: one `footstep` event per strideM walked
+      step: { variants: 4, sec: 0.07, gain: 0.08, fromHz: 1800, toHz: 500, q: 1.2, thumpNote: 40, thumpGain: 0.09, pitchJitter: 0.12, strideM: 0.9 }, // game: one `footstep` event per strideM walked
       paper: { rustles: 4, gapSec: 0.045, sec: 0.07, gain: 0.3, minHz: 2500, maxHz: 6500, q: 1.5 },
       zoom: { sec: 0.45, gain: 0.25, lowHz: 300, highHz: 1600, q: 2 }, // a soft whoosh: rising in, falling out
       voice: {
-        blipSec: 0.06, gapSec: 0.085, gain: 0.16, maxBlips: 24, // one blip per syllable-ish, at most ~2 s
+        blipSec: 0.06, gapSec: 0.085, gain: 0.1, maxBlips: 24, // one blip per syllable-ish, at most ~2 s
         spread: 5, // semitones up from the speaker's note, picked by each letter
         speakers: { // base MIDI note and wave per speaker
           mira: { note: 74, wave: 'triangle' },

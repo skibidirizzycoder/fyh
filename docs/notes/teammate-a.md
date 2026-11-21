@@ -191,3 +191,20 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
 - Moment ids (`open_mic`, `street_gig`, `ringtone`) and every prop/action id are unchanged. Dates in
   checks now come from the story files (`scripts/checks/phone.ts`); `shortDate` moved to
   `src/ui/dates.ts` so Node checks can import it without CSS.
+
+## The shop TV (lead's request, 2026-11-21)
+
+- The real songs now play from their **official YouTube videos** on a small "shop TV" (`src/ui/tv.ts`,
+  `T.tv`): Lose Yourself (EminemMusic), Sweet Child O' Mine (GunsNRosesVEVO), Despacito (LuisFonsiVEVO).
+  The TV follows the music rules (`audio.nowPlaying()`): volume by mode, the broken amp cuts in and out.
+- YouTube's embed rules: the player is never hidden or covered (200 x 200, z-index above everything,
+  no tilt), so the TV shows only while a song plays and pauses otherwise. Not shown on narrow screens.
+- No network until a song is wanted; off in test builds (smoke blocks outside network). If YouTube
+  fails or times out (`T.tv.apiTimeoutSec`), or a video won't embed, that CD plays its CC stand-in
+  (`audio.external()` in Teammate B's audio silences the built-in song only while the TV covers it).
+- Each video starts at its first chorus (Lose Yourself 1:38, Sweet Child O' Mine 0:59, Despacito 1:21),
+  found from the videos' own lyric captions and LRCLIB timings; checked in a real browser. At the end it
+  goes back to the chorus. The TV is the bare 200 x 200 player (YouTube's minimum), no caption.
+- Background under the songs: the era bed and soundscape duck to `T.audio.ambience.underMusic` (0.3)
+  whenever a song is wanted; crackle/hiss/hum, footsteps and dialogue blips are quieter; TV volume
+  85 in the past, 40 for K-Bit's leak (lead: "a lot of noise working against the music").

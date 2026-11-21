@@ -40,6 +40,8 @@ export interface GameAudio {
   history(): readonly CueName[];
   isMuted(): boolean;
   toggleMute(): boolean;
+  /** CDs played outside Web Audio (the shop TV, src/ui/tv.ts): their built-in song stays silent. */
+  external(cds: readonly string[]): void;
   /** Makes or resumes the AudioContext (the game calls this on game-start). */
   unlock(): void;
   play(name: CueName): void;
@@ -167,6 +169,7 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
   let scene: SceneId = 'present';
   let sound: Sound | null = null;
   let insertAt: number | null = null; // audio-clock time the last CD went into the player
+  let external: ReadonlySet<string> = new Set();
   /** Runs some Web Audio code; if it throws, sound switches off for good instead of breaking the game. */
   function safely(fn: () => void): void {
     if (broken) return;
@@ -177,7 +180,7 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
     }
   }
 
-  const music = createMusicDirector(() => sound?.music ?? null, safely);
+  const music = createMusicDirector(() => sound?.music ?? null, safely, (on) => { const s = sound; if (s) safely(() => s.ambience.setUnderMusic(on)); });
 
   function resume(): void {
     if (sound?.ctx.state === 'suspended') sound.ctx.resume().catch(() => undefined);
@@ -194,6 +197,7 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
         const noise = makeNoiseBuffer(ctx, T.audio.ambience.loopSec, T.audio.ambience.seed);
         const music = createMusicPlayer(ctx, master);
         sound = { ctx, master, noise, ambience: createAmbience(ctx, master, era), music };
+        music.setExternal(external);
         sound.ambience.setScene(scene);
         loadSongs(ctx, music);
       }
@@ -246,6 +250,7 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
     history: () => played,
     isMuted: () => muted,
     toggleMute,
+    external: (cds) => { external = new Set(cds); const s = sound; if (s) safely(() => s.music.setExternal(external)); },
     unlock,
     play,
     era: () => era,

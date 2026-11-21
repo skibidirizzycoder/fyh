@@ -17,6 +17,7 @@ import { propOverrides } from './story/timeline.ts';
 import { validateContent } from './story/validate.ts';
 import { T } from './tuning.ts';
 import { createHud, showFallback } from './ui/hud.ts';
+import { createTv } from './ui/tv.ts';
 import { buildWorld } from './world/build.ts';
 import { GROUND, PROPS } from './world/layout.ts';
 import { lookFor } from './world/look.ts';
@@ -66,6 +67,7 @@ function boot(): void {
   const hud = createHud(app, withCdPrompts(content), news); // the HUD finds E prompts in `actions`, the CD player's too
   const phone = createPhoneView(app);
   if (import.meta.env.MODE !== 'test') createFlipTransition(app, events, content); // tests screenshot right after a jump
+  const tv = createTv(app, audio); // each CD's real song, from its official YouTube video
   let drawCalls = 0;
 
   function resize(): void {
@@ -94,6 +96,7 @@ function boot(): void {
     drawCalls = renderer.info.render.calls;
     hud.render(game);
     phone.render(s.phone);
+    tv.update();
   }
 
   const loop = createLoop({
