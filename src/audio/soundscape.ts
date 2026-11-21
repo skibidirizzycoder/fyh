@@ -70,7 +70,8 @@ export function clinks(n: number, sampleRate: number, rand: Rand, c: { perSec: n
     const loud = 0.4 + rand() * 0.6;
     for (let i = 0; i < len; i++) {
       const t = i / sampleRate;
-      const ring = Math.sin(2 * Math.PI * hz * t) + 0.5 * Math.sin(2 * Math.PI * hz * 2.76 * t);
+      const partial = hz * 2.76 < sampleRate / 2 ? 0.5 * Math.sin(2 * Math.PI * hz * 2.76 * t) : 0; // never above Nyquist
+      const ring = Math.sin(2 * Math.PI * hz * t) + partial;
       out[start + i] = (out[start + i] ?? 0) + (ring / 1.5) * loud * Math.exp(-t / c.decaySec);
     }
   }
