@@ -42,5 +42,20 @@ export const checkAudio: Check = async (page: Page) => {
   expect(s.audio.muted, 'M did not mute');
   s = await tap(page, 'KeyM');
   expect(!s.audio.muted, 'M did not unmute');
-  return { cues: 7, muteToggles: 2 };
+  return { cues: 7, muteToggles: 2, soundscapes: await checkSoundscapes(page) };
 };
+
+/**
+ * Each moment has its own background. Checked once the debug API shows `audio.ambience`
+ * (requested from Claude: it should read soundscape() from src/audio/); until then it says so.
+ */
+async function checkSoundscapes(page: Page): Promise<string> {
+  const places = ['open_mic', 'street_gig', 'ringtone', 'present'];
+  for (const place of places) {
+    const s = await travel(page, place);
+    const ambience = (s.audio as { ambience?: string }).ambience;
+    if (ambience === undefined) return 'not exposed by the debug API yet';
+    expect(ambience === place, `${place} should sound like "${place}", got "${ambience}"`);
+  }
+  return places.join(',');
+}
