@@ -1,7 +1,7 @@
 // audio-feel.test.ts — footsteps, paper, camera whoosh, blip voices, and the key click on the phone.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createAudio } from '../src/audio/audio.ts';
-import { buildCue, cueLength } from '../src/audio/cues.ts';
+import { buildCue, cueLength, noiseOffset } from '../src/audio/cues.ts';
 import { footstepCue, paperCue, SPEAKERS, speakerFor, syllables, voiceCue, zoomCue } from '../src/audio/feel.ts';
 import type { FeelEvents } from '../src/audio/feel-player.ts';
 import { createEvents } from '../src/core/events.ts';
@@ -143,5 +143,17 @@ describe('robustness', () => {
     events.emit('travel', { to: 'x', era: '2004', moment: 'constructor' });
     expect(() => send('dialogue', { line: 'hello there', speaker: 'toString' })).not.toThrow();
     expect(audio.feel()).toEqual(['voice:owner']);
+  });
+});
+
+describe('noise bursts', () => {
+  it('each footstep variant and paper rustle starts at its own point in the noise', () => {
+    const bursts = [...Array.from({ length: F.step.variants }, (_, i) => footstepCue(i).noises[0]), ...paperCue().noises];
+    const offsets = bursts.map((b) => (b ? noiseOffset(b, T.audio.ambience.loopSec) : -1));
+    expect(new Set(offsets.map((o) => o.toFixed(3))).size).toBe(offsets.length);
+    for (const [i, o] of offsets.entries()) {
+      expect(o).toBeGreaterThanOrEqual(0);
+      expect(o + (bursts[i]?.sec ?? 0)).toBeLessThanOrEqual(T.audio.ambience.loopSec);
+    }
   });
 });

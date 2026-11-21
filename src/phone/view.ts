@@ -47,6 +47,9 @@ function make(tag: string, className: string, text?: string): HTMLElement {
   return el;
 }
 
+const CLOCK = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' }); // made once: render() runs every frame
+const DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
 /** "14 March 2004" -> "14 Mar 2004" (fits the small outer screen). */
 export function shortDate(date: string): string {
   return date.replace(/\b([A-Z][a-z]{2})[a-z]+\b/, '$1');
@@ -54,11 +57,7 @@ export function shortDate(date: string): string {
 
 /** Time and date on the outer screen: a live clock today, the moment's own time in 2004. */
 export function outerScreenText(here: string, items: readonly PhoneItem[], now: Date): { time: string; date: string } {
-  if (here === TODAY) {
-    const time = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const date = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    return { time, date };
-  }
+  if (here === TODAY) return { time: CLOCK.format(now), date: DAY.format(now) };
   return { time: T.phone.momentTimes[here] ?? '', date: shortDate(items.find((i) => i.target === here)?.date ?? '') };
 }
 

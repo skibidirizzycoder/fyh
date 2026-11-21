@@ -2,20 +2,21 @@
 
 Branch: `feat/phone-static`. Owned paths: see `docs/prompts/05-agentic-workflow.md` (Part 5).
 
-## Status (2026-11-21, 15:25)
+## Status (2026-11-21, 15:35)
 
-**Done and on `main`:** A1 (phone), A2 (The Static), A3 (Mira's open mic), A4 (the screens,
-`checkpoint-10`), A5 (the phone feels alive, `checkpoint-12`).
-**Done, shipping now:** A6 (The Static after the fix) + the folded phone raised clear of Netlify's
-corner badge. Smoke `"ok":true`, `"static":{"payoffProps":33}`.
-**Queue:** M-A1/M-A2/M-A3 (the Messenger-style title, hand-made UI, checklist + payoff bubbles).
+**Done and on `main`:** A1-A6 (A6 + the badge fix are `checkpoint-14`).
+**Done, shipping now:** review fixes: F2 bug 4 (phone-size screens), the ending/title scroll instead
+of being cut off in short windows, no `!important` in the boot screen, the outer screen's clock uses
+two formatters made once instead of formatting per frame.
+**Queue:** M-A3 (checklist + payoff bubbles), M-A2 (hand-made UI), M-A1 (title over the live street).
 
 **Live site check (15:15, real keys, production has no debug API):** https://flip-phone-2004-8a09.netlify.app
 loads and plays (title, Enter, phone, travel to 14 March 2004 and back, no script errors), but it
 serves an older build (no A4 screens, no A5 phone) and `/api/headline` returns 500 "server is
 missing SNOWFLAKE_ACCOUNT or SNOWFLAKE_TOKEN", so the paper there is always the offline edition.
 
-**Screenshots checked:** `artifacts/static-fixed.png` (packed crowd, arms up, set list by the mic),
+**Screenshots checked:** `artifacts/narrow-today.png` and `artifacts/narrow-phone.png` (390x844:
+nothing overlaps), `artifacts/static-fixed.png` (packed crowd, arms up, set list by the mic),
 `artifacts/phone-connecting.png` ("Connecting..." + "14 March 2004", bars
 filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 Mar 2004, "Q: open"),
 `artifacts/title.png` (green LCD boot screen, centred, boot bar filling),
