@@ -32,7 +32,7 @@ export interface Snapshot {
   dialogue: string;
   card: { visible: boolean; changes: string[]; causes: string[] };
   phone: { open: boolean; index: number; selected: string; items: string[] };
-  audio: { lastCue: string; muted: boolean; music: string }; // music: what the CD music plays now, e.g. "mira:2004" ("" = none)
+  audio: { lastCue: string; muted: boolean; music: string; ambience: string }; // music: what the CD music plays now, e.g. "mira:2004" ("" = none); ambience: the soundscape now
   events: string[]; // the last few game events, newest last
   player: { x: number; y: number; z: number; yawDeg: number; facing: { x: number; z: number }; measuredFacing: { x: number; z: number } };
   camera: { x: number; y: number; z: number; forward: { x: number; y: number; z: number } };
@@ -205,7 +205,7 @@ function snapshot(rt: Runtime): Snapshot {
     dialogue: s.dialogueLeft > 0 ? s.dialogue : '',
     card: { visible: playing && s.era === 'present' && changes.length > 0 && !s.phone.open, changes, causes: rt.game.causes().map((a) => a.id) },
     phone: { open: s.phone.open, index: s.phone.index, selected: s.phone.items[s.phone.index]?.target ?? '', items: s.phone.items.map((i) => i.target) },
-    audio: { lastCue: rt.audio.lastCue() ?? '', muted: rt.audio.isMuted(), music: nowPlaying(rt.audio) },
+    audio: { lastCue: rt.audio.lastCue() ?? '', muted: rt.audio.isMuted(), music: nowPlaying(rt.audio), ambience: rt.audio.soundscape() },
     events: rt.game.events.recent(),
     player: { x: s.player.x, y: 0, z: s.player.z, yawDeg: s.player.yawDeg, facing: forwardFromYaw(s.player.yawDeg), measuredFacing: rt.avatar.measuredFacing() },
     camera: { x: cam.position.x, y: cam.position.y, z: cam.position.z, forward: { x: forward.x, y: forward.y, z: forward.z } },

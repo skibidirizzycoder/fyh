@@ -31,10 +31,32 @@ to access this endpoint", legacy `SNOWFLAKE.CORTEX.COMPLETE` is blocked for new 
 - Placeholders above, until the teammates' branches are merged.
 - GitHub Pages has no endpoint, so the paper is always the offline edition there.
 
-**Now (hackathon day):** all three CDs are real and merged (The Static from Teammate A). Teammates
-ship themselves (`npm run ship`, which also tags a checkpoint) and take tasks from `docs/BACKLOG.md`:
-A = Mira's moment, then the screens; B = the CD music (`docs/prompts/06-*`), then today's shop.
-Director: moment looks, collisions, the rest of `docs/prompts/05-*`, Netlify deploy. No pitch work yet.
+**Hackathon rules** (opening ceremony, slide 27). Everyone, and every agent, follow these:
+1. **Build with JetBrains Air (required).** Run your agents through Air (IntelliJ IDEA 2026.3 or the
+   Air app: Claude, Codex and Junie are built in). Take a screenshot of Air in use for the submission.
+2. Teams of up to 3 people. 3. **All project work happens today** (hacking started 11:00): no code
+   from before the event, only credited libraries and assets. 4. Any language, framework or API.
+5. MLH Code of Conduct. **Submit at mlh.link/first-year-hack**: team, project name, repo (public)
+   and demo (https://flip-phone-2004-8a09.netlify.app). Draft by 17:30, hard deadline 18:00; late
+   entries aren't judged. Judging at 18:10. Track 2 looks for "Reinventive" and "Surprising + Faithful".
+
+**Now (hackathon day, 15:00):** all three CDs, the CD music (real songs, 2004 raw -> today remix),
+each moment's look and sound, today's shop by reputation, and collisions are on `main`. Live:
+https://flip-phone-2004-8a09.netlify.app (updated by `npm run checkpoint`). Teammates ship themselves
+and take tasks from `docs/BACKLOG.md`, now including the Messenger "M" tasks
+(`docs/reference-messenger.md`). AI images: only Claude makes them (`npm run art`); ask under
+"Art requests" in your notes. Research in progress: `docs/research/abeto-techniques.md` (how
+Messenger gets its look), which adds world-lane tasks W1-W5 below. Director next: the street and
+player look (C5), props that show textures (C6), toon look (M-C1). No pitch work yet.
+
+**World lane (director): techniques from the Messenger research** (`docs/research/abeto-techniques.md`).
+Ranked by look per hour. **Not started: the lead picks which to build.**
+- [ ] W1. Ink outlines: two-target post pass (depth/normal/prop-ID edges, noise breakup) inside `post.ts`, 0 extra draw calls, 8-bit info target for SwiftShader (~4h)
+- [ ] W2. Cel shading: two-tone Lambert via `onBeforeCompile` with hue-shifted HSV shadow tone + one 1024² PCF sun shadow following the player (~2h)
+- [ ] W3. Palette atlas: 16×16 nearest palette texture per era, prop UVs to swatches, one shared material, merge static street into 1–3 draws (~3h)
+- [ ] W4. Sky and fog: inside-out sphere with hard-stepped noise clouds per era (1 draw) + FogExp2 or near/far fog colours (~1.5h)
+- [ ] W5. LUT grade: 32³ per-era `Data3DTexture` sampled in `post.ts`, replacing the tint/saturation maths, keep grain and vignette (~1.5h)
+- Ready on a branch, not merged: `director/retro` (2004 drawn at ~240–270 lines, 4×4 Bayer dither, 24 colour levels; today unchanged).
 
 **Claims (free tasks):**
 - F1 street life, DJ K-Bit's bus stop (`src/world/props/kbit.ts`): Teammate B, done 15:00 (bin, newspaper box, pigeons, a dog).

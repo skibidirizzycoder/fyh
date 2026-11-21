@@ -38,6 +38,15 @@ copy its art, characters, logo or look: our game stays a UK record shop in 2004 
 | **The world is dense with small things** (wires, plants, clutter) | Street life (F1): bins, a bike, posters, cables, pigeons; decoration never glows | Everyone, in their own props |
 | **Small download** | Our textures are 512 px; keep songs 30–45 s | Everyone |
 
+## Measured details (from the research: `docs/research/abeto-techniques.md`)
+
+- **Speech bubbles** pop in with an elastic scale (about 0.65 s), then the text types on with a voice blip.
+- **Area titles** pop in letter by letter in steps over 1.5 s, hold 4 s, then shrink out in 0.35 s.
+- **Camera:** about 45° vertical field of view, about 2.5 body-heights behind and 1.5 up, a little over
+  the shoulder. **Walking:** about 1.4 body-heights per second (sprint ×1.3).
+- **Ink:** outlines about 2 px at 1080p, a dark grey-blue ink, never pure black.
+- It draws all its UI in WebGL; we keep HTML (easier and tested), but copy the *timing*.
+
 ## Art: only Claude can make AI images
 
 Claude is the only one with the GPT Image setup (`npm run art`, Codex CLI). **Need an image?** Add it

@@ -31,7 +31,7 @@ export const LANES: readonly Lane[] = [
     person: 'Teammate B',
     branch: 'feat/sound-kbit',
     owns: [
-      'src/audio/**', 'public/music/**',
+      'src/audio/**', 'public/music/**', 'docs/music-shortlist.md', // the music choice (handed over from Claude)
       'src/story/cds/kbit.json', 'src/world/props/kbit.ts',
       'src/world/props/today.ts', 'src/story/content.json', // today's shop; in content.json ONLY the "reputation" entries
       'scripts/checks/audio.ts', 'scripts/checks/kbit.ts', 'scripts/checks/music.ts', 'scripts/checks/today.ts',

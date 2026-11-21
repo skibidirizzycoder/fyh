@@ -360,6 +360,7 @@ async function main(): Promise<void> {
     const prodPage = await context.newPage();
     watchErrors(prodPage, errors, 'shipped');
     await checkShippedBuild(prodPage);
+    await prodPage.close(); // a still-open game keeps rendering on the software GPU and starves the test page
     const testPage = await context.newPage();
     watchErrors(testPage, errors, 'test');
     const played = await playTestBuild(testPage);

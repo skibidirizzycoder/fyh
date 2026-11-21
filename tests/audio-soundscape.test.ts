@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { createAudio } from '../src/audio/audio.ts';
 import { seededRandom } from '../src/audio/cues.ts';
-import { babble, busArrives, clinks, iceCreamVan, sceneFor, sceneLayers, traffic, wind, type SceneId } from '../src/audio/soundscape.ts';
+import { babble, busArrives, clinks, iceCreamVan, sceneFor, sceneLayers, seamless, traffic, wind, type SceneId } from '../src/audio/soundscape.ts';
 import { createEvents } from '../src/core/events.ts';
 import { T } from '../src/tuning.ts';
 
@@ -98,5 +98,33 @@ describe('soundscape samples', () => {
       return c / (to - from);
     };
     expect(zeroCrossings(hissFrom, hissFrom + RATE / 10)).toBeGreaterThan(zeroCrossings(RATE / 2, RATE / 2 + RATE / 10) * 5);
+  });
+});
+
+describe('seamless loops', () => {
+  const n = RATE * 4;
+
+  it('no layer clicks or jumps in loudness where its loop starts again', () => {
+    const scenes: SceneId[] = ['open_mic', 'street_gig', 'ringtone', 'present'];
+    const w = RATE / 20;
+    for (const scene of scenes) {
+      for (const layer of sceneLayers(scene)) {
+        const x = layer.samples(n, RATE);
+        const steps = Array.from({ length: n - 1 }, (_, i) => Math.abs((x[i + 1] ?? 0) - (x[i] ?? 0))).sort((a, b) => a - b);
+        const typical = steps[Math.floor(steps.length * 0.999)] ?? 0;
+        expect(Math.abs((x[n - 1] ?? 0) - (x[0] ?? 0)), `${scene}/${layer.name} click`).toBeLessThanOrEqual(typical);
+        const before = rms(x, n - w, n);
+        const after = rms(x, 0, w);
+        if (before > 0.01 && after > 0.01) expect(Math.max(before / after, after / before), `${scene}/${layer.name} jump`).toBeLessThan(2);
+      }
+    }
+  });
+
+  it('seamless() runs the end of the loop on into its start', () => {
+    const ramp = (len: number): Float32Array => Float32Array.from({ length: len }, (_, i) => i);
+    const x = seamless(ramp, 100, 10);
+    expect(x).toHaveLength(100);
+    expect(x[0]).toBeCloseTo(100 * Math.cos(Math.PI / 40) + 0 * Math.sin(Math.PI / 40), 5); // mostly the tail (sample 100)
+    expect(x[50]).toBe(50); // untouched outside the fade
   });
 });
