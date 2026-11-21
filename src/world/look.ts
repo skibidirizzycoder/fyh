@@ -1,5 +1,5 @@
-// look.ts — the light and colour grade of a scene: the era's look, plus the 2004 moment's own
-// time of day and weather (T.moments). Every moment keeps 2004's grain, vignette and retro pixels.
+// look.ts — the light and colour grade of a scene: the era's look, plus the past moment's own
+// time of day, weather and screen of its year (T.moments: 1988 VHS, 2002 retro pixels, 2017 sharp).
 
 import { T, type Era } from '../tuning.ts';
 

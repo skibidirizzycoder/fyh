@@ -321,16 +321,21 @@ export const T = {
 
   // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
   moments: {
-    open_mic: { // 14 March: evening, dusk light
+    // Each moment is in its own year, so each looks like the screens of its time (overrides on the 2004 era):
+    // 1988 is a worn VHS tape (fewer, chunkier pixels, few colours, heavy grain), 2002 the era's retro
+    // pixels, 2017 a phone photo (full resolution, light grain, a little extra colour).
+    open_mic: { // 13 December 2002, 21:30: battle night, winter evening light (the era's retro pixels)
       sky: '#7a5873', fogNear: 10, fogFar: 34, sunColor: '#ffb27a', sunIntensity: 1.5, ambient: 0.75,
       tint: [1.12, 0.94, 0.86],
     },
-    street_gig: { // 2 July: bright summer afternoon
-      sky: '#f2c36b', sunColor: '#fff2cc', sunIntensity: 3.1, ambient: 1.05, tint: [1.1, 1.0, 0.8], saturation: 0.9,
+    street_gig: { // 6 August 1988: bright summer afternoon on a worn VHS tape
+      sky: '#f2c36b', sunColor: '#fff2cc', sunIntensity: 3.1, ambient: 1.05, tint: [1.1, 1.0, 0.8], saturation: 0.82,
+      pixelHeight: 144, colorLevels: 12, grain: 0.09, vignette: 0.42,
     },
-    ringtone: { // 13 January 2017: cold grey dusk (still warmer and grainier than today)
+    ringtone: { // 13 January 2017: cold grey dusk, like a phone photo (sharp, light grain; still warmer than today)
       sky: '#8791a6', fogNear: 9, fogFar: 32, sunColor: '#ffd9b0', sunIntensity: 1.4, ambient: 0.8,
       tint: [1.04, 0.98, 0.92], saturation: 0.72,
+      pixelHeight: 0, colorLevels: 0, grain: 0.015,
     },
   },
 

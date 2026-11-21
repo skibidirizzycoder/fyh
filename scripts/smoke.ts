@@ -21,7 +21,7 @@ import type { Snapshot } from '../src/debug.ts';
 import { content } from '../src/story/content.ts';
 import { T } from '../src/tuning.ts';
 import { PROPS } from '../src/world/layout.ts';
-import { renderSize } from '../src/world/look.ts';
+import { lookFor, renderSize } from '../src/world/look.ts';
 import { checkAudio } from './checks/audio.ts';
 import { checkKbit } from './checks/kbit.ts';
 import { checkMira } from './checks/mira.ts';
@@ -354,9 +354,11 @@ async function pixelStats(page: Page): Promise<{ levels: number; shortestRun: nu
 
 /** 2004 is drawn with chunky pixels and few colour levels; today has single pixels and smooth colour. */
 async function checkRetro(page: Page): Promise<Record<string, unknown>> {
-  const look = T.eras['2004'];
+  const moment = content.cds[0]?.moment ?? '';
+  const look = lookFor('2004', moment); // each moment has its own year's pixels
+  expect(look.pixelHeight > 0, `${moment} is not a pixelated moment: pick one for the retro check`);
   const { scale, height } = renderSize(VIEWPORT.width, VIEWPORT.height, look.pixelHeight);
-  await travel(page, content.cds[0]?.moment ?? '');
+  await travel(page, moment);
   const past = await pixelStats(page);
   expect(past.levels <= look.colorLevels, `2004 shows ${past.levels} levels in one colour channel, max ${look.colorLevels}`);
   expect(past.shortestRun >= Math.max(2, scale - 1), `2004 has a run of ${past.shortestRun} equal pixels: not chunky (scale ${scale})`);
