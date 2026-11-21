@@ -1,19 +1,42 @@
-// person.test.ts — round people: few draw calls, a face on the front, skin with no seams, a walk that
-// is the same for the same inputs, and plain colours that match the images they stand in for.
+// person.test.ts — round people: few draw calls, a face on the front, skin with no seams, plain colours
+// that match their images, and a walk/run/idle that keeps the feet on the ground and never snaps.
 import { readFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { createPerson, createPersonTextures, headGeometry, posePerson, type Person, type PersonImage } from '../src/player/person.ts';
+import {
+  advancePhase, createPerson, createPersonTextures, gaitBlend, headGeometry, posePerson, strideLength, type Gait, type Person, type PersonImage,
+} from '../src/player/person.ts';
 import { T } from '../src/tuning.ts';
 
 const P = T.person;
 const GAP = T.world.surfaceGap;
 const LOOKS = Object.entries(P.looks);
 
-/** A person in a look, with textures that never load (tests have no page). */
+const WALK: number = T.player.speed;
+const RUN: number = T.player.speed * T.player.runMultiplier;
+
+/** A person in a look, with images that never load (tests have no page). */
 function made(look: keyof typeof P.looks = 'player'): Person {
-  return createPerson(P.looks[look], createPersonTextures(), look);
+  return createPerson(P.looks[look], createPersonTextures(() => new THREE.Texture()), look);
+}
+
+/** A gait: walking speed, straight on, at a phase. */
+function gait(phase: number, speed = WALK, turnRate = 0, time = 0): Gait {
+  return { phase, speed, turnRate, time };
+}
+
+/** Every bone's rotation and position, as one list of numbers. */
+function poseOf(person: Person): number[] {
+  return Object.values(person.bones).flatMap((b) => [...b.rotation.toArray().slice(0, 3), ...b.position.toArray()] as number[]);
+}
+
+/** A mesh vertex where it is drawn now (bones applied), in world space. */
+function drawnAt(mesh: THREE.SkinnedMesh, i: number): THREE.Vector3 {
+  let top: THREE.Object3D = mesh;
+  while (top.parent) top = top.parent;
+  top.updateMatrixWorld(true); // the bones are not under the mesh
+  return mesh.localToWorld(mesh.getVertexPosition(i, new THREE.Vector3()));
 }
 
 /** The world-space box round every vertex, with the bones' current pose. */
@@ -106,51 +129,120 @@ describe('round people', () => {
     }
   });
 
-  it('never sink into the ground mid-stride, and bob up while walking', () => {
-    const person = made();
-    for (const phase of [0.4, Math.PI / 2, 2, Math.PI, 4.2, (3 * Math.PI) / 2]) {
-      posePerson(person, phase, 1);
-      expect(bounds(person).min.y, `phase ${phase}`).toBeGreaterThanOrEqual(GAP - 1e-6);
-    }
-    posePerson(person, Math.PI / 2, 1);
-    expect(person.rig.position.y).toBeCloseTo(GAP + P.bobM, 9);
-    person.dispose();
-  });
-
-  it('pose the same for the same inputs; standing still at amount 0; each arm with the other leg', () => {
-    const person = made();
-    const pose = () => [...person.legs, ...person.arms].map((b) => b.rotation.x).concat(person.rig.position.y);
-    posePerson(person, 1.3, 0.6);
-    const first = pose();
-    posePerson(person, 4, 1);
-    posePerson(person, 1.3, 0.6);
-    expect(pose()).toEqual(first);
-    const [legL, legR, armL, armR] = first;
-    expect(legL).toBeCloseTo(-(legR ?? 0), 9);
-    expect(Math.sign(armL ?? 0)).toBe(-Math.sign(legL ?? 0));
-    expect(armR).toBeCloseTo(-(armL ?? 0), 9);
-    posePerson(person, 1.3, 0);
-    expect(pose()).toEqual([0, -0, -0, 0, GAP].map((v) => expect.closeTo(v, 12)));
-    person.dispose();
-  });
-
-  it('skin the limbs to their bones: a swung leg carries its shoe', () => {
+  it('skin the limbs to their bones: a swung leg carries its shoe, and the shoe stays flat', () => {
     const person = made();
     const plain = person.meshes.find((m) => m.name === 'player_plain') as THREE.SkinnedMesh;
-    const pos = plain.geometry.getAttribute('position');
-    let toe = 0; // the left shoe's front-most vertex
-    for (let i = 0; i < pos.count; i++) if (pos.getX(i) < 0 && pos.getY(i) < 0.2 && pos.getZ(i) < pos.getZ(toe)) toe = i;
-    person.root.updateMatrixWorld(true);
-    const standing = plain.getVertexPosition(toe, new THREE.Vector3());
-    expect(standing.y).toBeCloseTo(pos.getY(toe) + GAP, 6);
-    posePerson(person, Math.PI / 2, 1); // left leg swung its full way
-    person.root.updateMatrixWorld(true);
-    const swung = plain.getVertexPosition(toe, new THREE.Vector3());
-    expect(Math.abs(swung.z - standing.z)).toBeGreaterThan(0.2);
-    expect(swung.y).toBeGreaterThan(standing.y);
+    const n = plain.geometry.getAttribute('position').count;
+    const shoe = [...Array(n).keys()].filter((i) => drawnAt(plain, i).x < 0 && drawnAt(plain, i).y < 0.2); // the left shoe
+    const toe = shoe.reduce((best, i) => (drawnAt(plain, i).z < drawnAt(plain, best).z ? i : best));
+    const heel = shoe.reduce((best, i) => (drawnAt(plain, i).z > drawnAt(plain, best).z ? i : best));
+    const standing = drawnAt(plain, toe);
+    const tilt = standing.y - drawnAt(plain, heel).y;
+    expect(standing.y).toBeLessThan(0.1);
+    posePerson(person, gait(Math.PI / 2)); // left leg swung forward its full way
+    const swung = drawnAt(plain, toe);
+    expect(standing.z - swung.z).toBeGreaterThan(0.2);
+    expect(swung.y - drawnAt(plain, heel).y).toBeCloseTo(tilt, 3); // the shoe is as flat as when standing
+    person.dispose();
+  });
+});
+
+describe('how round people move', () => {
+  it('keep a foot on the ground through a walk, dipping twice per stride; a run lifts off', () => {
+    const person = made();
+    const heights: number[] = [];
+    for (let k = 0; k < 16; k++) {
+      posePerson(person, gait((k / 16) * Math.PI * 2));
+      expect(bounds(person).min.y, `phase ${k}/16`).toBeCloseTo(GAP, 3);
+      heights.push(person.rig.position.y);
+    }
+    const [atStep, atPass] = [heights[4] ?? 0, heights[0] ?? 0]; // legs apart (phase pi/2) vs passing (0)
+    expect(atPass - atStep).toBeGreaterThan(0.01);
+    expect(heights[12]).toBeCloseTo(atStep, 6); // the second dip of the stride
+    for (const phase of [0.3, Math.PI / 2, 2.5, 4.4]) {
+      posePerson(person, gait(phase, RUN));
+      expect(bounds(person).min.y, `run phase ${phase}`).toBeGreaterThanOrEqual(GAP - 1e-6);
+    }
     person.dispose();
   });
 
+  it('stand still at speed 0: straight legs and arms, only breathing', () => {
+    const person = made();
+    posePerson(person, gait(1.2, 0, 0, 0));
+    for (const b of [...person.legs, ...person.arms]) expect(b.rotation.x).toBeCloseTo(0, 9);
+    expect(person.rig.position.y).toBeCloseTo(GAP, 9);
+    const chest = (time: number): number => {
+      posePerson(person, gait(0, 0, 0, time));
+      return person.bones.spine.position.y;
+    };
+    expect(chest(P.gait.breathSec / 4) - chest(0)).toBeCloseTo(P.gait.breathM, 6);
+    person.dispose();
+  });
+
+  it('swing legs from the hips with a knee bend, arms against them, the same for the same gait', () => {
+    const person = made();
+    posePerson(person, gait(0)); // the left leg passes under the body, swinging forward
+    expect(person.bones.shin_l.rotation.x).toBeLessThan(-0.3); // its knee bends
+    expect(person.bones.shin_r.rotation.x).toBeCloseTo(0, 6); // the standing leg is straight
+    posePerson(person, gait(Math.PI / 2));
+    const first = poseOf(person);
+    expect(person.legs[0].rotation.x).toBeGreaterThan(0.3);
+    expect(person.legs[1].rotation.x).toBeCloseTo(-person.legs[0].rotation.x, 9);
+    expect(person.arms[0].rotation.x).toBeLessThan(0); // left arm back while the left leg is forward
+    posePerson(person, gait(4, RUN, 90, 3));
+    posePerson(person, gait(Math.PI / 2));
+    expect(poseOf(person)).toEqual(first);
+    person.dispose();
+  });
+
+  it('run with a longer stride, bigger swing, bent arms and a forward lean', () => {
+    const person = made();
+    posePerson(person, gait(Math.PI / 2, WALK));
+    const walk = { thigh: person.legs[0].rotation.x, elbow: person.bones.forearm_r.rotation.x, lean: person.bones.spine.rotation.x };
+    posePerson(person, gait(Math.PI / 2, RUN));
+    expect(strideLength(RUN)).toBeGreaterThan(strideLength(WALK));
+    expect(person.legs[0].rotation.x).toBeGreaterThan(walk.thigh + 0.1);
+    expect(person.bones.forearm_r.rotation.x).toBeGreaterThan(Math.max(walk.elbow, 1.2)); // ~70+ degrees
+    expect(person.bones.spine.rotation.x).toBeCloseTo((-P.gait.runLeanDeg * Math.PI) / 180, 6);
+    expect(walk.lean).toBeGreaterThan(person.bones.spine.rotation.x);
+    expect(gaitBlend(0)).toEqual({ walk: 0, run: 0 });
+    expect(gaitBlend(WALK)).toEqual({ walk: 1, run: 0 });
+    expect(gaitBlend(RUN)).toEqual({ walk: 1, run: 1 });
+    person.dispose();
+  });
+
+  it('lean into turns while moving (left turn: lean left), not while standing', () => {
+    const person = made();
+    posePerson(person, gait(0, WALK, T.player.turnSpeedDeg));
+    expect(person.bones.spine.rotation.z).toBeCloseTo((P.gait.turnLeanDeg * Math.PI) / 180, 6);
+    posePerson(person, gait(0, WALK, -T.player.turnSpeedDeg));
+    expect(person.bones.spine.rotation.z).toBeLessThan(0);
+    posePerson(person, gait(0, 0, T.player.turnSpeedDeg));
+    expect(person.bones.spine.rotation.z).toBeCloseTo(0, 9);
+    person.dispose();
+  });
+
+  it('never snap: a small change of speed, turn or phase is a small change of pose', () => {
+    const person = made();
+    for (const speed of [0, 0.4, WALK - 0.01, WALK, 4, RUN - 0.01]) {
+      for (const phase of [0, 1, 2.2, 4]) {
+        posePerson(person, gait(phase, speed, 40));
+        const a = poseOf(person);
+        posePerson(person, gait(phase + 0.01, speed + 0.01, 41));
+        const b = poseOf(person);
+        a.forEach((v, i) => expect(Math.abs(v - (b[i] ?? 0)), `speed ${speed} phase ${phase} value ${i}`).toBeLessThan(0.03));
+      }
+    }
+    person.dispose();
+  });
+
+  it('move the stride with the distance walked: one stride length is one full cycle', () => {
+    for (const speed of [WALK, RUN]) {
+      expect(advancePhase(0.5, 0, speed)).toBe(0.5);
+      expect(advancePhase(0.5, strideLength(speed), speed)).toBeCloseTo(0.5, 9);
+      expect(advancePhase(0, strideLength(speed) / 4, speed)).toBeCloseTo(Math.PI / 2, 9);
+    }
+  });
 });
 
 describe('round people\'s faces, skin and clothes', () => {
@@ -197,17 +289,22 @@ describe('round people\'s faces, skin and clothes', () => {
     person.dispose();
   });
 
-  it('dispose every geometry, material and the skeleton', () => {
-    const person = made();
+  it('dispose their geometries and own material; the shared image materials go with the textures', () => {
+    const textures = createPersonTextures(() => new THREE.Texture());
+    const person = createPerson(P.looks.player, textures, 'player');
     let disposed = 0;
     const count = (): void => void disposed++;
-    const things = new Set<THREE.EventDispatcher<{ dispose: object }>>();
-    person.meshes.forEach((m) => [m.geometry, m.material as THREE.Material].forEach((x) => things.add(x)));
-    things.forEach((x) => x.addEventListener('dispose', count));
-    person.root.parent?.remove(person.root);
+    const own = new Set<THREE.EventDispatcher<{ dispose: object }>>();
+    person.meshes.forEach((m) => own.add(m.geometry));
+    own.add(person.meshes.find((m) => m.name === 'player_plain')?.material as THREE.Material);
+    own.forEach((x) => x.addEventListener('dispose', count));
     new THREE.Scene().add(person.root);
     person.dispose();
-    expect(disposed).toBe(things.size);
+    expect(disposed).toBe(own.size);
     expect(person.root.parent).toBeNull();
+    const skin = person.meshes.find((m) => m.name === 'player_skin')?.material as THREE.Material;
+    skin.addEventListener('dispose', count);
+    textures.dispose();
+    expect(disposed).toBe(own.size + 1);
   });
 });

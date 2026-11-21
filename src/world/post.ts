@@ -5,7 +5,8 @@
 //              each pixel's 4 neighbours (no extra draw calls, no material changes)
 //   2004    -> low resolution with chunky pixels, warm tint, low saturation, film grain,
 //              strong vignette, then ordered dithering down to a few colour levels
-//   present -> full resolution, cool tint, clean, light vignette
+//   present -> full resolution with MSAA, cool tint, clean, light vignette
+// The sky (where nothing was drawn) gets a soft gradient: the fog colour at the horizon, deeper above.
 // Ink, grain, vignette and dithering are worked out once per scene pixel, so they line up with
 // the chunky pixels.
 
@@ -45,11 +46,15 @@ const fragmentShader = /* glsl */ `
   uniform float inkBreakup;
   uniform float inkNoise;    // 1 / size of the breakup noise's patches, in scene pixels
   uniform vec2 fog;          // fog near and far: lines fade out with the objects
+  uniform vec3 skyColor;     // the sky at the horizon (the fog colour)
+  uniform float skyDeepen;   // how much darker the top of the sky is
+  uniform vec3 viewUp;       // the world's up direction, in view space
   varying vec2 vUv;
 
   const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
   const float GAP_FROM = 0.55; // breakup: noise above this starts fading the lines (about a third of the area)
   const float GAP_TO = 0.8;    // ... and from here on they fade by the full inkBreakup
+  const float SKY_SPAN = 0.6;  // the sky reaches its deepest colour this high (sine of the angle above the horizon)
 
   // Cheap pseudo-random number from a 2D position.
   float hash(vec2 p) {
@@ -166,10 +171,18 @@ const fragmentShader = /* glsl */ `
     return ink;
   }
 
+  // The sky seen through scene pixel uv: the horizon colour, darker towards the top.
+  vec3 skyAt(vec2 uv) {
+    vec3 dir = normalize(vec3((uv * 2.0 - 1.0) * viewHalf, -1.0));
+    float up = smoothstep(0.0, SKY_SPAN, dot(dir, viewUp));
+    return skyColor * (1.0 - skyDeepen * up);
+  }
+
   void main() {
     vec2 px = floor(vUv * pixels);                              // which scene pixel this is
     vec2 uv = chunky > 0.5 ? (px + 0.5) / pixels : vUv;         // chunky: its centre, so the whole block matches
     vec3 c = texture2D(tScene, uv).rgb;
+    if (texture2D(tDepth, uv).x >= 1.0) c = skyAt(uv);         // nothing drawn here: the sky
     if (outline > 0.0) c = mix(c, inkColor, inkAt(uv, c, px));  // ink outlines, graded with the scene
     float grey = dot(c, vec3(0.2126, 0.7152, 0.0722));
     c = mix(vec3(grey), c, saturation) * tint;                 // colour grade
@@ -223,20 +236,28 @@ function makeMaterial(target: THREE.WebGLRenderTarget): THREE.ShaderMaterial {
       inkBreakup: { value: 0 },
       inkNoise: { value: 0 },
       fog: { value: new THREE.Vector2(0, 1) },
+      skyColor: { value: new THREE.Color() },
+      skyDeepen: { value: 0 },
+      viewUp: { value: new THREE.Vector3(0, 1, 0) },
     },
     depthTest: false,
     depthWrite: false,
   });
 }
 
-/** Resizes the scene textures; scaled-up pixels are sampled nearest (chunky), full size exactly as before. Returns the scale. */
-function resizeTarget(target: THREE.WebGLRenderTarget, uniforms: Uniforms, width: number, height: number, pixelHeight: number): number {
+/**
+ * Resizes the scene textures. Scaled-up pixels are sampled nearest and never anti-aliased (chunky);
+ * full size is sampled linearly with `msaa` samples. Returns the scale.
+ */
+function resizeTarget(target: THREE.WebGLRenderTarget, uniforms: Uniforms, width: number, height: number, pixelHeight: number, msaa: number): number {
   const size = renderSize(width, height, pixelHeight);
   const filter = size.scale > 1 ? THREE.NearestFilter : THREE.LinearFilter;
-  if (target.texture.magFilter !== filter) {
+  const samples = size.scale > 1 ? 0 : msaa;
+  if (target.texture.magFilter !== filter || target.samples !== samples) {
     target.texture.minFilter = filter;
     target.texture.magFilter = filter;
-    target.dispose(); // the texture is made again with the new filter on the next draw
+    target.samples = samples;
+    target.dispose(); // the textures are made again with the new filter and samples on the next draw
   }
   target.setSize(size.width, size.height); // the depth texture follows on the next draw
   (uniforms.pixels?.value as THREE.Vector2).set(size.width, size.height);
@@ -269,20 +290,50 @@ function setInk(u: Uniforms, look: Look, screenHeight: number, scale: number): v
   (u.fog?.value as THREE.Vector2).set(look.fogNear, look.fogFar);
 }
 
+/** Sets the sky gradient uniforms: the look's sky colour at the horizon, deepened towards the top. */
+function setSky(u: Uniforms, look: Look): void {
+  (u.skyColor?.value as THREE.Color).set(look.sky);
+  if (u.skyDeepen) u.skyDeepen.value = look.skyDeepen;
+}
+
 /** Copies the projection numbers the shader needs to turn depth into distance and view position. */
 function setDepthParams(u: Uniforms, camera: THREE.Camera): void {
   const e = camera.projectionMatrix.elements;
   (u.depthParams?.value as THREE.Vector2).set(e[10] ?? -1, e[14] ?? -1);
   (u.viewHalf?.value as THREE.Vector2).set(1 / (e[0] ?? 1), 1 / (e[5] ?? 1));
+  (u.viewUp?.value as THREE.Vector3).set(0, 1, 0).transformDirection(camera.matrixWorldInverse);
 }
 
-/** Creates the post filter with its render target (colour + depth) and full-screen quad. */
-export function createPostFilter(width: number, height: number): PostFilter {
+/** The GPU's name, when the browser tells it (WEBGL_debug_renderer_info), else ''. */
+function gpuName(renderer: THREE.WebGLRenderer): string {
+  const gl = renderer.getContext();
+  const info = gl.getExtension('WEBGL_debug_renderer_info');
+  return info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '';
+}
+
+/**
+ * The most MSAA samples to use on this GPU. A software GPU (SwiftShader, llvmpipe: no graphics
+ * card, or headless tests) gets none: there MSAA makes every frame about 3 times slower.
+ */
+export function msaaLimit(renderer: THREE.WebGLRenderer): number {
+  const name = gpuName(renderer);
+  if (SOFTWARE_GPU.test(name)) {
+    console.log(`Anti-aliasing is off: "${name}" draws in software, and MSAA would make the game too slow.`);
+    return 0;
+  }
+  return renderer.capabilities.maxSamples;
+}
+
+/** GPU names that mean the picture is drawn in software, on the CPU. */
+const SOFTWARE_GPU = /swiftshader|llvmpipe|softpipe|software/i;
+
+/** Creates the post filter with its render target (colour + depth) and full-screen quad; `maxSamples` caps MSAA (see msaaLimit). */
+export function createPostFilter(width: number, height: number, maxSamples: number): PostFilter {
   const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthTexture: new THREE.DepthTexture(1, 1) });
   const material = makeMaterial(target);
   const u = material.uniforms;
-  const screen = { width, height, pixelHeight: 0, scale: 1, look: null as Look | null, ink: true };
-  screen.scale = resizeTarget(target, u, width, height, 0);
+  const screen = { width, height, pixelHeight: 0, msaa: -1, scale: 1, look: null as Look | null, ink: true };
+  screen.scale = resizeTarget(target, u, width, height, 0, 0);
   const quadGeometry = new THREE.PlaneGeometry(2, 2);
   const quad = new THREE.Mesh(quadGeometry, material);
   quad.frustumCulled = false;
@@ -292,19 +343,21 @@ export function createPostFilter(width: number, height: number): PostFilter {
 
   return {
     setLook: (look) => {
-      if (look.pixelHeight !== screen.pixelHeight) { // only resize when the look changes
+      if (look.pixelHeight !== screen.pixelHeight || Math.min(look.msaa, maxSamples) !== screen.msaa) { // only resize when the look changes
         screen.pixelHeight = look.pixelHeight;
-        screen.scale = resizeTarget(target, u, screen.width, screen.height, screen.pixelHeight);
+        screen.msaa = Math.min(look.msaa, maxSamples);
+        screen.scale = resizeTarget(target, u, screen.width, screen.height, screen.pixelHeight, screen.msaa);
       }
       screen.look = look;
       setGrade(u, look);
+      setSky(u, look);
       setInk(u, look, screen.height, screen.scale);
       if (!screen.ink && u.outline) u.outline.value = 0;
     },
     setSize: (w, h) => {
       screen.width = w;
       screen.height = h;
-      screen.scale = resizeTarget(target, u, w, h, screen.pixelHeight);
+      screen.scale = resizeTarget(target, u, w, h, screen.pixelHeight, Math.max(0, screen.msaa));
       if (screen.look) setInk(u, screen.look, h, screen.scale);
       if (!screen.ink && u.outline) u.outline.value = 0;
     },
@@ -313,9 +366,9 @@ export function createPostFilter(width: number, height: number): PostFilter {
     },
     render: (renderer, scene, camera, frame) => {
       if (u.frame) u.frame.value = frame % 1000;
-      setDepthParams(u, camera);
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
+      setDepthParams(u, camera); // after the scene draw, which brings the camera's matrices up to date
       renderer.setRenderTarget(null);
       renderer.render(postScene, postCamera);
     },

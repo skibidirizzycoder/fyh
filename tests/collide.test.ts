@@ -9,6 +9,7 @@ import { cdForObject } from '../src/story/cdplayer.ts';
 import { content } from '../src/story/content.ts';
 import { propOverrides, type Flags } from '../src/story/timeline.ts';
 import { T, type Era } from '../src/tuning.ts';
+import { placed } from '../src/world/areas.ts';
 import { PROPS, visibleProps } from '../src/world/layout.ts';
 
 const dt = 1 / T.loop.stepsPerSecond;
@@ -20,6 +21,7 @@ const STEER: Record<Steer, MoveInput> = {
   right: { ...walk, forward: false, turnRight: true },
 };
 const WALK_LIMIT = 20 * T.loop.stepsPerSecond; // the debug walkTo() gives up after this many steps
+const WALK_TEST_MS = 30_000; // tests that walk thousands of steps: the street is long and has many props to bump into
 const WALL: Footprint = { shape: 'rect', x: 0, z: -5, halfW: 4, halfD: 0.5 }; // front face at z = -4.5
 
 // Every scene (today + each CD's moment) at every step of the story, since effects show and hide props.
@@ -42,10 +44,11 @@ function sceneObstacles(era: Era, moment: string | null, flags: Flags): Footprin
   return obstaclesOf(visibleProps(era, moment, shown, hidden));
 }
 
+/** A prop where it stands in the world (moments' props are moved into their area of the street). */
 function prop(id: string) {
   const p = PROPS.find((x) => x.id === id);
   if (!p) throw new Error(`no prop ${id}`);
-  return p;
+  return placed(p);
 }
 
 describe('what blocks', () => {
@@ -101,7 +104,7 @@ describe('collisions', () => {
         expect(overlapsAny(p, obstacles), `${moment ?? 'today'} step ${i} at (${p.x.toFixed(2)}, ${p.z.toFixed(2)})`).toBe(false);
       }
     }
-  });
+  }, WALK_TEST_MS);
 
   it('a prop that appears on the player pushes it out', () => {
     const crowd = prop('static_crowd_1');
@@ -154,7 +157,7 @@ describe('every interactable can still be reached', () => {
           expect(walkUntilTargeted(t, targets, obstacles), `${when}: walking to ${t.id} never targeted it`).toBe(true);
         }
       }
-    });
+    }, WALK_TEST_MS);
   }
 });
 

@@ -20,7 +20,7 @@ import { buildWorld } from './world/build.ts';
 import { GROUND, PROPS } from './world/layout.ts';
 import { lookFor } from './world/look.ts';
 import { createParticles } from './world/particles.ts';
-import { createPostFilter } from './world/post.ts';
+import { createPostFilter, msaaLimit } from './world/post.ts';
 import { installDebugApi } from './debug.ts';
 
 /** Makes the WebGL renderer, or returns the reason it failed. */
@@ -56,7 +56,7 @@ function boot(): void {
   const avatar = createAvatar(world.scene);
   const particles = createParticles(world.scene); // dust, snow or pollen in the air
   const camera = new THREE.PerspectiveCamera(T.camera.fovDeg, 1, T.camera.near, T.camera.far);
-  const post = createPostFilter(1, 1);
+  const post = createPostFilter(1, 1, msaaLimit(renderer));
   const hud = createHud(app, withCdPrompts(content), news); // the HUD finds E prompts in `actions`, the CD player's too
   const phone = createPhoneView(app);
   let drawCalls = 0;
@@ -64,9 +64,10 @@ function boot(): void {
   function resize(): void {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    renderer.setPixelRatio(window.devicePixelRatio);
+    const ratio = Math.min(window.devicePixelRatio, T.limits.maxPixelRatio);
+    renderer.setPixelRatio(ratio);
     renderer.setSize(w, h, false);
-    post.setSize(w * window.devicePixelRatio, h * window.devicePixelRatio);
+    post.setSize(w * ratio, h * ratio);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
@@ -78,7 +79,7 @@ function boot(): void {
     world.highlight(s.target);
     world.animate(s.frame / T.loop.stepsPerSecond);
     post.setLook(lookFor(s.era, s.moment));
-    avatar.sync(s.player, camera);
+    avatar.sync(s.player, camera, s.frame); // the frame lets the camera glide by game time
     particles.update(s.era, s.moment, s.frame / T.loop.stepsPerSecond, camera); // game time: step() stays exact
     renderer.info.reset();
     post.render(renderer, world.scene, camera, s.frame);

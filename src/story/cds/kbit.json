@@ -5,18 +5,18 @@
     "title": "Despacito",
     "moment": "ringtone",
     "date": "13 January 2017",
-    "situation": "DJ K-Bit's remix of 'Despacito' came out yesterday and is 'too slow for the charts', but everyone at this bus stop has a phone in their hand.",
-    "today": "DJ K-Bit's 'Despacito' remix went gold as the ringtone of 2017. The shop sells the CD with a free phone sticker."
+    "situation": "DJ K-Bit's 'Despacito' remix came out yesterday: 0 plays. He's at the bus stop holding his phone out to strangers. Everyone in the queue is scrolling.",
+    "today": "It started with one bus queue reaching for Shazam. DJ K-Bit's 'Despacito' remix went gold as the ringtone of 2017, and the shop sells the CD with a free phone sticker."
   },
   "actions": [
     {
       "id": "kbit_beam_track",
       "moment": "ringtone",
       "objectId": "kbit_phone",
-      "label": "AirDropped DJ K-Bit's remix to your phone",
-      "prompt": "Accept the AirDrop",
+      "label": "accepted DJ K-Bit's AirDrop and made his remix your ringtone",
+      "prompt": "Accept K-Bit's AirDrop",
       "requires": [],
-      "line": "K-Bit holds his phone up to yours. 'Accept it... despacito.' Ping. His 'Despacito' remix is now your ringtone.",
+      "line": "K-Bit pulls one headphone off. 'Finally, someone who looks up! Accept it.' Ping. His 'Despacito' remix is now your ringtone.",
       "lockedLine": "",
       "effects": {
         "show": [],
@@ -27,26 +27,31 @@
       "id": "kbit_ring_bus_stop",
       "moment": "ringtone",
       "objectId": "kbit_bus_stop",
-      "label": "let it ring at the busiest bus stop in town",
-      "prompt": "Let your phone ring",
+      "label": "joined the bus queue and let K-Bit ring you",
+      "prompt": "Join the queue",
       "requires": [
         "kbit_beam_track"
       ],
-      "line": "Your phone goes off. The whole queue turns round. 'Wait, what IS this? Somebody Shazam it!'",
-      "lockedLine": "You wait at the bus stop. Your phone only has the default ringtone, and nobody even looks up.",
+      "line": "K-Bit rings you from the kerb. His remix blasts out of your pocket. Every head comes up: 'What IS this? Shazam it!' The bus comes. Nobody gets on.",
+      "lockedLine": "You join the queue. Nobody looks up. Your phone still has the factory ringtone, and K-Bit is still waiting for a listener.",
       "effects": {
         "show": [
+          "kbit_shazam_1",
+          "kbit_shazam_2",
+          "kbit_shazam_3",
+          "kbit_shazam_4"
+        ],
+        "hide": [
           "kbit_queue_phone_1",
           "kbit_queue_phone_2",
           "kbit_queue_phone_3",
           "kbit_queue_phone_4"
-        ],
-        "hide": []
+        ]
       }
     }
   ],
   "offline": {
     "headline": "The Bus Queue That Discovered DJ K-Bit",
-    "article": "In January 2017 a whole bus queue heard DJ K-Bit's 'Despacito' remix ring out of one phone and reached for Shazam. By summer it was the most streamed song in the country, and its gold disc still hangs in Hollow Records."
+    "article": "On 13 January 2017 DJ K-Bit's 'Despacito' remix had zero plays. Then it rang out of one phone at a bus stop, the whole queue reached for Shazam, and the bus left empty. By summer it was the ringtone of the year, and its gold disc still hangs in Hollow Records."
   }
 }

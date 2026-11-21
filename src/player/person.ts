@@ -1,15 +1,18 @@
 // person.ts — round people: a capsule body and limbs, a sphere head with a cartoon face, rounded shoes.
 // A person is one skinned mesh per material (skin, top, jeans, plain colours) sharing one skeleton
-// (body, legs, feet, arms), plus the cap's brim when they wear a cap: at most 5 draw calls.
-// The face image wraps the front of the head and its plain-skin edge carries on round the back; the
-// neck and hands use a plain-skin spot of the same image. So the skin is one colour with no seams.
-// posePerson() sets the walk from a phase and an amount: the same inputs always give the same pose.
+// (body, hips, spine, thighs, shins, feet, upper arms, forearms), plus the cap's brim when they wear
+// a cap: at most 5 draw calls. Materials are the street's cel materials (src/world/materials.ts).
+// The face image shows on the front of the head (the cel shader's front-face picture), and the head,
+// neck and hands are the image's own skin colour, so the skin has no seams.
+// posePerson() sets a walk, run or idle pose from a Gait: the same gait always gives the same pose.
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { T } from '../tuning.ts';
+import { SHADE_ATTRIBUTE, celVertexMaterial, createMaterials, shadeColor, type TextureLoad } from '../world/materials.ts';
 
 const P = T.person;
+const G = T.person.gait;
 const GAP = T.world.surfaceGap;
 const DEG = Math.PI / 180;
 
@@ -27,14 +30,22 @@ export interface PersonLook {
   headphones: string | null;
 }
 
+const BONES = [
+  'body', 'hips', 'spine', 'leg_l', 'leg_r', 'shin_l', 'shin_r', 'foot_l', 'foot_r', 'arm_l', 'arm_r', 'forearm_l', 'forearm_r',
+] as const;
+type BoneName = (typeof BONES)[number];
+const LAYERS = ['skin', 'top', 'legs', 'plain'] as const;
+type Layer = (typeof LAYERS)[number];
+
 /** A person: stand `root` where they are and turn it to face; posePerson() moves the bones. */
 export interface Person {
   root: THREE.Group;
-  /** The body bone: everything hangs from it, and it bobs while walking. */
+  /** Every bone by name (`leg_*` are the thighs, `arm_*` the upper arms). */
+  bones: Readonly<Record<BoneName, THREE.Bone>>;
+  /** The body bone: everything hangs from it, and it rises and falls while walking. */
   rig: THREE.Bone;
-  legs: readonly [THREE.Bone, THREE.Bone]; // left, right
-  feet: readonly [THREE.Bone, THREE.Bone]; // at the ankles: they turn back as the legs swing, so shoes stay flat
-  arms: readonly [THREE.Bone, THREE.Bone];
+  legs: readonly [THREE.Bone, THREE.Bone]; // the thighs, left and right
+  arms: readonly [THREE.Bone, THREE.Bone]; // the upper arms
   /** The cap's brim, on the local -Z side (forward), or null without a cap. */
   brim: THREE.Mesh | null;
   /** Every mesh: one draw call each. */
@@ -42,29 +53,29 @@ export interface Person {
   dispose(): void;
 }
 
-/** Loads the people's images once and puts them on materials. The caller disposes it. */
+/** How someone is moving right now: all a pose needs. */
+export interface Gait {
+  phase: number; // radians through the stride (move it on with advancePhase)
+  speed: number; // metres per second, either way (0 = standing)
+  turnRate: number; // degrees per second, + = turning left
+  time: number; // seconds of game time (for breathing)
+}
+
+/** The people's images as cel materials, each loaded once. The caller disposes it. */
 export interface PersonTextures {
-  /** Shows `image` on `material` once it has loaded (straight away if it has). */
-  dress(material: THREE.MeshLambertMaterial, image: PersonImage): void;
+  /** The material for a face or fabric image (its plain colour until it loads). */
+  material(image: PersonImage): THREE.MeshLambertMaterial;
   dispose(): void;
 }
 
-const BONES = ['body', 'leg_l', 'leg_r', 'foot_l', 'foot_r', 'arm_l', 'arm_r'] as const;
-type BoneName = (typeof BONES)[number];
-const LAYERS = ['skin', 'top', 'legs', 'plain'] as const;
-type Layer = (typeof LAYERS)[number];
-
-/** One shape of a person, in person space (soles at y = 0): the bone that moves it and its material. */
+/** One shape of a person, in person space (soles at y = 0, facing -Z): the bone that moves it and its material. */
 interface Piece {
   geometry: THREE.BufferGeometry;
   bone: BoneName;
   layer: Layer;
 }
 
-/** The one place people get a material: swap MeshLambertMaterial here for a shared (cel) material. */
-function personMaterial(color: string, vertexColors = false): THREE.MeshLambertMaterial {
-  return new THREE.MeshLambertMaterial({ color, vertexColors });
-}
+// ---------- shapes ----------
 
 /** A capsule standing upright from y = `bottom` to y = `top`, centred on x = z = 0. */
 function capsule(r: number, bottom: number, top: number): THREE.BufferGeometry {
@@ -72,13 +83,10 @@ function capsule(r: number, bottom: number, top: number): THREE.BufferGeometry {
   return g.translate(0, (top + bottom) / 2, 0);
 }
 
-/** How far the fabric's v runs along an upright capsule: its straight part plus both rounded ends. */
-function capsuleArc(r: number, bottom: number, top: number): number {
-  return Math.max(0, top - bottom - 2 * r) + Math.PI * r;
-}
-
-/** Tiles a fabric over a capsule: whole repeats round it (so no seam) and true-size repeats along it. */
-function fabricUvs(geo: THREE.BufferGeometry, round: number, along: number): THREE.BufferGeometry {
+/** An upright capsule tiled with fabric: whole repeats round it (no seam), true-size repeats along it. */
+function fabricCapsule(r: number, bottom: number, top: number, round = 2 * Math.PI * r): THREE.BufferGeometry {
+  const geo = capsule(r, bottom, top);
+  const along = Math.max(0, top - bottom - 2 * r) + Math.PI * r;
   const uv = geo.getAttribute('uv');
   const repeats = Math.max(1, Math.round(round / P.fabricTileM));
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * repeats, (uv.getY(i) * along) / P.fabricTileM);
@@ -93,10 +101,8 @@ function flatUvs(geo: THREE.BufferGeometry, at: readonly [number, number]): THRE
 }
 
 /**
- * The head: a sphere whose seam is at the back, with the face image wrapped round its front.
- * The sphere's own u runs from the back, past the person's right (+X), the front (u = 0.5) and the
- * left, to the back again; its v runs from the bottom up. Image UVs outside 0..1 show the image's
- * edge (plain skin), so the back of the head is skin too.
+ * The head: a sphere (seam at the back) with the face image wrapped round its front. The sphere's own
+ * u runs from the back past the person's right (+X), the front (u = 0.5) and the left; its v runs up.
  */
 export function headGeometry(): THREE.BufferGeometry {
   const [round, rows] = P.headSegments;
@@ -111,13 +117,16 @@ export function headGeometry(): THREE.BufferGeometry {
   return head.translate(0, P.head.y, 0);
 }
 
-/** Gives every vertex one colour (the plain layer's material shows vertex colours). */
+/** Gives every vertex one colour and its cel shade tone (the plain layer's material reads both). */
 function painted(geo: THREE.BufferGeometry, color: string): THREE.BufferGeometry {
-  const c = new THREE.Color(color); // converted to linear, like a material colour
   const n = geo.getAttribute('position').count;
-  const rgb = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) rgb.set([c.r, c.g, c.b], i * 3);
-  geo.setAttribute('color', new THREE.BufferAttribute(rgb, 3));
+  const solid = (c: THREE.Color): THREE.BufferAttribute => {
+    const rgb = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) rgb.set([c.r, c.g, c.b], i * 3);
+    return new THREE.BufferAttribute(rgb, 3);
+  };
+  geo.setAttribute('color', solid(new THREE.Color(color))); // converted to linear, like a material colour
+  geo.setAttribute(SHADE_ATTRIBUTE, solid(shadeColor(color)));
   return geo;
 }
 
@@ -135,49 +144,48 @@ function boneOnly(geo: THREE.BufferGeometry, bone: BoneName): THREE.BufferGeomet
   return geo;
 }
 
-/** Torso (the top), hips (jeans), neck and head (skin): they move with the body bone. */
+/** Torso (the top), neck and head (skin) on the spine; the hips (jeans) on the hips bone. */
 function bodyPieces(): Piece[] {
   const { torso: t, hips: h, neck: n } = P;
-  const torso = capsule(t.r, -(t.top - t.bottom) / 2, (t.top - t.bottom) / 2).scale(t.widen, 1, t.depth);
-  fabricUvs(torso, Math.PI * t.r * (t.widen + t.depth), capsuleArc(t.r, t.bottom, t.top));
-  const hips = new THREE.CapsuleGeometry(h.r, h.width, P.capSegments, P.radialSegments).rotateZ(Math.PI / 2);
-  fabricUvs(hips.scale(1, 1, h.depth), 2 * Math.PI * h.r, h.width + Math.PI * h.r);
+  const half = (t.top - t.bottom) / 2;
+  const torso = fabricCapsule(t.r, -half, half, Math.PI * t.r * (t.widen + t.depth)).scale(t.widen, 1, t.depth);
+  const hips = fabricCapsule(h.r, -h.width / 2 - h.r, h.width / 2 + h.r).rotateZ(Math.PI / 2).scale(1, 1, h.depth);
   return [
-    { geometry: torso.translate(0, (t.top + t.bottom) / 2, 0), bone: 'body', layer: 'top' },
-    { geometry: hips.translate(0, h.y, 0), bone: 'body', layer: 'legs' },
-    { geometry: flatUvs(capsule(n.r, n.bottom, n.top), P.skinUv), bone: 'body', layer: 'skin' },
-    { geometry: headGeometry(), bone: 'body', layer: 'skin' },
+    { geometry: torso.translate(0, t.bottom + half, 0), bone: 'spine', layer: 'top' },
+    { geometry: hips.translate(0, h.y, 0), bone: 'hips', layer: 'legs' },
+    { geometry: flatUvs(capsule(n.r, n.bottom, n.top), P.skinUv), bone: 'spine', layer: 'skin' },
+    { geometry: headGeometry(), bone: 'spine', layer: 'skin' },
   ];
 }
 
-/** A leg (jeans) hanging from the hip on side `s` (-1 left, +1 right), with its shoe on the foot bone. */
+/** A leg on side `s` (-1 left, +1 right): thigh and shin (jeans) meeting in round caps at the knee, and a shoe. */
 function legPieces(s: -1 | 1, look: PersonLook): Piece[] {
   const { leg, shoe } = P;
-  const bone: BoneName = s < 0 ? 'leg_l' : 'leg_r';
-  const foot: BoneName = s < 0 ? 'foot_l' : 'foot_r';
+  const side = s < 0 ? 'l' : 'r';
   const x = s * P.legX;
-  const top = P.hipY + leg.top;
-  const bottom = P.hipY + leg.bottom;
-  const jeans = fabricUvs(capsule(leg.r, bottom, top), 2 * Math.PI * leg.r, capsuleArc(leg.r, bottom, top));
+  const thigh = fabricCapsule(leg.r, P.kneeY - leg.r, P.hipY + leg.top);
+  const shin = fabricCapsule(leg.r, leg.bottom, P.kneeY + leg.r);
   const sole = new THREE.CapsuleGeometry(shoe.r, shoe.length, P.capSegments, P.radialSegments).rotateX(Math.PI / 2);
   sole.scale(1, shoe.squash, 1).translate(x, ankleY(), -shoe.forward); // toe forward, sole on the ground
   return [
-    { geometry: jeans.translate(x, 0, 0), bone, layer: 'legs' },
-    { geometry: painted(sole, look.shoes), bone: foot, layer: 'plain' },
+    { geometry: thigh.translate(x, 0, 0), bone: `leg_${side}`, layer: 'legs' },
+    { geometry: shin.translate(x, 0, 0), bone: `shin_${side}`, layer: 'legs' },
+    { geometry: painted(sole, look.shoes), bone: `foot_${side}`, layer: 'plain' },
   ];
 }
 
-/** An arm (a sleeve of the top) with its hand, hanging from the shoulder on side `s`, leaning out a little. */
+/** An arm on side `s`: upper arm and forearm (sleeve) meeting at the elbow, and a hand, leaning out a little. */
 function armPieces(s: -1 | 1): Piece[] {
   const { arm, hand } = P;
-  const bone: BoneName = s < 0 ? 'arm_l' : 'arm_r';
-  const lean = s * P.armOutDeg * DEG;
-  const sleeve = fabricUvs(capsule(arm.r, arm.bottom, arm.top), 2 * Math.PI * arm.r, capsuleArc(arm.r, arm.bottom, arm.top));
+  const side = s < 0 ? 'l' : 'r';
+  const atShoulder = (g: THREE.BufferGeometry): THREE.BufferGeometry => g.rotateZ(s * P.armOutDeg * DEG).translate(s * P.armX, P.shoulderY, 0);
+  const upper = fabricCapsule(arm.r, -P.elbowDrop - arm.r, arm.top);
+  const fore = fabricCapsule(arm.r, arm.bottom, -P.elbowDrop + arm.r);
   const palm = flatUvs(new THREE.SphereGeometry(hand.r, P.radialSegments, P.capSegments * 2).translate(0, hand.y, 0), P.skinUv);
-  const atShoulder = (g: THREE.BufferGeometry): THREE.BufferGeometry => g.rotateZ(lean).translate(s * P.armX, P.shoulderY, 0);
   return [
-    { geometry: atShoulder(sleeve), bone, layer: 'top' },
-    { geometry: atShoulder(palm), bone, layer: 'skin' },
+    { geometry: atShoulder(upper), bone: `arm_${side}`, layer: 'top' },
+    { geometry: atShoulder(fore), bone: `forearm_${side}`, layer: 'top' },
+    { geometry: atShoulder(palm), bone: `forearm_${side}`, layer: 'skin' },
   ];
 }
 
@@ -189,7 +197,7 @@ function headShell(r: number, fromDeg: number, toDeg: number, arcDeg = 360): THR
   return shell.translate(0, P.head.y, 0);
 }
 
-/** Hair (a cap over the crown instead, when they wear one) and headphones: plain colours on the body bone. */
+/** Hair (a cap over the crown instead, when they wear one) and headphones: plain colours on the spine. */
 function headwearPieces(look: PersonLook): Piece[] {
   const { head, hair, cap, headphones: hp } = P;
   const hairR = head.r + hair.gapM;
@@ -204,63 +212,64 @@ function headwearPieces(look: PersonLook): Piece[] {
       shells.push(painted(cup.translate(s * (head.r + hp.cupOut), head.y, 0), look.headphones));
     }
   }
-  return shells.map((geometry) => ({ geometry, bone: 'body', layer: 'plain' }));
+  return shells.map((geometry) => ({ geometry, bone: 'spine', layer: 'plain' }));
 }
 
 /** Every piece of a person in this look. */
 function personPieces(look: PersonLook): Piece[] {
-  return [
-    ...bodyPieces(),
-    ...legPieces(-1, look),
-    ...legPieces(1, look),
-    ...armPieces(-1),
-    ...armPieces(1),
-    ...headwearPieces(look),
-  ];
+  return [...bodyPieces(), ...legPieces(-1, look), ...legPieces(1, look), ...armPieces(-1), ...armPieces(1), ...headwearPieces(look)];
 }
+
+// ---------- skeleton and meshes ----------
 
 /** Height of the ankle (the foot bone): the middle of the shoe. */
 function ankleY(): number {
   return P.shoe.r * P.shoe.squash;
 }
 
-/** The bones, standing (the body bone at y = 0 while binding); legs and arms hang from the body, feet from the legs. */
+/** Where each bone sits on its parent, standing (the body bone at the soles, under the root). */
+function boneLayout(): Record<BoneName, { parent: BoneName | null; at: [number, number, number] }> {
+  const knee = P.kneeY - P.hipY;
+  const elbow: [number, number, number] = [0, -P.elbowDrop, 0];
+  return {
+    body: { parent: null, at: [0, 0, 0] },
+    hips: { parent: 'body', at: [0, P.hipY, 0] },
+    spine: { parent: 'body', at: [0, P.hipY, 0] },
+    leg_l: { parent: 'hips', at: [-P.legX, 0, 0] },
+    leg_r: { parent: 'hips', at: [P.legX, 0, 0] },
+    shin_l: { parent: 'leg_l', at: [0, knee, 0] },
+    shin_r: { parent: 'leg_r', at: [0, knee, 0] },
+    foot_l: { parent: 'shin_l', at: [0, ankleY() - P.kneeY, 0] },
+    foot_r: { parent: 'shin_r', at: [0, ankleY() - P.kneeY, 0] },
+    arm_l: { parent: 'spine', at: [-P.armX, P.shoulderY - P.hipY, 0] },
+    arm_r: { parent: 'spine', at: [P.armX, P.shoulderY - P.hipY, 0] },
+    forearm_l: { parent: 'arm_l', at: elbow },
+    forearm_r: { parent: 'arm_r', at: elbow },
+  };
+}
+
+/** The bones, standing. Upper arms lean out like their sleeves; forearms hang along them. */
 function makeBones(name: string): Record<BoneName, THREE.Bone> {
+  const layout = boneLayout();
   const bones = {} as Record<BoneName, THREE.Bone>;
   for (const b of BONES) {
     bones[b] = new THREE.Bone();
     bones[b].name = `${name}_${b}`;
+    bones[b].position.set(...layout[b].at);
   }
-  bones.leg_l.position.set(-P.legX, P.hipY, 0);
-  bones.leg_r.position.set(P.legX, P.hipY, 0);
-  bones.arm_l.position.set(-P.armX, P.shoulderY, 0);
-  bones.arm_r.position.set(P.armX, P.shoulderY, 0);
-  bones.foot_l.position.set(0, ankleY() - P.hipY, 0);
-  bones.foot_r.position.set(0, ankleY() - P.hipY, 0);
-  bones.leg_l.add(bones.foot_l);
-  bones.leg_r.add(bones.foot_r);
-  bones.body.add(bones.leg_l, bones.leg_r, bones.arm_l, bones.arm_r);
+  for (const b of BONES) {
+    const parent = layout[b].parent;
+    if (parent) bones[parent].add(bones[b]);
+  }
+  bones.arm_l.rotation.z = -P.armOutDeg * DEG;
+  bones.arm_r.rotation.z = P.armOutDeg * DEG;
   return bones;
 }
 
-/** The materials, one per layer: plain colours until the images load. */
-function layerMaterials(look: PersonLook, textures: PersonTextures): Record<Layer, THREE.MeshLambertMaterial> {
-  const m = {
-    skin: personMaterial(P.images[look.face]),
-    top: personMaterial(P.images[look.top]),
-    legs: personMaterial(P.images[look.legs]),
-    plain: personMaterial('#ffffff', true),
-  };
-  textures.dress(m.skin, look.face);
-  textures.dress(m.top, look.top);
-  textures.dress(m.legs, look.legs);
-  return m;
-}
-
-/** Merges one layer's pieces into one skinned mesh (null if the layer is empty). */
+/** Merges one layer's pieces into one skinned mesh, built facing +Z (null if the layer is empty). */
 function layerMesh(pieces: Piece[], material: THREE.Material, name: string): THREE.SkinnedMesh | null {
   if (pieces.length === 0) return null;
-  const parts = pieces.map((p) => boneOnly(p.geometry, p.bone));
+  const parts = pieces.map((p) => boneOnly(p.geometry, p.bone).rotateY(Math.PI));
   const merged = mergeGeometries(parts);
   parts.forEach((g) => g.dispose());
   if (!merged) throw new Error(`could not merge ${name}`);
@@ -269,13 +278,13 @@ function layerMesh(pieces: Piece[], material: THREE.Material, name: string): THR
   return mesh;
 }
 
-/** The cap's brim: a flat oval out front, on the body bone (plain colours, like the cap). */
+/** The cap's brim: a flat oval out front, on the spine (plain colours, like the cap). */
 function makeBrim(material: THREE.Material, name: string): THREE.Mesh {
   const b = P.brim;
   const geo = painted(new THREE.CylinderGeometry(b.r, b.r, b.h, P.radialSegments * 2).scale(1, 1, b.depth), T.player.noseColor);
   const brim = new THREE.Mesh(geo, material);
   brim.name = `${name}_brim`;
-  brim.position.set(0, b.y, b.z); // local -Z = forward
+  brim.position.set(0, b.y - P.hipY, b.z); // local -Z = forward
   return brim;
 }
 
@@ -287,12 +296,23 @@ function fitCullSpheres(meshes: readonly THREE.SkinnedMesh[]): void {
   }
 }
 
-/** Builds a person in a look, standing at the origin facing -Z. `name` prefixes every part's name. */
+/** The four materials: the look's images (shared, from `textures`) and a plain vertex-colour one of its own. */
+function layerMaterials(look: PersonLook, textures: PersonTextures): Record<Layer, THREE.Material> {
+  return { skin: textures.material(look.face), top: textures.material(look.top), legs: textures.material(look.legs), plain: celVertexMaterial() };
+}
+
+/**
+ * Builds a person in a look, standing at the origin facing -Z. `name` prefixes every part's name.
+ * The skinned meshes are built facing +Z and turned round: the cel shader shows a picture on +Z
+ * faces only, and that way it is the face.
+ */
 export function createPerson(look: PersonLook, textures: PersonTextures, name = 'person'): Person {
   const bones = makeBones(name);
   const root = new THREE.Group();
   root.name = name;
-  root.add(bones.body);
+  const turned = new THREE.Group(); // the skinned meshes, built facing +Z, turned to face -Z
+  turned.rotation.y = Math.PI;
+  root.add(bones.body, turned);
   root.updateMatrixWorld(true);
   const skeleton = new THREE.Skeleton(BONES.map((b) => bones[b]));
   const materials = layerMaterials(look, textures);
@@ -302,11 +322,11 @@ export function createPerson(look: PersonLook, textures: PersonTextures, name = 
     return mesh ? [mesh] : [];
   });
   skinned.forEach((mesh) => {
-    root.add(mesh);
+    turned.add(mesh);
     mesh.bind(skeleton); // the standing pose is the bind pose
   });
   const brim = look.cap ? makeBrim(materials.plain, name) : null;
-  if (brim) bones.body.add(brim);
+  if (brim) bones.spine.add(brim);
   bones.body.position.y = GAP; // the soles stand just above the ground
   root.updateMatrixWorld(true);
   fitCullSpheres(skinned);
@@ -314,80 +334,112 @@ export function createPerson(look: PersonLook, textures: PersonTextures, name = 
 
   function dispose(): void {
     meshes.forEach((m) => m.geometry.dispose());
-    Object.values(materials).forEach((m) => m.dispose());
+    materials.plain.dispose(); // the image materials belong to `textures`
     skeleton.dispose();
     root.removeFromParent();
   }
 
+  return { root, bones, rig: bones.body, legs: [bones.leg_l, bones.leg_r], arms: [bones.arm_l, bones.arm_r], brim, meshes, dispose };
+}
+
+/** The people's images as shared cel materials: faces on the front, fabrics tiled. A missing image leaves the plain colour. */
+export function createPersonTextures(load?: TextureLoad): PersonTextures {
+  const library = createMaterials(load);
   return {
-    root, rig: bones.body, brim, meshes, dispose,
-    legs: [bones.leg_l, bones.leg_r], feet: [bones.foot_l, bones.foot_r], arms: [bones.arm_l, bones.arm_r],
+    material: (image) => library.shared({
+      color: P.images[image],
+      texture: `textures/${image}.png`,
+      repeat: image.startsWith('fabric_') ? [1, 1] : null, // UVs already tile fabrics at true size
+    }),
+    dispose: () => library.dispose(),
   };
 }
 
+// ---------- the walk ----------
+
+/** Smooth 0..1 ramp of x between a and b. */
+function ramp(x: number, a: number, b: number): number {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+
+/** How much of a walk and of a run a speed is: walk 0..1 up to walking speed, run 0..1 from there to running speed. */
+export function gaitBlend(speed: number): { walk: number; run: number } {
+  const walkSpeed = T.player.speed;
+  return { walk: ramp(speed, 0, walkSpeed), run: ramp(speed, walkSpeed, walkSpeed * T.player.runMultiplier) };
+}
+
+/** Metres per full stride at a speed: longer when running. */
+export function strideLength(speed: number): number {
+  return G.walkStrideM + (G.runStrideM - G.walkStrideM) * gaitBlend(speed).run;
+}
+
+/** Moves a stride phase on by a distance walked at a speed (distance, not time: feet don't slide). */
+export function advancePhase(phase: number, moved: number, speed: number): number {
+  return (phase + (moved / strideLength(speed)) * Math.PI * 2) % (Math.PI * 2);
+}
+
+/** A leg's angles at a phase: thigh swing (+ = forward) and knee bend, in radians. */
+function legAngles(phase: number, speed: number): { thigh: number; knee: number } {
+  const { walk, run } = gaitBlend(speed);
+  const legLen = P.hipY - ankleY();
+  const reach = Math.asin(Math.min(0.9, strideLength(speed) / (4 * legLen))); // the swing that covers the stride
+  const bend = (G.walkKneeDeg + (G.runKneeDeg - G.walkKneeDeg) * run) * DEG;
+  const thigh = reach * Math.sin(phase) * walk;
+  const knee = (G.runKneeBaseDeg * DEG * run + bend * Math.max(0, Math.cos(phase))) * walk; // bent as it swings forward
+  return { thigh, knee };
+}
+
+/** How high a leg reaches from hip to ankle with these angles. */
+function legHeight(a: { thigh: number; knee: number }): number {
+  const thighLen = P.hipY - P.kneeY;
+  const shinLen = P.kneeY - ankleY();
+  return thighLen * Math.cos(a.thigh) + shinLen * Math.cos(a.thigh - a.knee);
+}
+
+/** Sets a leg's bones: thigh swing, knee bend, and the foot turned back so the shoe stays flat. */
+function poseLeg(person: Person, side: 'l' | 'r', a: { thigh: number; knee: number }): void {
+  const b = person.bones;
+  b[`leg_${side}`].rotation.x = a.thigh;
+  b[`shin_${side}`].rotation.x = -a.knee;
+  b[`foot_${side}`].rotation.x = a.knee - a.thigh;
+}
+
+/** Sets an arm's bones: swing from the shoulder (+ = forward) and elbow bend (+ = hand up and forward). */
+function poseArm(person: Person, side: 'l' | 'r', swing: number, elbow: number): void {
+  person.bones[`arm_${side}`].rotation.x = swing;
+  person.bones[`forearm_${side}`].rotation.x = elbow;
+}
+
+/** Sets the upper body: forward lean (more when running), lean into turns, twist against the hips, sway and breath. */
+function poseSpine(person: Person, gait: Gait, walk: number, run: number): void {
+  const s = Math.sin(gait.phase);
+  const turn = Math.max(-1, Math.min(1, gait.turnRate / T.player.turnSpeedDeg));
+  const lean = (G.walkLeanDeg + (G.runLeanDeg - G.walkLeanDeg) * run) * DEG * walk;
+  const b = person.bones;
+  b.hips.rotation.y = -G.hipTwistDeg * DEG * s * walk;
+  b.spine.rotation.set(-lean, G.shoulderTwistDeg * DEG * s * walk, G.turnLeanDeg * DEG * turn * walk);
+  const breath = G.breathM * Math.sin((gait.time / G.breathSec) * Math.PI * 2) * (1 - walk);
+  b.spine.position.set(G.swayM * s * walk, P.hipY + breath, 0);
+}
+
 /**
- * Poses a walking person: `phase` (radians) is where they are in their stride, `amount` (0..1) how
- * hard they walk (0 = standing). Legs swing (their shoes stay flat), each arm with the opposite leg,
- * and the body bobs.
+ * Poses a person for a gait. Legs swing from the hips with bent knees, arms counter-swing from the
+ * shoulders, the body rests on the longer leg (so it dips twice per stride and the feet stay on the
+ * ground), and the upper body sways, twists, leans and breathes (poseSpine). A pure function of the
+ * gait, which comes from eased speed and turn rate, so poses never snap.
  */
-export function posePerson(person: Person, phase: number, amount: number): void {
-  const swing = Math.sin(phase) * amount;
-  const leg = P.legSwingDeg * DEG * swing;
-  const arm = P.armSwingDeg * DEG * swing;
-  person.legs[0].rotation.x = leg;
-  person.legs[1].rotation.x = -leg;
-  person.feet[0].rotation.x = -leg;
-  person.feet[1].rotation.x = leg;
-  person.arms[0].rotation.x = -arm;
-  person.arms[1].rotation.x = arm;
-  person.rig.position.y = GAP + P.bobM * amount * Math.sin(phase) ** 2;
-}
-
-/** Puts a loaded image on a material: the image's own colours replace the plain one. */
-function wear(material: THREE.MeshLambertMaterial, texture: THREE.Texture): void {
-  material.map = texture;
-  material.color.set('#ffffff');
-  material.needsUpdate = true;
-}
-
-/** Starts loading one image from public/textures/; fabrics repeat, faces stretch their edge. */
-function loadImage(image: PersonImage, onLoad: () => void): THREE.Texture {
-  const texture = new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}textures/${image}.png`, onLoad);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
-  if (image.startsWith('fabric_')) texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  return texture;
-}
-
-/** The people's images, each loaded once. Without a page (unit tests) nothing loads: plain colours stay. */
-export function createPersonTextures(): PersonTextures {
-  const textures = new Map<PersonImage, THREE.Texture>();
-  const ready = new Set<PersonImage>();
-  const waiting = new Map<PersonImage, THREE.MeshLambertMaterial[]>();
-  const canLoad = typeof document !== 'undefined';
-
-  function start(image: PersonImage): THREE.Texture {
-    const texture = loadImage(image, () => {
-      ready.add(image);
-      waiting.get(image)?.forEach((m) => wear(m, texture));
-      waiting.delete(image);
-    });
-    textures.set(image, texture);
-    return texture;
-  }
-
-  function dress(material: THREE.MeshLambertMaterial, image: PersonImage): void {
-    if (!canLoad) return;
-    const texture = textures.get(image) ?? start(image);
-    if (ready.has(image)) wear(material, texture);
-    else waiting.set(image, [...(waiting.get(image) ?? []), material]);
-  }
-
-  function dispose(): void {
-    textures.forEach((t) => t.dispose());
-    textures.clear();
-    waiting.clear();
-  }
-
-  return { dress, dispose };
+export function posePerson(person: Person, gait: Gait): void {
+  const { walk, run } = gaitBlend(gait.speed);
+  const left = legAngles(gait.phase, gait.speed);
+  const right = legAngles(gait.phase + Math.PI, gait.speed);
+  poseLeg(person, 'l', left);
+  poseLeg(person, 'r', right);
+  const swing = (G.walkArmDeg + (G.runArmDeg - G.walkArmDeg) * run) * DEG * Math.sin(gait.phase) * walk;
+  const elbow = (G.walkElbowDeg + (G.runElbowDeg - G.walkElbowDeg) * run) * DEG * walk;
+  poseArm(person, 'l', -swing, elbow + Math.max(0, -swing) * G.elbowSwingBend); // each arm with the other leg
+  poseArm(person, 'r', swing, elbow + Math.max(0, swing) * G.elbowSwingBend);
+  const drop = P.hipY - ankleY() - Math.max(legHeight(left), legHeight(right));
+  person.rig.position.y = GAP - drop + G.runBounceM * run * Math.abs(Math.sin(gait.phase));
+  poseSpine(person, gait, walk, run);
 }

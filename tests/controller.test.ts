@@ -33,8 +33,9 @@ describe('controller', () => {
     expect(before.speed).toBeLessThan(P.speed);
     const after = run(startPlayer(), { ...still, forward: true }, rampSteps(P.accelSec));
     expect(after.speed).toBe(P.speed);
-    expect(after.x).toBe(0); // still straight along the facing (-Z)
-    expect(after.z).toBeLessThan(P.startZ);
+    const f = forwardFromYaw(P.startYawDeg); // still straight along the start facing
+    expect(Math.abs((after.x - P.startX) * f.z - (after.z - P.startZ) * f.x)).toBeLessThan(1e-9);
+    expect((after.x - P.startX) * f.x + (after.z - P.startZ) * f.z).toBeGreaterThan(0);
   });
 
   it('letting go of W slows down evenly to a stop within decelSec, then stays put', () => {
@@ -74,7 +75,7 @@ describe('controller', () => {
 
   it('stays inside the ground', () => {
     const p = stepPlayer({ x: 100, z: -100, yawDeg: 0 }, still, dt);
-    expect(p.x).toBe(T.world.groundWidth / 2 - T.player.radius);
+    expect(p.x).toBe(T.world.groundCenterX + T.world.groundWidth / 2 - T.player.radius);
     expect(p.z).toBe(-(T.world.groundDepth / 2 - T.player.radius));
   });
 
@@ -90,5 +91,19 @@ describe('controller', () => {
     expect(pickTarget(p, [{ id: 'behind', x: 0, z: 1 }])).toBeNull();
     expect(pickTarget(p, [{ id: 'far', x: 0, z: -10 }])).toBeNull();
     expect(pickTarget(p, [{ id: 'b', x: 0, z: -2 }, { id: 'a', x: 0, z: -1 }])).toBe('a');
+  });
+});
+
+describe('running', () => {
+  it('holding Shift runs runMultiplier times faster, easing in over the same accelSec', () => {
+    const dt = 1 / T.loop.stepsPerSecond;
+    let walk = startPlayer();
+    let run = startPlayer();
+    for (let i = 0; i < Math.ceil(T.player.accelSec / dt) + 2; i++) {
+      walk = stepPlayer(walk, { forward: true, back: false, turnLeft: false, turnRight: false }, dt);
+      run = stepPlayer(run, { forward: true, back: false, turnLeft: false, turnRight: false, run: true }, dt);
+    }
+    expect(walk.speed).toBeCloseTo(T.player.speed, 6);
+    expect(run.speed).toBeCloseTo(T.player.speed * T.player.runMultiplier, 6);
   });
 });

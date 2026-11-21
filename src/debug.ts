@@ -103,6 +103,7 @@ export interface Runtime {
 
 const STEER_KEY: Record<Steer, string> = { walk: 'KeyW', left: 'KeyA', right: 'KeyD' };
 const WALK_KEYS = Object.values(STEER_KEY);
+const RUN_KEY = 'ShiftLeft';
 const WALK_FRAMES = 20 * T.loop.stepsPerSecond; // walkTo() gives up after this many steps
 const INSERT_FRAMES = Math.round(T.cdPlayer.insertSec * T.loop.stepsPerSecond);
 
@@ -190,9 +191,11 @@ function cdTo(rt: Runtime, to: string, tap: (code: string) => void): WalkResult 
 function walkTo(rt: Runtime, objectId: string, maxFrames: number, tap: (code: string) => void): WalkResult {
   const g = rt.game;
   let route: Spot[] | null = null;
+  rt.input.press(RUN_KEY); // the autopilot runs (Shift), like a player in a hurry
   for (let frames = 0; frames < maxFrames; frames++) {
     if (g.state.target === objectId) {
       WALK_KEYS.forEach((k) => rt.input.release(k));
+      rt.input.release(RUN_KEY);
       tap('KeyE');
       return { ok: true, frames: frames + 1, state: snapshot(rt) };
     }
@@ -204,6 +207,7 @@ function walkTo(rt: Runtime, objectId: string, maxFrames: number, tap: (code: st
     g.update(); // simulate only: drawing hundreds of frames here queues GPU work that stalls screenshots
   }
   WALK_KEYS.forEach((k) => rt.input.release(k));
+  rt.input.release(RUN_KEY);
   rt.loop.stepFrames(0); // draw once
   return { ok: false, frames: maxFrames, state: snapshot(rt) };
 }

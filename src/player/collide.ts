@@ -34,16 +34,26 @@ export function footprintOf(p: Prop): Footprint {
   return { shape: 'rect', x, z, halfW: p.size[0] / 2, halfD: p.size[2] / 2 };
 }
 
-/** The footprints of the props that block, out of the props in a scene. */
+/** The footprints of the props that block, out of the props in a scene (none past the ground's edges: nobody gets there). */
 export function obstaclesOf(props: readonly Prop[]): Footprint[] {
-  return props.filter(blocks).map(footprintOf);
+  return props.filter(blocks).map(footprintOf).filter(nearGround);
 }
 
-/** Keeps the player's centre on the ground, a radius away from its edges. */
+/** True when a footprint reaches within a player's radius of the walkable ground. */
+function nearGround(f: Footprint): boolean {
+  const [halfW, halfD] = f.shape === 'circle' ? [f.r, f.r] : [f.halfW, f.halfD];
+  const reach = T.player.radius;
+  const dx = Math.abs(f.x - T.world.groundCenterX) - halfW - T.world.groundWidth / 2;
+  const dz = Math.abs(f.z) - halfD - T.world.groundDepth / 2;
+  return dx < reach && dz < reach;
+}
+
+/** Keeps the player's centre on the ground (x around T.world.groundCenterX), a radius away from its edges. */
 export function onGround(s: Spot): Spot {
   const halfW = T.world.groundWidth / 2 - T.player.radius;
   const halfD = T.world.groundDepth / 2 - T.player.radius;
-  return { x: clamp(s.x, -halfW, halfW), z: clamp(s.z, -halfD, halfD) };
+  const cx = T.world.groundCenterX;
+  return { x: clamp(s.x, cx - halfW, cx + halfW), z: clamp(s.z, -halfD, halfD) };
 }
 
 /** The shortest move that takes the player at `s` out of footprint `f`, or null if they don't overlap. */

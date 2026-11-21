@@ -79,7 +79,7 @@ describe('createAudio', () => {
     const { events, audio } = silentAudio();
     const expected: [Covered, string][] = [
       ['phone-open', 'flip-open'], ['phone-move', 'beep'], ['phone-select', 'blip'], ['travel', 'whoosh'],
-      ['action-done', 'chime'], ['action-locked', 'nope'], ['reputation', 'fanfare'], ['phone-close', 'flip-close'],
+      ['action-done', 'chime'], ['action-locked', 'nope'], ['reputation', 'remaster'], ['phone-close', 'flip-close'],
     ];
     for (const [name, cue] of expected) {
       events.emit(name, PAYLOADS[name]);
@@ -138,8 +138,8 @@ describe('createAudio', () => {
 });
 
 describe('tuning', () => {
-  it('the fanfare waits until the travel whoosh is nearly over', () => {
-    expect(T.audio.fanfare.delaySec).toBeGreaterThan(T.audio.whoosh.sec / 2);
-    expect(T.audio.fanfare.delaySec).toBeLessThanOrEqual(T.audio.whoosh.sec);
+  it('the remaster sting starts while the travel whoosh fades, not on top of its start', () => {
+    expect(T.audio.remaster.delaySec).toBeGreaterThan(T.audio.whoosh.sec / 3);
+    expect(T.audio.remaster.delaySec).toBeLessThanOrEqual(T.audio.whoosh.sec);
   });
 });
