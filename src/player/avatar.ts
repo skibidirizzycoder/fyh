@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { forwardFromYaw } from '../core/facing.ts';
 import { T } from '../tuning.ts';
+import { SHADE_ATTRIBUTE, celMaterial, celVertexMaterial, shadeColor } from '../world/materials.ts';
 import type { PlayerState } from './controller.ts';
 
 export interface Avatar {
@@ -60,16 +61,20 @@ const ARM: readonly Part[] = [
 ];
 const BRIM = { at: [0, 1.51, -0.19], size: [0.2, 0.025, 0.14] } as const; // the nose: the cap's brim, forward
 
-/** Merges coloured boxes into one geometry with vertex colours. */
+/** One colour repeated over n vertices, as a vertex attribute. */
+function solidAttribute(color: THREE.Color, n: number): THREE.BufferAttribute {
+  const rgb = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) rgb.set([color.r, color.g, color.b], i * 3);
+  return new THREE.BufferAttribute(rgb, 3);
+}
+
+/** Merges coloured boxes into one geometry with vertex colours and their cel shade tones. */
 function boxesGeometry(parts: readonly Part[]): THREE.BufferGeometry {
-  const color = new THREE.Color();
   const boxes = parts.map((p) => {
     const box = new THREE.BoxGeometry(...p.size).translate(...p.at);
-    color.set(p.color); // converted to linear, like a material colour
     const n = box.getAttribute('position').count;
-    const rgb = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) rgb.set([color.r, color.g, color.b], i * 3);
-    box.setAttribute('color', new THREE.BufferAttribute(rgb, 3));
+    box.setAttribute('color', solidAttribute(new THREE.Color(p.color), n)); // converted to linear, like a material colour
+    box.setAttribute(SHADE_ATTRIBUTE, solidAttribute(shadeColor(p.color), n));
     return box;
   });
   const merged = mergeGeometries(boxes);
@@ -96,8 +101,8 @@ export function settlePhase(phase: number, rate: number): number {
 
 /** Creates the avatar and adds it to the scene. */
 export function createAvatar(scene: THREE.Scene): Avatar {
-  const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
-  const brimMaterial = new THREE.MeshStandardMaterial({ color: T.player.noseColor, roughness: 0.85 });
+  const material = celVertexMaterial(); // cel-shaded like the street
+  const brimMaterial = celMaterial(T.player.noseColor);
   const bodyGeo = boxesGeometry(BODY);
   const legGeo = boxesGeometry(LEG);
   const armGeo = boxesGeometry(ARM);

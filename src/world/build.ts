@@ -1,17 +1,21 @@
 // build.ts — turns the layout into Three.js meshes, once.
 // Every prop of every era is built at start; switching era only changes
 // visibility and colours, so nothing is created or thrown away mid-game.
-// Geometry is shared (one unit box, one unit cylinder) and materials are
-// reused per colour; only interactables get their own material (for the glow).
+// Geometry comes from shapes.ts (bevelled boxes cached per size, one smooth unit cylinder)
+// and the cel materials (materials.ts) are reused per colour and texture; only
+// interactables get their own material (for the glow). Every standing prop and the player
+// get a soft contact shadow, all drawn as one instanced mesh.
 // Street decoration (`decor`) is merged into one vertex-coloured mesh per set of eras,
 // so the whole street costs a couple of draw calls. A prop with a `label` gets its text
-// painted on a canvas texture, one per era.
+// painted on a canvas texture, one per era. Everything is cel-shaded alike.
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ERAS, T, type Era } from '../tuning.ts';
-import { GROUND, PROPS, inScene, propColor, visibleProps, type Prop } from './layout.ts';
+import { GROUND, PROPS, inScene, propColor, propTexture, visibleProps, type Prop } from './layout.ts';
 import { lookFor } from './look.ts';
+import { SHADE_ATTRIBUTE, celMaterial, celVertexMaterial, createMaterials, shadowTone, type Materials, type Surface } from './materials.ts';
+import { createBlobs, createShapes, type Shapes } from './shapes.ts';
 
 export interface PropView {
   prop: Prop;
@@ -24,7 +28,6 @@ export interface WorldView {
   views: Map<string, PropView>;
   sun: THREE.DirectionalLight;
   hemi: THREE.HemisphereLight;
-  /** Shows the props for an era + story overrides and recolours them. */
   /** Shows the props of an era and moment (moment = null today), with story effects. */
   apply(era: Era, moment: string | null, shown: ReadonlySet<string>, hidden: ReadonlySet<string>, used: ReadonlySet<string>): void;
   /** Turns the highlight glow on for one interactable (or none). */
@@ -39,45 +42,42 @@ interface DecorGroup {
   first: Prop; // any member: they all share eras and moments
   mesh: THREE.Mesh;
   colors: Record<Era, Float32Array>; // vertex colours for each era
+  shades: Record<Era, Float32Array>; // and their shade tones (cel shading)
 }
 
-const unitBox = new THREE.BoxGeometry(1, 1, 1);
-const unitCylinder = new THREE.CylinderGeometry(0.5, 0.5, 1, 16);
 const labelBox = frontFaceBox();
 const markerGeometry = new THREE.OctahedronGeometry(T.world.markerSize);
 
 /** Creates the scene graph for the whole location. */
 export function buildWorld(): WorldView {
   const scene = new THREE.Scene();
-  const shared = new Map<string, THREE.MeshStandardMaterial>();
+  const shapes = createShapes();
+  const materials = createMaterials();
   const markerMaterial = new THREE.MeshBasicMaterial({ color: T.interact.markerColor });
-  const decorMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
+  const decorMaterial = celVertexMaterial();
   const views = new Map<string, PropView>();
-  const labels = new Map<string, Record<Era, THREE.MeshStandardMaterial>>();
-
-  /** Returns the shared material for a colour, making it the first time. */
-  function sharedMaterial(color: string): THREE.MeshStandardMaterial {
-    let m = shared.get(color);
-    if (!m) {
-      m = new THREE.MeshStandardMaterial({ color, roughness: 0.9 });
-      shared.set(color, m);
-    }
-    return m;
-  }
+  const labels = new Map<string, Record<Era, THREE.MeshLambertMaterial>>();
 
   for (const prop of [GROUND, ...PROPS].filter((p) => !p.decor)) {
-    const view = buildProp(prop, markerMaterial, sharedMaterial);
+    const view = buildProp(prop, markerMaterial, materials, shapes);
     views.set(prop.id, view);
     scene.add(view.mesh);
     if (view.marker) scene.add(view.marker);
     if (prop.label) labels.set(prop.id, labelMaterials(prop));
   }
-  const decor = buildDecor(PROPS.filter((p) => p.decor), decorMaterial);
+  const decor = buildDecor(PROPS.filter((p) => p.decor), decorMaterial, shapes);
   decor.forEach((d) => scene.add(d.mesh));
+  const blobs = createBlobs([GROUND, ...PROPS]);
+  scene.add(blobs.mesh);
+  // The player's blob follows the avatar (named 'player'), read just before each draw, after it moved.
+  scene.onBeforeRender = () => {
+    const player = scene.getObjectByName('player');
+    if (player) blobs.follow(player.position.x, player.position.z);
+  };
 
   const hemi = new THREE.HemisphereLight('#ffffff', '#444444', 1);
   const sun = new THREE.DirectionalLight('#ffffff', 1);
-  sun.position.set(4, 8, 6);
+  sun.position.set(...T.cel.sunPosition);
   scene.add(hemi, sun);
 
   let appliedKey = '';
@@ -91,13 +91,14 @@ export function buildWorld(): WorldView {
       const on = visible.has(view.prop.id);
       view.mesh.visible = on;
       if (view.marker) view.marker.visible = on && !used.has(view.prop.id); // used things stop glowing
-      const color = propColor(view.prop, era);
+      const surface = propSurface(view.prop, era);
       const label = labels.get(view.prop.id);
       if (label) view.mesh.material = label[era];
-      else if (view.prop.interactable) (view.mesh.material as THREE.MeshStandardMaterial).color.set(color);
-      else view.mesh.material = sharedMaterial(color);
+      else if (view.prop.interactable) materials.restyle(view.mesh.material as THREE.MeshLambertMaterial, surface);
+      else view.mesh.material = materials.shared(surface);
     }
     decor.forEach((d) => showDecor(d, era, moment));
+    blobs.show((p) => (p.decor ? inScene(p, era, moment) : visible.has(p.id)));
     const look = lookFor(era, moment);
     scene.background = new THREE.Color(look.sky);
     scene.fog = new THREE.Fog(look.sky, look.fogNear, look.fogFar);
@@ -109,7 +110,7 @@ export function buildWorld(): WorldView {
   function highlight(id: string | null): void {
     for (const view of views.values()) {
       if (!view.prop.interactable) continue;
-      const m = view.mesh.material as THREE.MeshStandardMaterial;
+      const m = view.mesh.material as THREE.MeshLambertMaterial;
       m.emissiveIntensity = view.prop.id === id ? T.interact.highlightIntensity : 0;
     }
   }
@@ -124,10 +125,7 @@ export function buildWorld(): WorldView {
   }
 
   function dispose(): void {
-    shared.forEach((m) => m.dispose());
-    views.forEach((v) => {
-      if (v.prop.interactable) (v.mesh.material as THREE.Material).dispose();
-    });
+    materials.dispose(); // shared and interactable materials, and their textures
     labels.forEach((byEra) => Object.values(byEra).forEach((m) => {
       m.map?.dispose();
       m.dispose();
@@ -135,8 +133,8 @@ export function buildWorld(): WorldView {
     decor.forEach((d) => d.mesh.geometry.dispose());
     decorMaterial.dispose();
     markerMaterial.dispose();
-    unitBox.dispose();
-    unitCylinder.dispose();
+    shapes.dispose();
+    blobs.dispose();
     labelBox.dispose();
     markerGeometry.dispose();
   }
@@ -149,17 +147,17 @@ function markerBaseY(prop: Prop): number {
   return prop.pos[1] + prop.size[1] / 2 + T.world.markerHeight;
 }
 
+/** A prop's colour and image in an era. */
+function propSurface(prop: Prop, era: Era): Surface {
+  return { color: propColor(prop, era), texture: propTexture(prop, era), repeat: prop.textureRepeat ?? null };
+}
+
 /** Builds one prop mesh (and its marker if interactable). */
-function buildProp(
-  prop: Prop,
-  markerMaterial: THREE.Material,
-  sharedMaterial: (color: string) => THREE.MeshStandardMaterial,
-): PropView {
-  const geometry = prop.label ? labelBox : prop.shape === 'box' ? unitBox : unitCylinder;
+function buildProp(prop: Prop, markerMaterial: THREE.Material, materials: Materials, shapes: Shapes): PropView {
+  const geometry = geometryFor(prop, shapes);
   // Interactables get their own material so the highlight glow affects only them.
-  const material = prop.interactable
-    ? new THREE.MeshStandardMaterial({ color: propColor(prop, '2004'), emissive: T.interact.highlightColor, emissiveIntensity: 0 })
-    : sharedMaterial(propColor(prop, '2004'));
+  const surface = propSurface(prop, '2004');
+  const material = prop.interactable ? materials.own(surface) : materials.shared(surface);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = prop.id;
   place(mesh, prop);
@@ -173,11 +171,24 @@ function buildProp(
   return { prop, mesh, marker };
 }
 
-/** Moves, turns and scales a unit shape so it fills the prop's box (a lying cylinder is turned onto its axis). */
+/** True when a prop's geometry is made at its real size (bevelled boxes); the rest are unit shapes, scaled. */
+function madeToSize(prop: Prop): boolean {
+  return prop.shape === 'box' && !prop.label;
+}
+
+/** A prop's geometry: a bevelled box of its size, a flat-fronted label board, or the unit cylinder. */
+function geometryFor(prop: Prop, shapes: Shapes): THREE.BufferGeometry {
+  if (prop.label) return labelBox; // the painted front stays flat
+  return madeToSize(prop) ? shapes.box(prop.size) : shapes.cylinder;
+}
+
+/** Moves (and, for a unit shape, turns and scales) a prop's shape so it fills the prop's box. */
 function place(object: THREE.Object3D, prop: Prop): void {
   const [x, y, z] = prop.size;
   object.position.set(...prop.pos);
-  if (prop.axis === 'x') {
+  if (madeToSize(prop)) {
+    object.scale.set(1, 1, 1); // already the right size: scaling would stretch the bevels
+  } else if (prop.axis === 'x') {
     object.rotation.set(0, 0, Math.PI / 2); // the cylinder's length (local y) now runs along world x
     object.scale.set(y, x, z);
   } else if (prop.axis === 'z') {
@@ -224,66 +235,79 @@ function paintLabel(prop: Prop, era: Era): HTMLCanvasElement {
   return canvas;
 }
 
-/** One textured material per era for a labelled prop. */
-function labelMaterials(prop: Prop): Record<Era, THREE.MeshStandardMaterial> {
-  const byEra = {} as Record<Era, THREE.MeshStandardMaterial>;
+/** One cel material per era for a labelled prop: the painted board on its front, the board colour elsewhere. */
+function labelMaterials(prop: Prop): Record<Era, THREE.MeshLambertMaterial> {
+  const byEra = {} as Record<Era, THREE.MeshLambertMaterial>;
   for (const era of ERAS) {
     const texture = new THREE.CanvasTexture(paintLabel(prop, era));
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = 4;
-    byEra[era] = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.9 });
+    const m = celMaterial(propColor(prop, era));
+    m.map = texture; // front face only (celMapAll stays 0)
+    byEra[era] = m;
   }
   return byEra;
 }
 
 /** Groups decoration by eras and moments and merges each group into one mesh. */
-function buildDecor(props: readonly Prop[], material: THREE.Material): DecorGroup[] {
+function buildDecor(props: readonly Prop[], material: THREE.Material, shapes: Shapes): DecorGroup[] {
   const groups = new Map<string, Prop[]>();
   for (const p of props) {
     const key = `${p.eras.join()}|${p.moments?.join() ?? ''}`;
     groups.set(key, [...(groups.get(key) ?? []), p]);
   }
-  return [...groups.entries()].map(([key, members]) => mergeDecor(key, members, material));
+  return [...groups.entries()].map(([key, members]) => mergeDecor(key, members, material, shapes));
 }
 
 /** Merges a group of decoration props into one mesh with a vertex colour set per era. */
-function mergeDecor(key: string, props: readonly Prop[], material: THREE.Material): DecorGroup {
+function mergeDecor(key: string, props: readonly Prop[], material: THREE.Material, shapes: Shapes): DecorGroup {
   const parts = props.map((p) => {
     const shape = new THREE.Object3D();
     place(shape, p);
     shape.updateMatrix();
-    return (p.shape === 'box' ? unitBox : unitCylinder).clone().applyMatrix4(shape.matrix);
+    return geometryFor(p, shapes).clone().applyMatrix4(shape.matrix);
   });
   const geometry = mergeGeometries(parts);
   if (!geometry) throw new Error(`could not merge the street decoration "${key}"`);
   const counts = parts.map((g) => g.getAttribute('position').count);
   parts.forEach((g) => g.dispose());
   const colors = {} as Record<Era, Float32Array>;
-  for (const era of ERAS) colors[era] = vertexColors(props, counts, era);
+  const shades = {} as Record<Era, Float32Array>;
+  for (const era of ERAS) {
+    colors[era] = vertexColors(props, counts, (p) => propColor(p, era));
+    shades[era] = vertexColors(props, counts, (p) => shadowTone(propColor(p, era)));
+  }
   geometry.setAttribute('color', new THREE.BufferAttribute(colors['2004'].slice(), 3));
+  geometry.setAttribute(SHADE_ATTRIBUTE, new THREE.BufferAttribute(shades['2004'].slice(), 3));
   const first = props[0];
   if (!first) throw new Error(`street decoration "${key}" is empty`);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = `street_decor_${first.eras.join('_')}`;
-  return { first, mesh, colors };
+  return { first, mesh, colors, shades };
 }
 
-/** One RGB colour per vertex: each prop's colour in an era, repeated over its vertices. */
-function vertexColors(props: readonly Prop[], counts: readonly number[], era: Era): Float32Array {
+/** One RGB colour per vertex: a colour for each prop (its era colour or shade), repeated over its vertices. */
+function vertexColors(props: readonly Prop[], counts: readonly number[], colorOf: (p: Prop) => string): Float32Array {
   const out = new Float32Array(counts.reduce((a, b) => a + b, 0) * 3);
   const color = new THREE.Color();
   let at = 0;
   props.forEach((p, i) => {
-    color.set(propColor(p, era)); // converted to linear, like a material colour
+    color.set(colorOf(p)); // converted to linear, like a material colour
     for (let v = 0; v < (counts[i] ?? 0); v++, at += 3) out.set([color.r, color.g, color.b], at);
   });
   return out;
 }
 
-/** Shows a decoration group in the scenes it belongs to, in the era's colours. */
+/** Copies one era's values into a vertex attribute. */
+function setAttribute(geometry: THREE.BufferGeometry, name: string, values: Float32Array): void {
+  const attr = geometry.getAttribute(name) as THREE.BufferAttribute;
+  (attr.array as Float32Array).set(values);
+  attr.needsUpdate = true;
+}
+
+/** Shows a decoration group in the scenes it belongs to, in the era's colours and shades. */
 function showDecor(group: DecorGroup, era: Era, moment: string | null): void {
   group.mesh.visible = inScene(group.first, era, moment);
-  const attr = group.mesh.geometry.getAttribute('color') as THREE.BufferAttribute;
-  (attr.array as Float32Array).set(group.colors[era]);
-  attr.needsUpdate = true;
+  setAttribute(group.mesh.geometry, 'color', group.colors[era]);
+  setAttribute(group.mesh.geometry, SHADE_ATTRIBUTE, group.shades[era]);
 }

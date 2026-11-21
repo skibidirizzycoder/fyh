@@ -62,6 +62,42 @@ export const T = {
     markerBobAmount: 0.08,
   },
 
+  // Cel shading and prop textures (src/world/materials.ts), the same in both eras. Owner: director.
+  // A surface is lit (its colour) or in shade (its colour in HSV with the value lowered and the hue
+  // nudged towards blue/purple), with a soft step between. The era's sun and sky then tint both.
+  cel: {
+    sunPosition: [4, 8, 6] as readonly [number, number, number], // the sun shines from here towards the origin
+    litEdge: 0.05, // a face is lit where N·L (sun) is above this...
+    litSoftness: 0.04, // ...with a soft step this wide either side (0 = a hard cut)
+    litGradient: 0.25, // lit faces turned away from the sun are up to this much darker, so box faces read apart
+    sunWeight: 0.3, // scene light = sun colour x intensity x sunWeight...
+    skyWeight: 0.35, // ...+ sky light x skyWeight (1 = the colours exactly as written)
+    shadowValue: 0.68, // shade: HSV value x this
+    shadowHue: 250, // shade: hue (degrees) nudged towards this blue-purple...
+    shadowHueShift: 18, // ...by at most this many degrees
+    shadowSaturation: 1.15, // shade: saturation x this...
+    shadowMinSaturation: 0.12, // ...and at least this, so even greys get a coloured shade
+    textureMixFront: 0.95, // a picture on a front face (cover, poster, window) shows this much image...
+    textureMixTiled: 0.4, // ...a tiled one (brick, pavement) less, so it stays calm; the rest is the prop's era colour
+    textureFilter: 'linear' as 'linear' | 'nearest', // how textures are sampled
+    // Rounded shapes (src/world/shapes.ts): boxes are bevelled at their real size, cylinders smooth.
+    bevelRatio: 0.12, // bevel radius = this x the box's shortest side...
+    bevelMax: 0.06, // ...at most this (metres; big walls)...
+    bevelMin: 0.006, // ...and a box whose bevel would be under this stays plain (flyers, road paint)
+    bevelSegments: 2, // steps around each rounded edge
+    cylinderSegments: 28, // sides of every cylinder
+    // Soft contact shadows: one blob under every standing prop and the player (one draw call).
+    blobColor: '#241f36', // dark blue-purple, like the shade tones
+    blobOpacity: 0.55,
+    blobMargin: 0.35, // a blob reaches this far (metres) past the prop's footprint on every side
+    blobSoftness: 0.7, // how much of the blob's radius fades out (1 = all of it)
+    blobY: 0.055, // height above the ground: over the road (0.035) by more than the surface gap
+    blobMaxBottom: 0.35, // a prop whose bottom is at most this high stands on the ground (the car body is at 0.3)...
+    blobMinHeight: 0.25, // ...and gets a blob if it is at least this tall (not kerbs or road paint)
+    playerBlob: 1, // the player's blob, metres across
+    blobTexturePx: 64,
+  },
+
   eras: {
     '2004': {
       label: '2004',
