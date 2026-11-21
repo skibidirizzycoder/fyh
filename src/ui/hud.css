@@ -1,0 +1,192 @@
+/* hud.css — every on-screen panel and screen. Owner: Teammate A.
+   Colours and timings come from tuning.ts as CSS variables (set by hud.ts). Text areas keep one
+   solid background each, so smoke's contrast check (measured on rendered pixels) means something. */
+
+/* --- in-game panels --- */
+.panel { position: absolute; background: var(--panel); border-radius: 8px; padding: 10px 16px; font-size: 18px; line-height: 1.4; }
+#era { top: 16px; left: 16px; font-size: 28px; font-weight: 800; letter-spacing: 2px; }
+#era[data-era='2004'] { color: var(--era-2004); font-family: 'Courier New', monospace; }
+#era[data-era='present'] { color: var(--era-present); }
+#prompt { bottom: 110px; left: 50%; transform: translateX(-50%); color: var(--accent); font-weight: 700; }
+#dialogue { bottom: 24px; left: 50%; transform: translateX(-50%); max-width: 70%; text-align: center; }
+
+/* --- full screens: title and ending sit above everything --- */
+.screen {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--backdrop);
+  text-align: center;
+}
+
+/* --- title: a 2004 phone booting up --- */
+.boot {
+  width: min(540px, 88vw);
+  padding: 14px 26px 18px;
+  box-sizing: border-box;
+  border-radius: 14px;
+}
+.boot p, .boot h1, .boot figure { margin: 0; }
+.boot-status { display: flex; align-items: flex-end; justify-content: space-between; height: 16px; font-size: 13px; margin-bottom: 14px; }
+.boot-signal { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
+.boot-signal i { display: block; width: 4px; background: currentColor; }
+.boot-signal i:nth-child(1) { height: 4px; }
+.boot-signal i:nth-child(2) { height: 7px; }
+.boot-signal i:nth-child(3) { height: 10px; }
+.boot-signal i:nth-child(4) { height: 14px; }
+.boot-battery { position: relative; display: block; width: 22px; height: 11px; border: 2px solid currentColor; box-sizing: border-box; }
+.boot-battery i { position: absolute; left: 1px; top: 1px; bottom: 1px; width: 13px; background: currentColor; }
+.boot-maker { font-size: 34px; letter-spacing: 8px; }
+.boot-tagline { font-size: 14px; margin-top: 2px !important; }
+.boot-shop { font-size: 30px; font-weight: 900; letter-spacing: 3px; margin-top: 20px !important; }
+.boot-shop-sub { font-size: 14px; margin-top: 2px !important; }
+.boot-cds { display: flex; justify-content: center; gap: 28px; margin: 16px 0 14px; }
+.boot-cd { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; }
+.boot-bar { width: 70%; height: 12px; margin: 0 auto 12px; border: 2px solid currentColor; box-sizing: border-box; padding: 1px; }
+.boot-bar i { display: block; height: 100%; width: 100%; background: currentColor; transform-origin: left; animation: boot-fill var(--boot-sec) steps(12) both; }
+.boot-start { font-size: 20px; font-weight: 800; animation: boot-blink var(--blink-sec) step-end var(--boot-sec) infinite; }
+.boot-keys { font-size: 12px; margin-top: 10px !important; }
+
+@keyframes boot-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes boot-blink { 50% { visibility: hidden; } }
+
+/* Look 1, "lcd": the phone's own green mono LCD, pixel text, a thick dark bezel. */
+.boot[data-variant='lcd'] {
+  background: var(--lcd);
+  color: var(--lcd-ink);
+  box-shadow: 0 0 0 14px var(--bezel), 0 18px 40px 14px rgba(0, 0, 0, 0.6);
+  font-family: 'Lucida Console', 'Courier New', monospace;
+  font-weight: 700;
+  -webkit-font-smoothing: none;
+}
+.boot[data-variant='lcd'] .disc-dusty {
+  /* monochrome CD: ink disc, LCD-coloured hole and ring, dotted "dust" */
+  background:
+    radial-gradient(circle, var(--lcd) 0 9%, var(--lcd-ink) 9% 20%, var(--lcd) 20% 24%, transparent 24%),
+    repeating-linear-gradient(45deg, var(--lcd-ink) 0 5px, var(--lcd) 5px 6px);
+}
+
+/* Look 2, "colour": a 2004 colour screen, blue backlight, white text, yellow highlights. */
+.boot[data-variant='colour'] {
+  background: linear-gradient(180deg, var(--colour-top), var(--colour-bottom));
+  color: var(--colour-text);
+  box-shadow: 0 0 0 14px var(--bezel), 0 18px 40px 14px rgba(0, 0, 0, 0.6);
+  font-family: Tahoma, Verdana, system-ui, sans-serif;
+}
+.boot[data-variant='colour'] .boot-maker { font-style: italic; text-shadow: 0 2px 0 var(--colour-bottom); }
+.boot[data-variant='colour'] .boot-shop, .boot[data-variant='colour'] .boot-start { color: var(--colour-accent); }
+
+/* --- discs (title: dusty; ending: gold) --- */
+.disc { display: block; border-radius: 50%; }
+.disc-dusty {
+  width: 64px;
+  height: 64px;
+  background:
+    radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.45) 0 3px, transparent 4px),
+    radial-gradient(circle at 66% 62%, rgba(255, 255, 255, 0.35) 0 2px, transparent 3px),
+    radial-gradient(circle at 44% 74%, rgba(255, 255, 255, 0.35) 0 2px, transparent 3px),
+    radial-gradient(circle, var(--colour-bottom) 0 9%, var(--cd-hub) 9% 22%, var(--cd-dusty) 22%);
+}
+.disc-gold {
+  width: 112px;
+  height: 112px;
+  background:
+    radial-gradient(circle, var(--mat) 0 7%, var(--gold-deep) 7% 11%, transparent 11%),
+    conic-gradient(from 30deg, var(--gold), var(--gold-deep), var(--gold), var(--gold-deep), var(--gold));
+  box-shadow: 0 0 0 2px var(--gold-deep);
+}
+
+/* --- "Because you...": a tabloid inside story --- */
+.tabloid-card {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 330px;
+  padding-bottom: 10px;
+  background: var(--tabloid-paper);
+  color: var(--tabloid-ink);
+  font: 15px/1.35 Arial, Helvetica, sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.tabloid-head {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  background: var(--tabloid-red);
+  color: var(--tabloid-red-text);
+  font: 900 24px/1.1 Impact, 'Arial Black', 'Helvetica Neue', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.tabloid-sticker {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  margin: 0;
+  padding: 4px 8px;
+  background: var(--sticker);
+  color: var(--tabloid-ink);
+  font: 900 12px/1 'Arial Black', Arial, sans-serif;
+  letter-spacing: 1px;
+  transform: rotate(8deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+#card ol { margin: 0 12px 8px 34px; padding: 0; }
+#card li { margin-bottom: 2px; }
+#card li::marker { color: var(--tabloid-red); font-weight: 900; }
+#card-change { margin: 0 12px; color: var(--tabloid-red); font-weight: 800; white-space: pre-line; }
+
+/* --- today's paper: a 2000s red-top front page --- */
+.tabloid {
+  position: absolute;
+  left: 16px;
+  top: 90px;
+  width: 330px;
+  padding-bottom: 10px;
+  background: var(--tabloid-paper);
+  color: var(--tabloid-ink);
+  font: 14px/1.4 Arial, Helvetica, sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.tabloid-masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--tabloid-red);
+  color: var(--tabloid-red-text);
+  font: 900 22px/1 Impact, 'Arial Black', 'Helvetica Neue', sans-serif;
+  letter-spacing: 1px;
+}
+.tabloid-price { font: 700 12px/1 Arial, sans-serif; }
+#news-headline { margin: 8px 12px 6px; font: 900 26px/1.05 Impact, 'Arial Black', 'Helvetica Neue', sans-serif; text-transform: uppercase; }
+#news-article { margin: 0 12px; }
+#news-offline { margin: 8px 12px 0; font: 800 11px/1 Arial, sans-serif; text-transform: uppercase; letter-spacing: 1px; color: var(--offline-ink); }
+
+/* --- the ending: a wall of framed gold discs --- */
+#ending { background: var(--wall); }
+.ending-title { margin: 0 0 26px; color: var(--gold); font: 900 64px/1 Impact, 'Arial Black', sans-serif; letter-spacing: 14px; }
+.gold-wall { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; }
+.gold-frame { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.gold-mount {
+  display: grid;
+  place-items: center;
+  width: 150px;
+  height: 150px;
+  background: var(--mat);
+  border: 10px solid var(--frame);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+}
+.gold-caption { color: var(--caption); font: 15px/1.35 Arial, sans-serif; }
+.gold-caption b { display: block; font-size: 18px; }
+.ending-text { max-width: 620px; margin: 30px 0 0; color: var(--caption); font: 18px/1.45 Arial, sans-serif; }
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-bar i, .boot-start { animation: none; }
+}
