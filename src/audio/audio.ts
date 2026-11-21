@@ -189,8 +189,9 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
 
   const feel = createFeel((cue: Cue) => {
     const s = sound;
-    // Not while suspended (e.g. a background tab): queued footsteps would all land at once on resume.
-    if (s && !muted && s.ctx.state === 'running') safely(() => playCue(s.ctx, s.master, cue, s.noise));
+    if (s && !muted) safely(() => playCue(s.ctx, s.master, cue, s.noise));
+  }, () => {
+    broken = true; // a feel sound failed to build: go quiet, as for any audio failure (failed() reports it)
   });
   events.on('travel', (e) => feel.travel(e.moment));
   subscribeFeel(events as unknown as FeelSource, feel); // events requested from Claude; harmless until sent
@@ -213,7 +214,6 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
     failed: () => broken,
     dispose() {
       music.dispose();
-      feel.dispose();
       options.target?.removeEventListener('keydown', resume);
       options.target?.removeEventListener('pointerdown', resume);
       const s = sound;

@@ -216,8 +216,32 @@ export const T = {
   screens: {
     // Title, "Because you..." card, newspaper and ending (src/ui/). Owner: Teammate A.
     titleVariant: 'lcd' as 'lcd' | 'colour', // the team picks: artifacts/title-variants.png shows both
-    bootSec: 1.2, // the boot progress bar fills in this long (then "Press Enter" blinks)
+    bootSec: 1.2, // the boot progress bar fills in this long (then PRESS START pulses)
+    titleShade: 'rgba(11, 11, 15, 0.55)', // the title darkens the live street behind it, more at the edges
+    logoTiltDeg: 10, // the logo leans up to this much towards the mouse
+    logoSwaySec: 6, // one slow idle sway of the logo
     blinkSec: 1.1, // one on/off cycle of "Press Enter"
+    narrowBelowPx: 700, // windows narrower than this (phones) stack the card and paper and move the phone up
+    // Hand-made UI (like Messenger's, our own colours): off-white paper, thick ink outlines, chunky type,
+    // panels a little rotated. Used by the era badge, prompt, dialogue, card, paper and ending captions.
+    paper: '#fbf6e9',
+    paper2004: '#f3e3c0', // the era badge in 2004: older, yellower paper
+    paperInk: '#1d1a14',
+    outlinePx: 3,
+    note: '#ffe14d', // the "E — ..." prompt is a yellow sticky note
+    chunkyFont: "'Trebuchet MS', 'Arial Rounded MT Bold', system-ui, sans-serif",
+    dialogueMaxPx: 720, // the dialogue never gets wide enough to reach the open phone (bottom-right)
+    bubbles: {
+      // Fixing a CD: ♪ and ♥ bubbles pop over the moment (Messenger's payoff), then float away.
+      count: 8,
+      sec: 1.2, // each bubble's pop, float and fade
+      staggerSec: 0.35, // the last bubble starts this much after the first
+      band: { left: 22, right: 78, top: 26, bottom: 52 }, // % of the window: where the crowd is when you fix a CD
+      sizePx: 44,
+      paper: '#fffdf5',
+      ink: '#1d1a14',
+      heart: '#e03131',
+    },
     backdrop: '#0b0b0f', // behind the title and the ending
     // 'lcd' title: the phone's own green LCD (T.phone.lcd / lcdInk), with a dark bezel
     bezel: '#2b2f35',
@@ -230,7 +254,6 @@ export const T = {
     cdDusty: '#9aa0a6',
     cdHub: '#4b5057',
     // tabloid: card + newspaper
-    tabloidPaper: '#ffffff',
     tabloidInk: '#111111',
     tabloidRed: '#c8102e', // red-top masthead (white text on it: 5.8:1)
     tabloidRedText: '#ffffff',
@@ -242,6 +265,77 @@ export const T = {
     frame: '#111111',
     mat: '#f1ece1',
     caption: '#fff3bf',
+  },
+
+  // The shared street: shop front, neighbours, kerb and road (where they stand: src/world/street.ts).
+  // A { '2004', present } pair changes with the era; a single colour is the same in both.
+  street: {
+    pavement: { '2004': '#948f87', present: '#55595e' }, // the ground in front of the shops: grey stone flags
+    road: { '2004': '#67625c', present: '#3a3e44' },
+    kerb: { '2004': '#aaa8a2', present: '#b4b7ba' },
+    roadLine: '#e9e4d8', // white centre dashes
+    yellowLine: { '2004': '#c9a23a', present: '#e3c44a' }, // double yellow lines along the kerb
+    shopWall: { '2004': '#7a4a3a', present: '#5d5f66' },
+    woodwork: { '2004': '#1f4a3c', present: '#2b3946' }, // shopfront frame, pilasters, fascia: racing green in 2004
+    stallriser: { '2004': '#173528', present: '#232d38' }, // the panel under the shop window
+    awning: { '2004': '#8c2a2a', present: '#3d4450' },
+    awningStripe: { '2004': '#efe2c4', present: '#7d8794' },
+    sign: { '2004': '#1b1410', present: '#1c1f25' }, // the shop's name board...
+    signInk: { '2004': '#e8c36a', present: '#d9e1ea' }, // ...and its painted letters
+    signText: 'HOLLOW RECORDS',
+    signFont: 'Georgia, "Times New Roman", serif', // bold
+    signFontPx: 132, // shrunk to fit the board if the text is too wide
+    signLetterSpacingPx: 10,
+    signTexturePx: [2048, 211], // canvas size: the same shape as the board (6.4 x 0.66 m)
+    door: { '2004': '#4a3022', present: '#33363d' },
+    brass: '#c9a54a', // door knob and letterbox
+    upperWall: { '2004': '#8a4f3c', present: '#7a5a4e' }, // brick flat above the shop
+    stone: { '2004': '#cfc3ad', present: '#d6d6d2' }, // cornices, sills, lintels, kerb-side posts
+    glass: { '2004': '#2b2a2e', present: '#33414f' }, // dark window panes
+    windowFrame: { '2004': '#ece3d0', present: '#eef0f2' },
+    chimney: { '2004': '#6e3b2e', present: '#6a5048' },
+    chimneyPot: '#b5652f',
+    alleyWall: { '2004': '#5a3a30', present: '#4c4f55' }, // closes the gaps between the shop and its neighbours
+    leftBuilding: { '2004': '#8a6a50', present: '#7b8087' },
+    rightBuilding: { '2004': '#6e5a4a', present: '#8d939a' },
+    farLeft: { '2004': '#5f4a3d', present: '#6c7178' }, // buildings past the edge of the walkable street
+    farRight: { '2004': '#7c6450', present: '#9aa0a6' },
+    leftShop: { '2004': '#3e5c8a', present: '#4a4f57' }, // fascia of the left neighbour's shop...
+    rightShop: { '2004': '#8c2f2f', present: '#2f6f6a' }, // ...the right neighbour's...
+    farShop: { '2004': '#6b5a2f', present: '#5a4a7a' }, // ...and the shops further along
+    shutter: '#8e949b', // the left neighbour is closed down today
+    lamp: '#2a2a2a', // lamp post, arm and head
+    lampGlass: '#fff1c2',
+    bench: { '2004': '#6a4a2a', present: '#4a4f57' },
+    car: { body: '#4a6b8a', glass: '#25313a', tyre: '#161616', chrome: '#c4c8cc', headlight: '#f6e9b8', taillight: '#b3261e' },
+    payphone: { body: '#7a7f3a', hood: '#3b3e42', panel: '#c0c4c8', handset: '#111111' },
+    charger: { body: '#e8eef2', screen: '#38d9a9', holster: '#2b2f36' },
+    scooter: { body: '#2dd4bf', tyre: '#161616', seat: '#22262b', bar: '#3a3f46' },
+    planter: '#7d8185', // concrete trough...
+    plants: '#4a7f45', // ...with a clipped hedge in it
+    tvScreen: '#20262c',
+    notices: ['#f1efe6', '#f3e39a', '#a9d3f0'], // papers pinned on the noticeboard
+  },
+
+  // The player's low-poly body (src/player/avatar.ts). Metres; it fits inside T.player.height and radius.
+  // The cap and its brim use T.player.noseColor: the brim is the "nose" that shows which way you face.
+  avatar: {
+    hoodie: '#e4e0d6', // off-white: stands out in both eras
+    hoodieTrim: '#2c8c7c', // hood, waistband and pocket
+    jeans: '#4a6390', // mid-wash denim
+    shoes: '#f0f0f0',
+    skin: '#e0ac85',
+    headphones: '#1e1e24', // also the eyes
+    hipY: 0.74, // legs hang from here (the soles end up at the ground)...
+    shoulderY: 1.24, // ...and arms from here (above the ground)
+    legX: 0.1, // centre of each leg, from the middle of the body
+    armX: 0.27, // centre of each arm, from the middle of the body
+    strideM: 1.3, // metres walked per full step cycle (left + right)
+    legSwingDeg: 28,
+    armSwingDeg: 22,
+    bobM: 0.03, // the body rises this much mid-stride
+    settleRad: 0.25, // per drawn frame: when you stop, the legs finish their step at this rate
+    teleportM: 0.5, // a jump bigger than this in one frame (travel, restart) is not walking
   },
 
   // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
@@ -311,7 +405,7 @@ export const T = {
     // are never the lastCue, so they can't hide the story sounds from the checks.
     feel: {
       seed: 31,
-      step: { variants: 4, sec: 0.07, gain: 0.12, fromHz: 1800, toHz: 500, q: 1.2, thumpNote: 40, thumpGain: 0.09, pitchJitter: 0.12, stepSec: 0.32 },
+      step: { variants: 4, sec: 0.07, gain: 0.12, fromHz: 1800, toHz: 500, q: 1.2, thumpNote: 40, thumpGain: 0.09, pitchJitter: 0.12, strideM: 0.9 }, // game: one `footstep` event per strideM walked
       paper: { rustles: 4, gapSec: 0.045, sec: 0.07, gain: 0.3, minHz: 2500, maxHz: 6500, q: 1.5 },
       zoom: { sec: 0.45, gain: 0.25, lowHz: 300, highHz: 1600, q: 2 }, // a soft whoosh: rising in, falling out
       voice: {
@@ -333,6 +427,7 @@ export const T = {
       seed: 77,
       fadeSec: 1.5,
       sampleRate: 24000, // scene layers are made at this rate (all below 12 kHz): half the work of 48 kHz
+      seamSec: 0.3, // each layer's end crossfades into its start over this long, so the loop has no click
       layerRms: 0.25, // every layer is scaled to this loudness; its `gain` then sets how loud it is
       open_mic: { // a pub-ish evening: murmuring people and clinking glasses
         babble: { gain: 0.08, voices: 6, syllableHz: 4, lowHz: 250, highHz: 1100 },

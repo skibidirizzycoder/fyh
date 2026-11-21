@@ -2,13 +2,28 @@
    Colours and timings come from tuning.ts as CSS variables (set by hud.ts). Text areas keep one
    solid background each, so smoke's contrast check (measured on rendered pixels) means something. */
 
-/* --- in-game panels --- */
-.panel { position: absolute; background: var(--panel); border-radius: 8px; padding: 10px 16px; font-size: 18px; line-height: 1.4; }
-#era { top: 16px; left: 16px; font-size: 28px; font-weight: 800; letter-spacing: 2px; }
-#era[data-era='2004'] { color: var(--era-2004); font-family: 'Courier New', monospace; }
-#era[data-era='present'] { color: var(--era-present); }
-#prompt { bottom: 110px; left: 50%; transform: translateX(-50%); color: var(--accent); font-weight: 700; }
-#dialogue { bottom: 24px; left: 50%; transform: translateX(-50%); max-width: 70%; text-align: center; }
+/* --- in-game panels: hand-made paper (off-white, thick ink outline, hard shadow, a slight tilt) --- */
+.panel {
+  position: absolute;
+  padding: 10px 16px;
+  border: var(--outline);
+  border-radius: 10px;
+  background: var(--paper-hand);
+  color: var(--paper-ink);
+  box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.35);
+  font: 700 18px/1.4 var(--chunky);
+}
+#era { top: 16px; left: 16px; font-size: 28px; font-weight: 800; letter-spacing: 2px; transform: rotate(-2deg); }
+#era[data-era='2004'] { background: var(--paper-2004); font-family: 'Courier New', monospace; }
+#prompt { bottom: 110px; left: 50%; transform: translateX(-50%) rotate(1deg); background: var(--note); font-weight: 800; }
+#dialogue {
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-0.6deg);
+  width: max-content;
+  max-width: min(70%, var(--dialogue-max));
+  text-align: center;
+}
 
 /* --- full screens: title and ending sit above everything --- */
 .screen {
@@ -18,21 +33,76 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center; /* "safe": a screen taller than the window scrolls instead of losing its top */
+  overflow-y: auto;
   padding: 24px;
   box-sizing: border-box;
   background: var(--backdrop);
   text-align: center;
 }
 
-/* --- title: a 2004 phone booting up --- */
+/* --- title: over the live street (Messenger-style), a chunky logo, the shop's boot screen, one button --- */
+#title { background: radial-gradient(ellipse at center, transparent 0%, var(--title-shade) 70%), var(--title-shade); }
+.title-logo-sway { animation: logo-sway var(--logo-sway) ease-in-out infinite; }
+.title-logo {
+  margin: 0;
+  color: var(--paper-hand);
+  font: 900 clamp(36px, 8vw, 96px)/0.95 'Arial Black', Impact, sans-serif;
+  letter-spacing: 3px;
+  -webkit-text-stroke: 7px var(--paper-ink);
+  paint-order: stroke fill; /* the outline sits outside the letters, so they stay chunky */
+  text-shadow: 0 8px 0 var(--paper-ink);
+  transform: perspective(700px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) rotate(-3deg);
+  transition: transform 0.15s ease-out;
+}
+.title-logo span { display: inline-block; margin: 0 0.12em; }
+.title-logo span:last-child { color: var(--note); transform: rotate(4deg) translateY(6px); }
+.title-tagline {
+  display: inline-block;
+  margin: 16px 0 22px;
+  padding: 4px 14px;
+  border: var(--outline);
+  border-radius: 8px;
+  background: var(--paper-hand);
+  color: var(--paper-ink);
+  font: 800 16px/1.3 var(--chunky);
+  transform: rotate(1.5deg);
+}
+.title-start {
+  margin-top: 30px;
+  padding: 14px 46px;
+  border: 4px solid var(--paper-ink);
+  border-radius: 18px;
+  background: var(--note);
+  color: var(--paper-ink);
+  font: 900 30px/1 var(--chunky);
+  letter-spacing: 3px;
+  box-shadow: 0 7px 0 var(--paper-ink);
+  cursor: pointer;
+  animation: start-pulse 1.6s ease-in-out var(--boot-sec) infinite;
+}
+.title-start:hover, .title-start:focus-visible { outline: none; background: var(--paper-hand); }
+.title-start:active { box-shadow: 0 2px 0 var(--paper-ink); translate: 0 5px; }
+.title-hint {
+  margin: 18px 0 0;
+  padding: 3px 10px;
+  border: 2px solid var(--paper-ink);
+  border-radius: 6px;
+  background: var(--paper-hand);
+  color: var(--paper-ink);
+  font: 700 13px/1.2 var(--chunky);
+}
+@keyframes logo-sway { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1.5deg) translateY(-4px); } }
+@keyframes start-pulse { 50% { scale: 1.06; } }
+
+/* The shop's 2004 phone, booting up (two looks, picked in T.screens.titleVariant). */
 .boot {
-  width: min(540px, 88vw);
+  width: min(480px, 88vw);
   padding: 14px 26px 18px;
   box-sizing: border-box;
   border-radius: 14px;
 }
-.boot p, .boot h1, .boot figure { margin: 0; }
+:where(.boot) p, :where(.boot) h1, :where(.boot) figure { margin: 0; } /* :where keeps this weak, so the lines below win */
 .boot-status { display: flex; align-items: flex-end; justify-content: space-between; height: 16px; font-size: 13px; margin-bottom: 14px; }
 .boot-signal { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
 .boot-signal i { display: block; width: 4px; background: currentColor; }
@@ -42,19 +112,15 @@
 .boot-signal i:nth-child(4) { height: 14px; }
 .boot-battery { position: relative; display: block; width: 22px; height: 11px; border: 2px solid currentColor; box-sizing: border-box; }
 .boot-battery i { position: absolute; left: 1px; top: 1px; bottom: 1px; width: 13px; background: currentColor; }
-.boot-maker { font-size: 34px; letter-spacing: 8px; }
-.boot-tagline { font-size: 14px; margin-top: 2px !important; }
-.boot-shop { font-size: 30px; font-weight: 900; letter-spacing: 3px; margin-top: 20px !important; }
-.boot-shop-sub { font-size: 14px; margin-top: 2px !important; }
+.boot-shop { font-size: 30px; font-weight: 900; letter-spacing: 3px; }
+.boot-shop-sub { font-size: 14px; margin-top: 2px; }
 .boot-cds { display: flex; justify-content: center; gap: 28px; margin: 16px 0 14px; }
 .boot-cd { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; }
-.boot-bar { width: 70%; height: 12px; margin: 0 auto 12px; border: 2px solid currentColor; box-sizing: border-box; padding: 1px; }
+.boot-bar { width: 70%; height: 12px; margin: 0 auto 10px; border: 2px solid currentColor; box-sizing: border-box; padding: 1px; }
 .boot-bar i { display: block; height: 100%; width: 100%; background: currentColor; transform-origin: left; animation: boot-fill var(--boot-sec) steps(12) both; }
-.boot-start { font-size: 20px; font-weight: 800; animation: boot-blink var(--blink-sec) step-end var(--boot-sec) infinite; }
-.boot-keys { font-size: 12px; margin-top: 10px !important; }
+.boot-keys { font-size: 12px; }
 
 @keyframes boot-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes boot-blink { 50% { visibility: hidden; } }
 
 /* Look 1, "lcd": the phone's own green mono LCD, pixel text, a thick dark bezel. */
 .boot[data-variant='lcd'] {
@@ -79,8 +145,7 @@
   box-shadow: 0 0 0 14px var(--bezel), 0 18px 40px 14px rgba(0, 0, 0, 0.6);
   font-family: Tahoma, Verdana, system-ui, sans-serif;
 }
-.boot[data-variant='colour'] .boot-maker { font-style: italic; text-shadow: 0 2px 0 var(--colour-bottom); }
-.boot[data-variant='colour'] .boot-shop, .boot[data-variant='colour'] .boot-start { color: var(--colour-accent); }
+.boot[data-variant='colour'] .boot-shop { color: var(--colour-accent); font-style: italic; text-shadow: 0 2px 0 var(--colour-bottom); }
 
 /* --- discs (title: dusty; ending: gold) --- */
 .disc { display: block; border-radius: 50%; }
@@ -102,6 +167,9 @@
   box-shadow: 0 0 0 2px var(--gold-deep);
 }
 
+/* Card and paper share a wrapper that only takes part in layout on narrow screens (see the end). */
+#today-papers { display: contents; }
+
 /* --- "Because you...": a tabloid inside story --- */
 .tabloid-card {
   position: absolute;
@@ -109,10 +177,12 @@
   right: 16px;
   width: 330px;
   padding-bottom: 10px;
-  background: var(--tabloid-paper);
+  border: var(--outline);
+  background: var(--paper-hand);
   color: var(--tabloid-ink);
   font: 15px/1.35 Arial, Helvetica, sans-serif;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-shadow: 5px 6px 0 rgba(0, 0, 0, 0.35);
+  transform: rotate(1.5deg);
 }
 .tabloid-head {
   margin: 0 0 8px;
@@ -148,10 +218,12 @@
   top: 90px;
   width: 330px;
   padding-bottom: 10px;
-  background: var(--tabloid-paper);
+  border: var(--outline);
+  background: var(--paper-hand);
   color: var(--tabloid-ink);
   font: 14px/1.4 Arial, Helvetica, sans-serif;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-shadow: 5px 6px 0 rgba(0, 0, 0, 0.35);
+  transform: rotate(-1.2deg);
 }
 .tabloid-masthead {
   display: flex;
@@ -169,11 +241,38 @@
 #news-article { margin: 0 12px; }
 #news-offline { margin: 8px 12px 0; font: 800 11px/1 Arial, sans-serif; text-transform: uppercase; letter-spacing: 1px; color: var(--offline-ink); }
 
+/* --- payoff: ♪/♥ bubbles pop over the moment when a CD is fixed (above the world, under the phone) --- */
+#bubbles { position: absolute; inset: 0; z-index: 4; overflow: hidden; pointer-events: none; }
+.bubble {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: var(--bubble-size);
+  height: var(--bubble-size);
+  margin: calc(var(--bubble-size) / -2) 0 0 calc(var(--bubble-size) / -2); /* centred on its spot */
+  border: 3px solid var(--bubble-ink);
+  border-radius: 50% 50% 50% 12%; /* a speech bubble's tail at the bottom-left */
+  box-sizing: border-box;
+  background: var(--bubble-paper);
+  color: var(--bubble-ink);
+  font: 900 22px/1 Arial, 'Segoe UI Symbol', sans-serif;
+  animation: bubble-pop var(--bubble-sec) ease-out both;
+}
+.bubble-heart { color: var(--bubble-heart); }
+@keyframes bubble-pop {
+  0% { transform: translateY(0) scale(0); opacity: 0; }
+  15% { transform: translateY(-8px) scale(1.2); opacity: 1; }
+  30% { transform: translateY(-12px) scale(1); }
+  75% { opacity: 1; }
+  100% { transform: translateY(-56px) scale(0.9); opacity: 0; }
+}
+
 /* --- the ending: a wall of framed gold discs --- */
 #ending { background: var(--wall); }
 .ending-title { margin: 0 0 26px; color: var(--gold); font: 900 64px/1 Impact, 'Arial Black', sans-serif; letter-spacing: 14px; }
 .gold-wall { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; }
-.gold-frame { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.gold-frame { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; transform: rotate(-2deg); }
+.gold-frame:nth-child(even) { transform: rotate(2deg); } /* hung by hand */
 .gold-mount {
   display: grid;
   place-items: center;
@@ -183,10 +282,41 @@
   border: 10px solid var(--frame);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
 }
-.gold-caption { color: var(--caption); font: 15px/1.35 Arial, sans-serif; }
+.gold-caption {
+  padding: 6px 12px;
+  border: var(--outline);
+  border-radius: 8px;
+  background: var(--paper-hand);
+  color: var(--paper-ink);
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.35);
+  font: 700 15px/1.35 var(--chunky);
+}
 .gold-caption b { display: block; font-size: 18px; }
-.ending-text { max-width: 620px; margin: 30px 0 0; color: var(--caption); font: 18px/1.45 Arial, sans-serif; }
+.ending-text { max-width: 620px; margin: 30px 0 0; color: var(--caption); font: 700 18px/1.45 var(--chunky); }
+
+/* --- narrow screens (html.is-narrow, below T.screens.narrowBelowPx): nothing overlaps ---
+   era top-left, the folded phone top-right (phone.css), the card and paper stacked below them in
+   one scrolling column (hidden while the phone is open, which takes their place), dialogue full width. */
+.is-narrow #era { font-size: 20px; letter-spacing: 1px; }
+.is-narrow #dialogue { left: 12px; right: 12px; width: auto; max-width: none; transform: rotate(-0.6deg); font-size: 16px; }
+.is-narrow #today-papers {
+  position: absolute;
+  top: 128px;
+  left: 12px;
+  right: 12px;
+  bottom: 170px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 10px; /* room for the sticker */
+  overflow: hidden auto;
+}
+.is-narrow #today-papers > * { position: relative; inset: auto; width: auto; flex: none; margin: 0 6px; }
+.is-narrow .tabloid-sticker { right: 6px; }
+.is-narrow #app:has(> #phone:not([data-state='closed'])) #today-papers { display: none; }
+.is-narrow .ending-title { font-size: 44px; letter-spacing: 8px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .boot-bar i, .boot-start { animation: none; }
+  .boot-bar i, .title-start, .title-logo-sway, .bubble { animation: none; }
+  .title-logo { transition: none; }
 }

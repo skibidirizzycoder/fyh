@@ -35,7 +35,26 @@
    `cover_mira`, `cover_static`, `cover_kbit`, `window_2004`, `window_today`, `poster_open_mic`,
    `poster_gig`, `brick_2004`, `pavement` (`.png`, 512 px).
 
+## Round 3 (from 16:00): the CD player is the time machine, a bigger map, smoother play
+
+**The lead's design:** you travel in time by **putting a CD into a CD player** (outside the shop
+today). When you've fixed a CD, the **flip phone** shows it (★) and takes you home or back to a moment
+you've already fixed. The phone is your progress list and your way home; the CD player is the way in.
+The map grows like Messenger's: the shop, **the square** (The Static) and **the bus stop** (K-Bit)
+are separate areas you walk between. New events from Claude's side (use them as soon as they're on
+`main`; until then build against the event names): `cd-insert {cd}`, `title`, `area {id, title}`.
+Rows the phone can't go to yet come with `locked: true` on the phone item.
+
 ## Teammate A: `feat/phone-static`
+
+**Next, in this order:**
+- [ ] **A7. The phone as progress + way home:** locked rows ("Put the CD in the player") greyed out and
+  skipped, ★ on fixed ones, "Back to today" first when you're in the past. Checks in `phone.ts`.
+- [ ] **A8. Travel transition:** on `cd-insert`, a ~1 s full-screen effect over the canvas: the view
+  spins/blurs like a disc, then flashes into the date ("14 March 2004"). HTML/CSS in `src/ui/`.
+- [ ] **A9. Area titles like Messenger:** on `area`, the title pops in letter by letter over 1.5 s,
+  holds 4 s, shrinks out in 0.35 s (`docs/reference-messenger.md`). Not over the dialogue.
+- [ ] Then A6, M-A3, M-A2 below, and bug 4 (STATUS) last.
 
 Two sessions: A4 in one, A5 in the other.
 
@@ -69,6 +88,20 @@ Two sessions: A4 in one, A5 in the other.
   CD is fixed, ♪/♥ bubbles pop over that moment's crowd/queue for a second (HTML over the canvas is fine).
 
 ## Teammate B: `feat/sound-kbit`
+
+**Next, in this order:**
+- [ ] **B7. The CD player's sounds** on `cd-insert`: tray opens, disc clicks in, spin-up whir, then
+  the time whoosh. This is the "Old Tech" moment, so make it satisfying.
+- [ ] **B8. The "remaster" sting** when you come back to today after a fix: a tape rewind, then the
+  remix comes in crisp.
+- [ ] **B9. Bug 5:** music stops on the title (use the `title` event).
+- [ ] **B10. The music choice is yours now:** `docs/music-shortlist.md` and `public/music/**`. Listen,
+  swap any song by ear, and keep `public/music/CREDITS.md` exact.
+- [ ] **B11. Ambience per area** of the bigger map (on `area`), crossfaded like Messenger's.
+- [ ] **B12.** When props get the `texture` field (Claude's W2): the AI CD covers on today's gold
+  discs and the posters in today's window (`today.ts`, images in `public/textures/`).
+- [ ] **B13. The ending:** the wall of gold discs plays a short medley of the three remixes.
+- [ ] Then F2 again: playtest the newest checkpoint and log bugs in STATUS.
 
 Two sessions: B3/B5/B6 in one (they all touch `src/audio/`), B4 in the other.
 
@@ -115,7 +148,13 @@ Two sessions: B3/B5/B6 in one (they all touch `src/audio/`), B4 in the other.
 - [x] C2. The player can't walk through props (collisions). *Helper agent, branch `director/collisions`.*
 - [ ] C5. The shared street and the player look like a real place and a real person (shop front,
   neighbouring buildings, kerb; a low-poly person instead of the cylinder). *Helper agent, `director/street`.*
-- [ ] C6. Props can show AI textures (`texture` field: covers, posters, shop windows, brick, pavement).
+- [ ] C6. Props can show AI textures (`texture` field: covers, posters, shop windows, brick, pavement). *With W2.*
+- [ ] C7. The CD player is the time machine; the phone shows progress and goes home; smoother movement;
+  events `cd-insert` and `title`; bugs 1–3 from the playtest. *Helper agent, `director/cdplayer`.*
+- [ ] C8. A bigger map with areas (shop, the square, the bus stop), the `area` event, a smoother
+  camera. *The street agent, after C5.*
+- [x] W-retro: 2004 drawn like a 2004 game, a bit more pixelated (look branch). W1 outlines and W2 cel
+  shading: helper agents, merging as they pass.
 - [ ] M-C1. Toon look: 2–3 tone shading + dark ink outlines, a calm palette per era/moment, floating
   particles (dust in 2004, snow in December). Decide together with the retro-render test (`director/retro`).
 - [ ] M-C2. The camera eases closer when someone talks, then back; a short push-in when a CD is fixed.
