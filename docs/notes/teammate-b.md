@@ -82,8 +82,8 @@ appear together.
   - `panel: { name: 'card' | 'news'; open: boolean }` when the card or the newspaper appears / goes (paper).
   - `camera-zoom: { zoomIn: boolean }` when the dialogue camera eases in / back out.
   Once they're in `GameEvents`, delete the `FeelEvents` cast in `audio.ts` and `subscribeFeel` types itself.
-- **A `title` event** (or `game-end`) when the ending's "play again" returns to the title, so the music can stop
-  there (bug 5 in `STATUS.md`). Today the last game's song keeps playing on the title until Enter.
+- **B9 is ready for the `title` event** (announced in BACKLOG round 3): audio fades the last game's music out
+  on it (`src/audio/upcoming.ts`, test in `tests/audio-cdplayer.test.ts`). It works as soon as the game sends it.
 - **`LESSONS.md` (not in my lane; `scripts/lanes.ts` doesn't let teammates add to it), please add:**
   - A voice played NaN notes for speaker "toString" — cause: `name in obj` also finds Object.prototype keys — rule: look up ids with `Object.hasOwn`.
   - Wind clicked every 8 s at the bus stop — cause: generated loops end where they don't begin — rule: crossfade a generated loop's tail into its start (`seamless()`), and test the seam.

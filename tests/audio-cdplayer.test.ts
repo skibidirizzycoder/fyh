@@ -64,3 +64,21 @@ describe('the cd-insert event', () => {
     expect(audio.history().slice(-2)).toEqual(['cd-insert', 'whoosh']);
   });
 });
+
+describe('the title event (B9, bug 5)', () => {
+  it("back on the title, the last game's music stops", () => {
+    const events = createEvents();
+    const audio = createAudio(events, { makeContext: () => null });
+    const send = <K extends keyof UpcomingEvents>(name: K, payload: UpcomingEvents[K]): void =>
+      (events.emit as unknown as (n: K, p: UpcomingEvents[K]) => void)(name, payload);
+    events.emit('game-start', {});
+    events.emit('action-done', { actionId: 'mira_take_cd', cd: 'mira' });
+    events.emit('action-done', { actionId: 'mira_play_cd', cd: 'mira' });
+    events.emit('travel', { to: 'present', era: 'present', moment: null });
+    expect(audio.nowPlaying()).toBe('mira:today'); // the ending's music, still playing...
+    send('title', {});
+    expect(audio.nowPlaying()).toBe(''); // ...until the title: silence
+    events.emit('game-start', {});
+    expect(audio.nowPlaying()).toBe(''); // and a new game starts with nothing fixed
+  });
+});

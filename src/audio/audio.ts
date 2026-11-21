@@ -14,6 +14,7 @@ import { createMusicPlayer, type MusicPlayer } from './music.ts';
 import { sceneFor, type SceneId } from './soundscape.ts';
 import type { UpcomingSource } from './upcoming.ts';
 import { makeNoiseBuffer, playCue } from './synth.ts';
+import { cutSection, songFor } from './songs.ts';
 
 /** The game events sound reacts to. */
 export type SoundEvent = Extract<keyof GameEvents, 'game-start' | 'mute' | 'travel' | 'action-done' | 'action-locked' | 'phone-open' | 'phone-close' | 'phone-move' | 'phone-select' | 'reputation'>;
@@ -68,17 +69,20 @@ function defaultContext(): AudioContext | null {
 
 type Sound = { ctx: AudioContext; master: GainNode; noise: AudioBuffer; ambience: Ambience; music: MusicPlayer };
 
-type CdMusic = { file: string };
 const DUCK_CUES: readonly string[] = T.audio.music.duckCues;
 
-/** Fetches and decodes every CD song that has a file. Failures stay silent (the song just won't play). */
+/**
+ * Fetches and decodes every CD's song (your local copy of the real song if there is one, else the
+ * stand-in; see songs.ts). A full local song is cut to its section. Failures stay silent.
+ */
 function loadSongs(ctx: AudioContext, music: MusicPlayer): void {
-  for (const [cd, cfg] of Object.entries(T.audio.music.cds as Readonly<Record<string, CdMusic>>)) {
-    if (!cfg.file) continue; // no MP3 yet: don't even ask (a 404 is a console error)
-    fetch(cfg.file)
+  for (const cd of Object.keys(T.audio.music.cds)) {
+    const song = songFor(cd);
+    if (!song) continue; // no MP3 yet: don't even ask (a 404 is a console error)
+    fetch(song.url)
       .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
       .then((bytes) => ctx.decodeAudioData(bytes))
-      .then((buffer) => music.addSong(cd, buffer))
+      .then((buffer) => music.addSong(cd, song.section ? cutSection(ctx, buffer, song.section.startSec, song.section.lengthSec) : buffer))
       .catch(() => undefined);
   }
 }
@@ -126,6 +130,7 @@ function subscribeAhead(events: SoundEvents, a: { feel: Feel; play: (name: CueNa
   subscribeFeel(events as unknown as FeelSource, a.feel);
   const upcoming = events as unknown as UpcomingSource;
   upcoming.on('cd-insert', () => a.play('cd-insert'));
+  upcoming.on('title', () => a.music.reset()); // back on the title: the last game's song fades out
 }
 
 /** The bus queue catches your ringtone: each phone joins in turn, panned to where it stands. Returns how long it lasts. */
