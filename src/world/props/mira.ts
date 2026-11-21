@@ -1,4 +1,4 @@
-// mira.ts — props for Mira's moment: "14 March 2004: open mic". Owner: Teammate A.
+// mira.ts — props for Mira's moment: "13 December 2002: open mic". Owner: Teammate A.
 // Open mic night in front of the shop window: string lights over the window, a mic stand and a
 // small amp. Mira waits at the side with her guitar; three bored listeners stare at their phones.
 //   mira_take_cd   hides her dropped demo CD (on the bench)

@@ -58,7 +58,7 @@ export function bootScreen(cds: readonly LoadedCd[], variant: string): HTMLEleme
   boot.append(
     status,
     make('p', 'boot-shop', 'HOLLOW RECORDS'),
-    make('p', 'boot-shop-sub', `Closed since 2004. ${cds.length} CDs nobody bought.`),
+    make('p', 'boot-shop-sub', `Closed since 2019. ${cds.length} CDs nobody bought.`),
     shelf,
     bar,
     make('p', 'boot-keys', 'W/S walk · A/D turn · E use · Q flip phone · M mute'),
