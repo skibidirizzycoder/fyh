@@ -31,10 +31,14 @@ to access this endpoint", legacy `SNOWFLAKE.CORTEX.COMPLETE` is blocked for new 
 - Placeholders above, until the teammates' branches are merged.
 - GitHub Pages has no endpoint, so the paper is always the offline edition there.
 
-**Now (hackathon day):** all three CDs are real and merged (The Static from Teammate A). Teammates
-ship themselves (`npm run ship`, which also tags a checkpoint) and take tasks from `docs/BACKLOG.md`:
-A = Mira's moment, then the screens; B = the CD music (`docs/prompts/06-*`), then today's shop.
-Director: moment looks, collisions, the rest of `docs/prompts/05-*`, Netlify deploy. No pitch work yet.
+**Now (hackathon day, 15:00):** all three CDs, the CD music (real songs, 2004 raw -> today remix),
+each moment's look and sound, today's shop by reputation, and collisions are on `main`. Live:
+https://flip-phone-2004-8a09.netlify.app (updated by `npm run checkpoint`). Teammates ship themselves
+and take tasks from `docs/BACKLOG.md`, now including the Messenger "M" tasks
+(`docs/reference-messenger.md`). AI images: only Claude makes them (`npm run art`); ask under
+"Art requests" in your notes. Research in progress: `docs/research/abeto-techniques.md` (how
+Messenger gets its look), which adds world-lane tasks W1-W5 below. Director next: the street and
+player look (C5), props that show textures (C6), toon look (M-C1). No pitch work yet.
 
 **Claims (free tasks):**
 - F1 street life, DJ K-Bit's bus stop (`src/world/props/kbit.ts`): Teammate B, done 15:00 (bin, newspaper box, pigeons, a dog).

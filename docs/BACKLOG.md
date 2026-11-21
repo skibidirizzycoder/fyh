@@ -74,11 +74,11 @@ Two sessions: B3/B5/B6 in one (they all touch `src/audio/`), B4 in the other.
 
 - [x] B1. All sound effects, made in code
 - [x] B2. DJ K-Bit's bus stop
-- [ ] **B3. The CD music**: code merged; **the MP3s are still missing, so it's silent. Don't wait for a song
+- [x] **B3. The CD music**: code merged; **the MP3s are still missing, so it's silent. Don't wait for a song
   pick:** if the team hasn't chosen, use the ★ picks in `docs/music-shortlist.md` (anyone can swap a
   file later). ccMixter files download with the track page as the `Referer` (e.g. `curl -e <page> -o …`).
   No trimming tool? Commit the full MP3 and play a 30–45 s section (`start` and `length` in `T.audio.music`).
-- [ ] **B4. Today's shop at each reputation level.** You now own `src/world/props/today.ts`, the
+- [x] **B4. Today's shop at each reputation level.** You now own `src/world/props/today.ts`, the
   `"reputation"` entries in `src/story/content.json` (only those) and `scripts/checks/today.ts`.
   - Level 0: boarded up and dark.
   - Level 1: open, with a lit window, the open sign, one customer and music from inside.
@@ -87,10 +87,10 @@ Two sessions: B3/B5/B6 in one (they all touch `src/audio/`), B4 in the other.
   - Gold discs framed by the door, one per fixed CD.
   Add new props freely, but keep the ids above. Checks: today at levels 0–3 (fix CDs quickly with
   `travel` + `interact`), screenshots `today-0` to `today-3`.
-- [ ] **B5. K-Bit polish** (from your notes): a timetable panel and a "BUS" band on the stop, a
+- [x] **B5. K-Bit polish** (from your notes): a timetable panel and a "BUS" band on the stop, a
   bigger phone for K-Bit, and an infrared "beam" sound for step 1.
 
-- [ ] **B6. Each moment sounds like its time and place**: open mic = evening pub murmur and
+- [x] **B6. Each moment sounds like its time and place**: open mic = evening pub murmur and
   clinking glasses; street gig = busy summer street and a distant ice-cream van; ringtone = December
   wind, traffic and a bus pulling in; today = quieter, modern traffic. In `src/audio/`, driven by the
   `travel` event (it has `moment`). Checks in `scripts/checks/audio.ts`.
