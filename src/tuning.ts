@@ -127,7 +127,24 @@ export const T = {
     callKey: '#2f9e44',
     endKey: '#c92a2a',
   },
-  static: {},
+  static: {
+    // The Static's street gig, 2 July 2004 (props in src/world/props/static.ts).
+    stage: '#3b3f47', // low wooden-pallet stage, painted black-ish
+    amp: '#1c1c1f',
+    ampDead: '#e03131', // the amp's light while it keeps cutting out...
+    ampLive: '#51cf66', // ...and once it's plugged into the shop
+    cableReel: '#f08c00', // bright orange site reel, easy to spot
+    cable: '#f08c00',
+    socket: '#dee2e6',
+    drum: '#c92a2a',
+    cymbal: '#fcc419',
+    stand: '#868e96', // cymbal and mic stands
+    band: ['#364fc7', '#5f3dc4'], // singer, guitarist
+    skin: '#e9b48a',
+    guitar: '#e8590c',
+    banner: '#ff6b6b', // hand-painted banner behind the stage
+    crowd: ['#2b8a3e', '#d6336c', '#1971c2'], // people who stop to watch once the mic works
+  },
 
   limits: {
     maxDrawCalls: 60, // smoke fails above this
