@@ -1,14 +1,16 @@
 // static.ts — smoke checks for The Static's moment. Owner: Teammate A.
 // Proves, on the production build: the gig starts broken (red amp light, no cable, no crowd),
 // the mic is locked until the amp is plugged in, both steps work by walking there with real
-// keys, each step shows/hides the right props, and today gets The Static's gold disc.
+// keys, each step shows/hides the right props (the mic shows the whole payoff: a packed crowd, some
+// with arms up, a dropped set list and a tip jar), and today gets The Static's gold disc.
 
 import type { Page } from 'playwright';
 import staticCd from '../../src/story/cds/static.json' with { type: 'json' };
+import { STATIC_FIX_SHOWS } from '../../src/world/props/static.ts';
 import { expect, interact, restart, screenshot, state, travel, walkTo } from './tools.ts';
 
 const CABLE = ['static_cable_run', 'static_cable_lead'];
-const CROWD = ['static_crowd_1', 'static_crowd_2', 'static_crowd_3'];
+const CROWD = STATIC_FIX_SHOWS; // crowd, set list and tip jar
 
 /** Fails unless every id is visible (or, with `visible` false, none is). */
 function expectMeshes(meshes: readonly string[], ids: readonly string[], visible: boolean, when: string): void {
@@ -50,5 +52,5 @@ export async function checkStatic(page: Page): Promise<Record<string, unknown>> 
   s = await travel(page, 'present');
   expect(s.visibleMeshes.includes('gold_static'), 'no gold disc for The Static today');
 
-  return { walkFrames: [plug.frames, mic.frames] };
+  return { walkFrames: [plug.frames, mic.frames], payoffProps: CROWD.length };
 }

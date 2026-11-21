@@ -129,7 +129,7 @@ export const T = {
     blinkSec: 0.8, // one on/off cycle of the selected row's cursor
     momentTimes: { open_mic: '19:30', street_gig: '15:10', ringtone: '16:45' } as Record<string, string>, // outer screen clock in 2004
     foldedWidthPx: 96, // the closed phone
-    foldedBottomPx: 16, // the closed phone sits lower than the open one (it is short)
+    foldedBottomPx: 64, // the closed phone sits lower than the open one, clear of a host's corner badge (Netlify's is ~50 px tall)
     outerScreen: '#0d1b2a', // the closed phone's small outer screen...
     outerText: '#9be7ff', // ...blue-backlit text
     widthPx: 220, // whole phone; stays under 300 px
@@ -165,7 +165,13 @@ export const T = {
     skin: '#e9b48a',
     guitar: '#e8590c',
     banner: '#ff6b6b', // hand-painted banner behind the stage
-    crowd: ['#2b8a3e', '#d6336c', '#1971c2'], // people who stop to watch once the mic works
+    crowd: ['#2b8a3e', '#d6336c', '#1971c2', '#f59f00', '#0c8599', '#862e9c', '#e8590c', '#5c940d'], // the crowd once the mic works
+    paper: '#f8f9fa', // the dropped set list and the tip jar's label
+    paperTitle: '#e03131', // "SET LIST" scrawled in red
+    paperInk: '#212529', // the song titles
+    jarGlass: '#a5d8ff',
+    jarLid: '#495057',
+    banknote: '#69db7c', // a fiver poking out of the tip jar
   },
   mira: {
     // Mira's open mic, 14 March 2004 (props in src/world/props/mira.ts).

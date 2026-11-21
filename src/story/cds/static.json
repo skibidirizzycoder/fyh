@@ -28,10 +28,20 @@
       "label": "handed them the shop's microphone",
       "prompt": "Hand over the shop's mic",
       "requires": ["static_plug_amp"],
-      "line": "Their mic was held together with tape. Yours works. The whole street stops to listen to the chorus.",
+      "line": "Their mic was held together with tape. Yours works. The whole street stops, packs in round the stage and sings the chorus back.",
       "lockedLine": "A good mic won't help while their amp keeps dying. They need power first.",
       "effects": {
-        "show": ["static_crowd_1", "static_crowd_2", "static_crowd_3"],
+        "show": [
+          "static_crowd_1", "static_crowd_1_head", "static_crowd_1_arm_l", "static_crowd_1_arm_r",
+          "static_crowd_2", "static_crowd_2_head", "static_crowd_2_arm_l", "static_crowd_2_arm_r",
+          "static_crowd_3", "static_crowd_3_head", "static_crowd_4", "static_crowd_4_head",
+          "static_crowd_5", "static_crowd_5_head", "static_crowd_5_arm_l", "static_crowd_5_arm_r",
+          "static_crowd_6", "static_crowd_6_head", "static_crowd_7", "static_crowd_7_head",
+          "static_crowd_7_arm_l", "static_crowd_7_arm_r", "static_crowd_8", "static_crowd_8_head",
+          "static_setlist", "static_setlist_title", "static_setlist_line_1", "static_setlist_line_2",
+          "static_setlist_line_3", "static_tip_jar", "static_tip_jar_lid", "static_tip_jar_note",
+          "static_tip_jar_label"
+        ],
         "hide": []
       }
     }
