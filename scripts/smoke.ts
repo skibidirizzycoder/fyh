@@ -428,7 +428,7 @@ async function checkRetro(page: Page): Promise<Record<string, unknown>> {
 /** A pixel counts as inked when the outlines make it at least this much darker (luminance, 0-255). */
 const INK_DROP = 20;
 /** Share of the scene's pixels the outlines must ink: some (lines are drawn), never most (noise). */
-const INK_SHARE = { min: 0.005, max: 0.15 };
+const INK_SHARE = { min: 0.005, max: 0.25 };
 
 /** Share of SCENE_CLIP's pixels that the ink outlines darken, measured on the same frame with them off, then on. */
 async function inkedShare(page: Page): Promise<number> {

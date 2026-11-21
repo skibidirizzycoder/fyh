@@ -34,6 +34,10 @@ export interface Look {
   outlineBreakup: number;
   /** Size of the breakup noise's patches, in screen pixels on a 1080-line screen. */
   outlineNoisePx: number;
+  /** Multisample anti-aliasing samples at full resolution (0 = off; chunky pixels never get it). */
+  msaa: number;
+  /** Sky gradient: how much darker the top of the sky is than the horizon, which keeps the fog colour (0 = flat). */
+  skyDeepen: number;
 }
 
 /** Outline widths in the look are screen pixels on a screen this many lines tall (the unit, like metres). */
