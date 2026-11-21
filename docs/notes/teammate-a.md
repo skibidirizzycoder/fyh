@@ -2,14 +2,21 @@
 
 Branch: `feat/phone-static`. Owned paths: see `docs/prompts/05-agentic-workflow.md` (Part 5).
 
-## Status (2026-11-21, 15:15)
+## Status (2026-11-21, 15:25)
 
-**Done and on `main`:** A1 (phone), A2 (The Static), A3 (Mira's open mic), A4 (the screens, `checkpoint-10`).
-**Done, shipping now:** A5 (the phone feels alive). Smoke `"ok":true`; the phone check records
-`closed>opening>connecting>static>closing>closed` while travelling; outer screen contrast 12.65:1.
-**Queue:** A6 (The Static after the fix), then M-A1/M-A2/M-A3.
+**Done and on `main`:** A1 (phone), A2 (The Static), A3 (Mira's open mic), A4 (the screens,
+`checkpoint-10`), A5 (the phone feels alive, `checkpoint-12`).
+**Done, shipping now:** A6 (The Static after the fix) + the folded phone raised clear of Netlify's
+corner badge. Smoke `"ok":true`, `"static":{"payoffProps":33}`.
+**Queue:** M-A1/M-A2/M-A3 (the Messenger-style title, hand-made UI, checklist + payoff bubbles).
 
-**Screenshots checked:** `artifacts/phone-connecting.png` ("Connecting..." + "14 March 2004", bars
+**Live site check (15:15, real keys, production has no debug API):** https://flip-phone-2004-8a09.netlify.app
+loads and plays (title, Enter, phone, travel to 14 March 2004 and back, no script errors), but it
+serves an older build (no A4 screens, no A5 phone) and `/api/headline` returns 500 "server is
+missing SNOWFLAKE_ACCOUNT or SNOWFLAKE_TOKEN", so the paper there is always the offline edition.
+
+**Screenshots checked:** `artifacts/static-fixed.png` (packed crowd, arms up, set list by the mic),
+`artifacts/phone-connecting.png` ("Connecting..." + "14 March 2004", bars
 filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 Mar 2004, "Q: open"),
 `artifacts/title.png` (green LCD boot screen, centred, boot bar filling),
 `artifacts/title-variants.png` (both looks side by side), `artifacts/tabloid.png` (red-top paper and
@@ -19,6 +26,12 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
 `T.screens.titleVariant` (`'lcd'` green mono, the default, matches the phone; or `'colour'` blue screen).
 
 ## Requests for the director
+
+- **Netlify:** the live site is behind `main` (no A4/A5): it needs `npm run checkpoint` from your
+  linked folder. Its `/api/headline` returns 500 because `SNOWFLAKE_ACCOUNT`/`SNOWFLAKE_TOKEN` are
+  not set under Site settings → Environment variables (the game falls back to the offline paper).
+  Netlify also draws a "Powered by Netlify" badge in the bottom-right corner; the folded phone now
+  sits 64 px up to stay clear of it.
 
 - Smoke takes about 3 minutes on this laptop now (it was about 1 minute this morning); my UI check
   is about 35 s of that. If the gate is too slow for shipping, `measureContrast` could sample fewer
@@ -95,3 +108,16 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
   that it never overlaps `#dialogue`/`#card`/`#era`, the cursor, and the whole travel sequence. Short
   looks are recorded in the page with a MutationObserver: on a slow machine a 0.35 s look can come
   and go while a screenshot is saved. Unit tests: `tests/phone-view.test.ts` (outer screen text).
+
+## Task 6: The Static after the fix (A6)
+
+- **The payoff** (`static_give_mic` shows `STATIC_FIX_SHOWS`, 33 props): the crowd grows from 3 to 8,
+  packed round both sides of the stage, each with a head; four have both arms up (above their
+  heads). An aisle (x 0..1.6) from the start to the mic stays clear, and there is room between
+  people for a player a person appears on to be pushed out (`tests/collide.test.ts`).
+- **A dropped set list** on the stage by the mic (white sheet, red title, three lines of songs) and a
+  **tip jar** at the front of the stage beside the mic (glass, lid, a fiver poking out, a label).
+  Decoration only: no marker, no glow. Colours in `T.static`.
+- **Checks:** `tests/static.test.ts` (step 2 shows exactly the exported list, crowd size and raised
+  arms, the aisle, only the reel and mic are interactable, inside the street, no z-fighting or
+  overlap except the amp light pair that swaps); `scripts/checks/static.ts` checks every payoff prop.
