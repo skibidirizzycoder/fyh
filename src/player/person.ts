@@ -374,6 +374,16 @@ export function strideLength(speed: number): number {
   return G.walkStrideM + (G.runStrideM - G.walkStrideM) * gaitBlend(speed).run;
 }
 
+/**
+ * Eases a pose input (speed, turn rate) towards its target over `steps` game steps, with a lag of
+ * T.person.gait.poseEaseSec: stopping or turning never snaps the body. No steps: straight there.
+ */
+export function easePose(current: number, target: number, steps: number | undefined): number {
+  if (steps === undefined) return target;
+  const keep = Math.exp(-Math.max(0, steps) / (G.poseEaseSec * T.loop.stepsPerSecond));
+  return target + (current - target) * keep;
+}
+
 /** Moves a stride phase on by a distance walked at a speed (distance, not time: feet don't slide). */
 export function advancePhase(phase: number, moved: number, speed: number): number {
   return (phase + (moved / strideLength(speed)) * Math.PI * 2) % (Math.PI * 2);

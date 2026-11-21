@@ -10,7 +10,7 @@ import * as THREE from 'three';
 import { T } from '../tuning.ts';
 import { createFollowCamera, type CameraMood } from './camera.ts';
 import type { PlayerState } from './controller.ts';
-import { advancePhase, createPerson, createPersonTextures, posePerson, type Person } from './person.ts';
+import { advancePhase, createPerson, createPersonTextures, easePose, posePerson, type Person } from './person.ts';
 
 export interface Avatar {
   root: THREE.Group;
@@ -55,16 +55,20 @@ export function createAvatar(scene: THREE.Scene): Avatar {
 
   let phase = 0;
   let last: { x: number; z: number } | null = null;
+  let eased: { speed: number; turnRate: number; frame: number } | null = null; // what the pose follows, a little behind
   const follow = createFollowCamera();
 
   /** Moves the stride on by the distance walked since the last frame (settles it when standing still) and poses the body. */
   function walk(p: PlayerState, frame: number | undefined): void {
     const moved = last ? Math.hypot(p.x - last.x, p.z - last.z) : 0;
     last = { x: p.x, z: p.z };
-    const speed = gaitSpeed(p);
+    const steps = eased && frame !== undefined ? frame - eased.frame : undefined;
+    const speed = easePose(eased?.speed ?? 0, gaitSpeed(p), steps);
+    const turnRate = easePose(eased?.turnRate ?? 0, p.turnRate ?? 0, steps);
+    eased = frame === undefined ? null : { speed, turnRate, frame };
     if (moved > 0 && moved < A.teleportM) phase = advancePhase(phase, moved, speed);
     else phase = settlePhase(phase, A.settleRad);
-    posePerson(person, { phase, speed, turnRate: p.turnRate ?? 0, time: (frame ?? 0) / T.loop.stepsPerSecond });
+    posePerson(person, { phase, speed, turnRate, time: (frame ?? 0) / T.loop.stepsPerSecond });
   }
 
   function sync(p: PlayerState, camera: THREE.PerspectiveCamera, frame?: number, mood: CameraMood = { talking: false }): void {
