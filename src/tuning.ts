@@ -255,7 +255,7 @@ export const T = {
     leftPx: 16,
     bottomPx: 150, // clear of the dialogue box (three lines reach ~134 px up)
     frame: '#1f1d1b',
-    volume: { '2004': 85, '2004-broken': 100, '2004-live': 100, '2004-leak': 40, today: 100 } as Record<string, number>, // 0-100, by music mode
+    volume: 100, // 0-100: the song is the reward, so it plays out loud
     // startSec: each song starts at its first chorus (from the videos' own lyric captions, and LRCLIB lyric
     // timings for Lose Yourself, which has no captions); at the end it goes back there. lengthSec 0 = to the end.
     videos: {

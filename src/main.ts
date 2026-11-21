@@ -55,7 +55,7 @@ function boot(): void {
   const post = createPostFilter(1, 1);
   const hud = createHud(app, content, news);
   const phone = createPhoneView(app);
-  const tv = createTv(app, audio); // each CD's real song, from its official YouTube video
+  const tv = createTv(app, audio, content.cds); // each CD's real song, once its moment is fixed
   let drawCalls = 0;
 
   function resize(): void {
@@ -81,7 +81,7 @@ function boot(): void {
     drawCalls = renderer.info.render.calls;
     hud.render(game);
     phone.render(s.phone);
-    tv.update();
+    tv.update(s);
   }
 
   const loop = createLoop({

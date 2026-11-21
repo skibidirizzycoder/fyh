@@ -1,26 +1,40 @@
 // tv.ts — the shop TV: plays each CD's real song from its official YouTube video.
-// YouTube's embed rules: the player stays visible (at least 200 x 200 px) and nothing covers it, so the
-// TV appears in the bottom-left corner, clear of the dialogue, only while a song plays (else it pauses).
-// The game's music rules still decide what plays (audio.nowPlaying()); the TV follows them: quiet in
-// the past, cutting in and out with The Static's dying amp, a tinny leak from K-Bit's headphones, full
-// volume once fixed. Nothing is fetched until the first song is wanted. If YouTube doesn't load within
+// The song is the reward: in a CD's moment the TV stays off until that moment's objective is done (its
+// final action, e.g. The Static get your mic), then plays the song from its chorus. Every time travel
+// hides it again; today it stays off. YouTube's embed rules: while it plays, the player stays visible
+// (at least 200 x 200 px) and nothing covers it, so it sits bottom-left, clear of the dialogue; hidden,
+// it is paused. Nothing is fetched until the first song is wanted. If YouTube doesn't load within
 // T.tv.apiTimeoutSec, or a video won't play, that CD falls back to its Creative Commons stand-in
-// (audio.external()); if YouTube turns up later, the TV takes over again. Off in test builds (smoke allows no network) and on narrow screens (no room).
+// (audio.external()); if YouTube turns up later, the TV takes over again.
+// Off in test builds (smoke allows no network) and on narrow screens (no room).
 
 import './tv.css';
 import { T } from '../tuning.ts';
 
 /** The audio module, as far as the TV needs it. */
 export interface TvAudio {
-  nowPlaying(): string; // "static:2004-broken", "kbit:today" or ""
   isMuted(): boolean;
-  /** CDs the TV plays: their built-in song stays silent. */
-  external(cds: readonly string[]): void;
+  /** CDs the TV covers (their built-in song stays silent), and whether it is playing one now. */
+  external(cds: readonly string[], playing: boolean): void;
+}
+
+/** Where you are and what you've done (the game state). */
+export interface TvWorld {
+  era: string;
+  moment: string | null;
+  flags: readonly string[];
+}
+
+/** A CD as the TV needs it: its moment and the action that completes it. */
+export interface TvCd {
+  id: string;
+  moment: string;
+  finalAction: string;
 }
 
 export interface Tv {
-  /** Follows the music; call once per frame. */
-  update(): void;
+  /** Follows the game; call once per frame. */
+  update(world: TvWorld): void;
 }
 
 /** What the TV should play: a CD at a volume (0-100). */
@@ -37,16 +51,13 @@ interface Video {
 }
 
 const VIDEOS = T.tv.videos as Readonly<Record<string, Video>>;
-const VOLUME = T.tv.volume as Readonly<Record<string, number>>;
 
-/** What the TV plays for a music label at time `nowSec`; null = nothing (the TV pauses and hides). */
-export function tvWant(label: string, muted: boolean, nowSec: number): TvWant | null {
-  const [cd, mode] = label.split(':');
-  if (!cd || !mode || !VIDEOS[cd]) return null;
-  let volume = VOLUME[mode] ?? 100;
-  const cutOut = Math.floor(nowSec * T.audio.music.broken.cutHz * 2) % 2 === 1; // the amp's square wave
-  if (mode === '2004-broken' && cutOut) volume = 0;
-  return { cd, volume: muted ? 0 : volume };
+/** What the TV plays: the song of the moment you're in, once its objective is done; else nothing (hidden). */
+export function tvWant(world: TvWorld, cds: readonly TvCd[], muted: boolean): TvWant | null {
+  if (world.era === 'present' || !world.moment) return null;
+  const cd = cds.find((c) => c.moment === world.moment);
+  if (!cd || !VIDEOS[cd.id] || !world.flags.includes(cd.finalAction)) return null;
+  return { cd: cd.id, volume: muted ? 0 : T.tv.volume };
 }
 
 // The few parts of the YouTube IFrame API we use (https://developers.google.com/youtube/iframe_api_reference).
@@ -111,8 +122,8 @@ function buildBox(root: HTMLElement): { box: HTMLElement; holder: HTMLElement } 
   return { box, holder };
 }
 
-/** Builds the TV. `enabled` is false in test builds. */
-export function createTv(root: HTMLElement, audio: TvAudio, enabled = T.tv.enabled && import.meta.env.MODE !== 'test'): Tv {
+/** Builds the TV for these CDs. `enabled` is false in test builds. */
+export function createTv(root: HTMLElement, audio: TvAudio, cds: readonly TvCd[], enabled = T.tv.enabled && import.meta.env.MODE !== 'test'): Tv {
   const { box, holder } = buildBox(root);
 
   let status: 'idle' | 'loading' | 'ready' | 'failed' = 'idle';
@@ -124,12 +135,12 @@ export function createTv(root: HTMLElement, audio: TvAudio, enabled = T.tv.enabl
   const failed = new Set<string>(); // videos that won't play here
   let externalKey = '';
 
-  /** Tells the audio which CDs the TV covers (only when that changes). */
-  function setExternal(cds: string[]): void {
-    const key = cds.join(',');
+  /** Tells the audio which CDs the TV covers and whether one plays now (only when that changes). */
+  function setExternal(covers: string[], on = false): void {
+    const key = `${covers.join(',')}|${on}`;
     if (key === externalKey) return;
     externalKey = key;
-    audio.external(cds);
+    audio.external(covers, on);
   }
 
   function covered(): string[] {
@@ -177,7 +188,7 @@ export function createTv(root: HTMLElement, audio: TvAudio, enabled = T.tv.enabl
     player?.playVideo();
   }
 
-  /** Plays, switches, loops or pauses the video to match what the music wants. */
+  /** Plays, switches, loops or pauses the video to match what the game wants. */
   function follow(want: TvWant | null): void {
     if (!player || !playerReady) return;
     if (!want) {
@@ -192,7 +203,7 @@ export function createTv(root: HTMLElement, audio: TvAudio, enabled = T.tv.enabl
       current = want.cd;
       playing = true;
     } else if (!playing) {
-      player.playVideo();
+      restart(want.cd); // back on: from the chorus again
       playing = true;
     } else if (video.lengthSec > 0 && player.getCurrentTime() > video.startSec + video.lengthSec) {
       restart(want.cd);
@@ -204,18 +215,18 @@ export function createTv(root: HTMLElement, audio: TvAudio, enabled = T.tv.enabl
   }
 
   return {
-    update() {
+    update(world) {
       if (!enabled) return;
-      let want = tvWant(audio.nowPlaying(), audio.isMuted(), performance.now() / 1000);
+      let want = tvWant(world, cds, audio.isMuted());
       if (want && !covered().includes(want.cd) && status !== 'idle') want = null; // its stand-in plays instead
       if (want && status === 'idle' && !document.documentElement.classList.contains('is-narrow')) {
         status = 'loading';
         const first = want;
         loadApi((api) => start(api, first), fail);
       }
-      setExternal(covered());
       follow(want);
       box.hidden = !want || status !== 'ready';
+      setExternal(covered(), !box.hidden && playerReady);
       const name = `Now playing: ${want ? VIDEOS[want.cd]?.credit ?? '' : ''}`;
       if (box.getAttribute('aria-label') !== name) box.setAttribute('aria-label', name);
     },
