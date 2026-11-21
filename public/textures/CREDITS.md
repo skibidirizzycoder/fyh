@@ -17,3 +17,9 @@ AI-made images are listed here with the model that made them. Prompts: `docs/art
 - `facade_today_b.png`: AI-generated with OpenAI GPT Image (via Codex CLI (ChatGPT sign-in)); prompt in `docs/art/images.json`.
 - `shopfront_boarded.png`: AI-generated with OpenAI GPT Image (via Codex CLI (ChatGPT sign-in)); prompt in `docs/art/images.json`.
 - `wood.png`: AI-generated with OpenAI GPT Image (via Codex CLI (ChatGPT sign-in)); prompt in `docs/art/images.json`.
+- `face_npc_a.png`: AI-generated with OpenAI GPT Image (via Codex CLI (ChatGPT sign-in)); prompt in `docs/art/images.json`.
+- `face_player.png`: AI-generated with OpenAI GPT Image (via Codex CLI (ChatGPT sign-in)); prompt in `docs/art/images.json`.
+- `face_npc_b.png`: AI-generated with OpenAI GPT Image (via Codex CLI (ChatGPT sign-in)); prompt in `docs/art/images.json`.
+- `fabric_denim.png`: AI-generated with OpenAI GPT Image (via Codex CLI (ChatGPT sign-in)); prompt in `docs/art/images.json`.
+- `fabric_jacket.png`: AI-generated with OpenAI GPT Image (via Codex CLI (ChatGPT sign-in)); prompt in `docs/art/images.json`.
+- `fabric_knit.png`: AI-generated with OpenAI GPT Image (via Codex CLI (ChatGPT sign-in)); prompt in `docs/art/images.json`.

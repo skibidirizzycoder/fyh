@@ -76,6 +76,36 @@
       "name": "wood",
       "size": "1024x1024",
       "prompt": "Seamless tileable texture of worn painted wooden planks, soft brown, evenly lit, front-on, fills the whole image."
+    },
+    {
+      "name": "face_player",
+      "size": "1024x1024",
+      "prompt": "Front view of a simple, cute cartoon face for a stylised 3D game character, like a hand-painted toy: two small dark oval eyes with a white highlight, short soft eyebrows, a small friendly closed-mouth smile, soft rosy cheeks. Flat even warm light-brown skin colour fills the whole image edge to edge, no hair, no ears, no outline, no neck."
+    },
+    {
+      "name": "face_npc_a",
+      "size": "1024x1024",
+      "prompt": "Front view of a simple, cute cartoon face for a stylised 3D game character, like a hand-painted toy: two small dark oval eyes with a white highlight, short soft eyebrows, a small friendly closed-mouth smile, soft rosy cheeks. Flat even deep brown skin colour fills the whole image edge to edge, no hair, no ears, no outline, no neck."
+    },
+    {
+      "name": "face_npc_b",
+      "size": "1024x1024",
+      "prompt": "Front view of a simple, cute cartoon face for a stylised 3D game character, like a hand-painted toy: two small dark oval eyes with a white highlight, short soft eyebrows, a small friendly closed-mouth smile, soft rosy cheeks. Flat even pale peach skin colour fills the whole image edge to edge, no hair, no ears, no outline, no neck."
+    },
+    {
+      "name": "fabric_denim",
+      "size": "1024x1024",
+      "prompt": "Seamless tileable texture of soft mid-blue denim fabric with a gentle diagonal weave, evenly lit, front-on, fills the whole image."
+    },
+    {
+      "name": "fabric_knit",
+      "size": "1024x1024",
+      "prompt": "Seamless tileable texture of a chunky knitted jumper in mustard yellow, soft cable-knit pattern, evenly lit, front-on, fills the whole image."
+    },
+    {
+      "name": "fabric_jacket",
+      "size": "1024x1024",
+      "prompt": "Seamless tileable texture of a faded dark green canvas jacket fabric with subtle creases, evenly lit, front-on, fills the whole image."
     }
   ]
 }
