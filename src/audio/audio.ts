@@ -152,6 +152,7 @@ function playOn(s: Sound, name: CueName, insertAt: number | null): void {
   const delay = name === 'whoosh' ? whooshDelay(insertAt, s.ctx.currentTime) : DELAY[name] ?? 0;
   playCue(s.ctx, s.master, cue, s.noise, delay);
   const spread = name === 'ringtone' ? playQueue(s) : 0; // and then the whole queue rings
+  if (name === 'ringtone') s.ambience.bus(T.kbit.busAtSec); // ...and the bus comes. Nobody gets on.
   if (DUCK_CUES.includes(name)) s.music.duck(Math.max(cueLength(cue), spread));
 }
 

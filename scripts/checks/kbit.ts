@@ -10,7 +10,9 @@ export const checkKbit: Check = async (page: Page) => {
   let s = await travel(page, 'ringtone');
   expect(s.moment === 'ringtone', 'could not travel to ringtone');
   expect(s.visibleMeshes.includes('kbit_bus_stop'), 'the bus stop is not in the ringtone moment');
-  expect(!s.visibleMeshes.includes('kbit_queue_phone_1'), 'the queue\'s phones should be hidden until yours rings');
+  expect(s.visibleMeshes.includes('kbit_queue_phone_1'), 'on arrival the queue should be looking down at their phones');
+  expect(!s.visibleMeshes.includes('kbit_shazam_1'), 'the raised Shazam phones should wait for your ringtone');
+  expect(s.audio.music === 'kbit:2004-leak', `K-Bit's remix should leak from his headphones, got "${s.audio.music}"`);
   await screenshot(page, 'kbit-arrive'); // moment-ringtone.png (after the fix) is smoke's
   const arriveDrawCalls = s.drawCalls;
   expect(arriveDrawCalls <= T.limits.maxDrawCalls, `the bus stop needs ${arriveDrawCalls} draw calls, max ${T.limits.maxDrawCalls}`);
@@ -24,7 +26,8 @@ export const checkKbit: Check = async (page: Page) => {
   expect(ring.ok, `could not let it ring at the bus stop: ${JSON.stringify(ring)}`);
   s = await state(page);
   expect(s.audio.lastCue === 'ringtone', `the bus stop should play the ringtone, got "${s.audio.lastCue}"`);
-  expect(s.visibleMeshes.includes('kbit_queue_phone_1'), 'the queue did not get their phones out');
+  expect(s.visibleMeshes.includes('kbit_shazam_1') && !s.visibleMeshes.includes('kbit_queue_phone_1'), 'the queue did not hold their phones up');
+  expect(s.audio.music === 'kbit:2004-live', `after the ring the remix should play from every phone, got "${s.audio.music}"`);
   expect(s.fixedCds.includes('kbit'), 'K-Bit\'s CD is not fixed after both steps');
   await screenshot(page, 'kbit-ringing');
 

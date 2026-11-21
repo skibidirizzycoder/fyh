@@ -65,16 +65,13 @@ function ringtone(): Cue {
   return { tones, noises: [] };
 }
 
-/** The infrared beam: two tones flicking back and forth (the handshake), then a "got it" blip. */
+/** K-Bit's AirDrop: a quick upward swoosh as the file flies over, then a bright two-note "received" ping. */
 function beam(): Cue {
   const b = T.audio.beam;
   const wave = b.wave as OscillatorType;
-  const chirps = Array.from({ length: b.chirps }, (_, i) => ({
-    at: i * b.chirpSec, sec: b.chirpSec, note: b.notes[i % b.notes.length] ?? 0, wave, gain: b.gain,
-  }));
-  const end = b.chirps * b.chirpSec;
-  const done = b.doneNotes.map((note, i) => ({ at: end + i * b.doneGapSec, sec: b.doneSec, note, wave, gain: b.doneGain }));
-  return { tones: [...chirps, ...done], noises: [] };
+  const tones = b.pingNotes.map((note, i) => ({ at: b.pingAt + i * b.pingGapSec, sec: b.pingSec, note, wave, gain: b.pingGain }));
+  const swoosh = { at: 0, sec: b.swooshSec, gain: b.swooshGain, fromHz: b.swooshFromHz, toHz: b.swooshToHz, q: b.swooshQ };
+  return { tones, noises: [swoosh] };
 }
 
 /** The CD player: tray out (motor + clunk), the disc clicks in, tray in, the disc spins up, the laser seeks. */
