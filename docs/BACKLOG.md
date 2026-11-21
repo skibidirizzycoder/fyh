@@ -11,6 +11,9 @@
    checkpoint in a separate folder and serves it at http://localhost:4300. Your branch isn't touched.
    Claude tags a checkpoint (`npm run checkpoint`) after each round of ships.
 4. **Queue empty?** Take a Free task (put your name next to it in `STATUS.md` first) and tell the lead.
+   Your agent can run the whole queue by itself: `docs/prompts/08-autonomous-lane.md`.
+   **Two sessions at once?** Give the second its own branch named after your lane, e.g.
+   `feat/phone-static-screens` (from `main`). `ship` accepts it.
 5. **Keep these ids.** Other people's tests and the smoke run use them: `mira_take_cd`,
    `mira_play_cd`, `mira_cd`, `listening_post`, `static_plug_amp`, `static_give_mic`,
    `static_cable_reel`, `static_mic`, `kbit_*` actions, `rep_open`, `rep_busy`, `rep_landmark`,
@@ -41,7 +44,10 @@
 
 - [x] B1. All sound effects, made in code
 - [x] B2. DJ K-Bit's bus stop
-- [ ] **B3. The CD music**: `docs/prompts/06-teammate-b-cd-music.md` (in progress).
+- [ ] **B3. The CD music**: `docs/prompts/06-teammate-b-cd-music.md`. **Don't wait for a song
+  pick:** if the team hasn't chosen, use the ★ picks in `docs/music-shortlist.md` (anyone can swap a
+  file later). ccMixter files download with the track page as the `Referer` (e.g. `curl -e <page> -o …`).
+  No trimming tool? Commit the full MP3 and play a 30–45 s section (`start` and `length` in `T.audio.music`).
 - [ ] **B4. Today's shop at each reputation level.** You now own `src/world/props/today.ts`, the
   `"reputation"` entries in `src/story/content.json` (only those) and `scripts/checks/today.ts`.
   - Level 0: boarded up and dark.
@@ -67,6 +73,6 @@
 - [ ] C1. Each moment gets its own look: open mic = evening with warm lights, street gig = bright
   summer afternoon, ringtone craze = cold December dusk.
 - [ ] C2. The player can't walk through props (collisions).
-- [ ] C3. The rest of `docs/prompts/05-agentic-workflow.md`: `measure`, AGENTS team sections,
-  `src/contracts.ts`, ownership check in the pre-commit hook, `review-diff`.
+- ~~C3. The rest of `docs/prompts/05-agentic-workflow.md`~~ **Cut:** `ship` already enforces
+  ownership and the gate. We build the game instead.
 - [ ] C4. Deploy each checkpoint to Netlify, so the team plays it in a browser (needs `netlify login` from the lead).
