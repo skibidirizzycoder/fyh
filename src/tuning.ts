@@ -11,7 +11,12 @@ export const T = {
 
   player: {
     speed: 3, // metres per second
+    accelSec: 0.2, // W/S eases in: from standing to full speed in this long...
+    decelSec: 0.15, // ...and eases out: from full speed to standing after you let go
     turnSpeedDeg: 150, // degrees per second (A/D)
+    turnAccelSec: 0.1, // A/D eases in: from still to full turning speed in this long...
+    turnDecelSec: 0.05, // ...and eases out when you let go
+    easeSnap: 1e-9, // a ramp this close to its end counts as there (float rounding), so ramps take exactly sec / dt steps
     startX: 0,
     startZ: 3,
     startYawDeg: 0, // 0 = facing -Z (towards the shop)
@@ -116,6 +121,19 @@ export const T = {
     paper: '#f3ecd9', // newspaper panel: light paper, dark ink
     ink: '#1d1a14',
     offlineInk: '#8a1c1c', // "offline edition" label
+  },
+
+  // The CD player outside the shop today: the time machine (props in src/world/props/player.ts).
+  cdPlayer: {
+    insertSec: 0.8, // E at a CD: it goes into the player at once, you arrive in its 2004 moment this much later
+    crate: '#9c7a4f', // the wooden crate it stands on
+    crateSlat: '#6f5233', // darker slats on the crate's front
+    body: '#2b2e33', // the boombox
+    grille: '#121315', // its two speakers
+    trim: '#c3c8ce', // the silver CD lid and handle
+    display: '#7cf2c4', // a small lit display
+    cds: { mira: '#f06595', static: '#ff922b', kbit: '#51cf66' } as Record<string, string>, // one clear colour per CD
+    gold: '#ffcc33', // a fixed CD turns gold
   },
 
   pitch: {

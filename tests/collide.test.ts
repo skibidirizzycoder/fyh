@@ -5,6 +5,7 @@ import { usedObjects } from '../src/game.ts';
 import { blocks, obstaclesOf, overlapsAny, type Footprint, type Spot } from '../src/player/collide.ts';
 import { pickTarget, startPlayer, stepPlayer, type MoveInput, type PlayerState, type Target } from '../src/player/controller.ts';
 import { findRoute, lineClear, steerAlong, type Steer } from '../src/player/path.ts';
+import { cdForObject } from '../src/story/cdplayer.ts';
 import { content } from '../src/story/content.ts';
 import { propOverrides, type Flags } from '../src/story/timeline.ts';
 import { T, type Era } from '../src/tuning.ts';
@@ -72,7 +73,7 @@ describe('collisions', () => {
   it('walking into a wall at an angle slides along it', () => {
     const yaw = 45; // facing -Z and -X
     const n = T.loop.stepsPerSecond; // 1 s: about 2 m sideways, still in front of the 8 m wall
-    const p = hold({ x: 0, z: -4.5 + R, yawDeg: yaw }, n, [WALL]);
+    const p = hold({ x: 0, z: -4.5 + R, yawDeg: yaw, speed: T.player.speed }, n, [WALL]); // already walking at full speed
     expect(p.z).toBeCloseTo(-4.5 + R, 6);
     expect(p.x).toBeCloseTo(-Math.SQRT1_2 * T.player.speed * dt * n, 6); // all of the sideways part of the move
   });
@@ -170,8 +171,9 @@ function expectRouteTo(t: Target, obstacles: readonly Footprint[], when: string)
   expect(Math.hypot(t.x - at.x, t.z - at.z), `${when}: the route ends out of range`).toBeLessThanOrEqual(T.player.interactRange);
 }
 
-/** True when the action on this object is not done yet and its requirements are met. */
+/** True when the action on this object is not done yet and its requirements are met (a CD by the CD player: always). */
 function canDoNow(objectId: string, flags: Flags): boolean {
+  if (cdForObject(content, objectId)) return true;
   const action = content.actions.find((a) => a.objectId === objectId);
   return !!action && !flags.includes(action.id) && action.requires.every((r) => flags.includes(r));
 }

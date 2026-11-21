@@ -169,7 +169,9 @@ Or publish manually: `npx gh-pages -d dist`.
 `SNOWFLAKE_TOKEN` under *Site configuration → Environment variables*. Never put them in the repo.
 
 GitHub Pages and dragging `dist/` onto Netlify serve static files only. There is no
-`/api/headline` there, so players always get the offline edition.
+`/api/headline` there, so players always get the offline edition. Build those with
+`VITE_NEWS_API=off npm run build`: the browser then never asks for the missing endpoint (no 404 in the console).
+Where the endpoint exists but Snowflake can't answer, it replies 200 `{ offline: true, reason }`, so that is quiet too.
 
 Run `npm run gate` before every deploy.
 

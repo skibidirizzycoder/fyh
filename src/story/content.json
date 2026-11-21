@@ -1,8 +1,14 @@
 {
-  "intro": "Your record shop, Hollow Records, closed in 2019. Three local covers nobody bought are still behind the counter: 'Lose Yourself', 'Sweet Child O' Mine' and 'Despacito'. Your old flip phone buzzes. Press Q to open it.",
+  "intro": "Your record shop, Hollow Records, closed in 2019. Three local covers nobody bought sit by an old CD player outside: 'Lose Yourself', 'Sweet Child O' Mine' and 'Despacito'. Put one in (E) to go back to the day it was played. Your flip phone (Q) brings you home.",
   "travelLines": {
     "present": "Snap. The phone closes and it's today again.",
     "past": "{date}. {situation}"
+  },
+  "fixedSituation": "Listen: everyone is into {artist} now. You already fixed this moment.",
+  "cdPlayer": {
+    "prompt": "Put {artist}'s CD in the player",
+    "line": "Click. Whirr. {artist}'s \"{title}\" spins up, and the street starts to blur...",
+    "phoneLockedLine": "No signal for that one yet. Put its CD in the old player outside the shop."
   },
   "alreadyDoneLine": "You've already done that here.",
   "notHereLine": "There's nothing to use here right now.",

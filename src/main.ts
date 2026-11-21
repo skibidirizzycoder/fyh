@@ -10,6 +10,7 @@ import { createGame, usedObjects } from './game.ts';
 import { createNewsDesk } from './news/desk.ts';
 import { createAvatar } from './player/avatar.ts';
 import { createPhoneView } from './phone/view.ts';
+import { withCdPrompts } from './story/cdplayer.ts';
 import { content } from './story/content.ts';
 import { propOverrides } from './story/timeline.ts';
 import { validateContent } from './story/validate.ts';
@@ -44,7 +45,9 @@ function boot(): void {
   renderer.info.autoReset = false; // we count draw calls for a whole frame (scene + post filter)
 
   const input = createInput(window);
-  const news = createNewsDesk({ content });
+  // A static host (no /api/headline) builds with VITE_NEWS_API=off: the paper is then always the
+  // offline edition, and the browser never asks for an endpoint that isn't there.
+  const news = createNewsDesk({ content, api: import.meta.env.VITE_NEWS_API !== 'off' });
   const events = createEvents();
   const audio = createAudio(events, { target: window });
   const game = createGame(content, input, { news, events });
@@ -52,7 +55,7 @@ function boot(): void {
   const avatar = createAvatar(world.scene);
   const camera = new THREE.PerspectiveCamera(T.camera.fovDeg, 1, T.camera.near, T.camera.far);
   const post = createPostFilter(1, 1);
-  const hud = createHud(app, content, news);
+  const hud = createHud(app, withCdPrompts(content), news); // the HUD finds E prompts in `actions`, the CD player's too
   const phone = createPhoneView(app);
   let drawCalls = 0;
 

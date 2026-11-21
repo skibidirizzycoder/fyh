@@ -29,7 +29,7 @@ async function main(): Promise<void> {
   const body = (await res.json()) as Record<string, unknown>; // already redacted by the handler
   const ms = Date.now() - started;
   const slow = ms > T.news.timeoutMs ? `slower than the game's ${T.news.timeoutMs} ms timeout: players will see the offline edition` : undefined;
-  finish({ ok: res.ok, status: res.status, ms, ...body, ...(slow ? { warning: slow } : {}) });
+  finish({ ok: res.ok && body.offline !== true, status: res.status, ms, ...body, ...(slow ? { warning: slow } : {}) }); // offline: Snowflake said no
 }
 
 void main();
