@@ -138,8 +138,32 @@ function lookGroup(look: PersonLookName, cheer: boolean, props: Prop[], indices:
 }
 
 /** Creates the people for the person props (all of them, every era: show() picks who is there). */
+/** The performer everyone in a moment watches (the first person prop whose id matches). */
+const PERFORMERS: Readonly<Record<string, RegExp>> = {
+  open_mic: /^mira_[a-z]+$/, // Mira herself; her listeners are mira_<kind>_<n>
+  street_gig: /^static_(singer|guitarist|bassist|drummer)/,
+  ringtone: /^kbit_body$/,
+};
+
+/**
+ * Which way a person without their own `facingDeg` faces: performers face the street (T.cel.people.facingDeg);
+ * everyone else in a moment turns to watch that moment's performer; today's people face the shop (-Z).
+ */
+export function autoFacing(person: Prop, all: readonly Prop[]): number {
+  if (person.facingDeg !== undefined) return person.facingDeg;
+  const moment = person.moments?.[0];
+  if (!moment) return C.facingDeg + 180;
+  const isPerformer = PERFORMERS[moment];
+  if (!isPerformer || isPerformer.test(person.id)) return C.facingDeg;
+  const focus = all.find((p) => isPerson(p) && p.moments?.includes(moment) && isPerformer.test(p.id));
+  if (!focus) return C.facingDeg;
+  const dx = focus.pos[0] - person.pos[0];
+  const dz = focus.pos[2] - person.pos[2];
+  return Math.atan2(dx, dz) / DEG; // 0 faces +Z, as the people are built
+}
+
 export function createPeople(props: readonly Prop[], textures: PersonTextures): People {
-  const people = props.filter(isPerson);
+  const people = props.filter(isPerson).map((p, _i, all) => ({ ...p, facingDeg: autoFacing(p, all) }));
   const ids = new Set(props.map((p) => p.id));
   const byLook = new Map<string, { look: PersonLookName; cheer: boolean; props: Prop[]; indices: number[] }>();
   people.forEach((p, i) => {
