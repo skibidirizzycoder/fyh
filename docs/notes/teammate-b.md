@@ -1,6 +1,8 @@
 # Teammate B: sound, music, DJ K-Bit, today's shop
 
-**Status (2026-11-21, 15:20): B1–B6, F1 shipped; M-B1/M-B2 sounds built and shipped, waiting on four events
+**Status (2026-11-21, 16:45): B7 done (`checkpoint-22`); K-Bit demo upgrade (my half) done, proposal below.**
+
+**Earlier status (15:20):** B1–B6, F1 shipped; M-B1/M-B2 sounds built and shipped, waiting on four events
 from Claude to be heard (below).** Last gate: 195 unit tests, smoke `"ok":true`, `pitchSec` 26.8.
 
 ## Done
@@ -48,6 +50,26 @@ from Claude to be heard (below).** Last gate: 195 unit tests, smoke `"ok":true`,
   detector was unsure (Mira 68 vs 157 bpm scored the same; K-Bit 160–164 tied; The Static 104.5, with 197 close).
   Someone should play today with a fixed CD, set the right `bpm`, set `beat: 1`, and check it's in time.
 - **Swap any song** you don't like: keep the file name, update `public/music/CREDITS.md` and the `bpm`.
+
+## Proposal for Teammate A (please pass on): the demo's K-Bit moment, "the ringtone goes viral"
+
+K-Bit is the scene the judges watch live (pitch 0:15–0:45). Same 2 presses, but the payoff spreads.
+**My half is done and on `main`** (tests: `tests/kbit-spread.test.ts`):
+- The beam is now a ~1.25 s infrared transfer (`T.kbit.beamSec`).
+- After your phone rings, each queue phone joins one ringtone beat later (`T.kbit.spread.gapSec`, 0.43 s).
+  Phones go in `T.kbit.spread.phones` order, each its own 4-voice phone with its own octave, wave and pan.
+  The chorus swells from RMS 11 to 15, peak 0.55, and is over in ~5 s.
+
+**Asked of Teammate A** (phone view and bubbles; both can start from `action-done` with these actionIds):
+1. On `kbit_beam_track`, the LCD shows an IrDA transfer: "K-Bit's phone found" → "Receiving
+   Polyphonic.mid" with a bar filling over `T.kbit.beamSec` → "Saved as ringtone ✓".
+2. On `kbit_ring_bus_stop`, the phone shows "♪ Polyphonic — ringing" with a little shake. For this CD the
+   bubbles are one ♪ per queue person, left to right, bubble i at `(i + 1) * T.kbit.spread.gapSec`, with a ♥
+   when all 4 are ringing.
+
+**Asked of Claude:** an optional per-prop show delay (e.g. `showDelaySec` on a prop), so the queue's
+phones (`kbit_queue_phone_1..4`) can come out one by one in time with their ringtones. Until then they
+appear together.
 
 ## Requests for Claude
 

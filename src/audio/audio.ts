@@ -7,7 +7,7 @@
 import type { GameEvents } from '../core/events.ts';
 import { T, type Era } from '../tuning.ts';
 import { createAmbience, type Ambience } from './ambience.ts';
-import { buildCue, cueLength, whooshDelay, type Cue, type CueName } from './cues.ts';
+import { buildCue, cueLength, queueRingtones, whooshDelay, type Cue, type CueName } from './cues.ts';
 import { createFeel, subscribeFeel, type Feel, type FeelSource } from './feel-player.ts';
 import { createMusicDirector, type MusicDirector } from './music-director.ts';
 import { createMusicPlayer, type MusicPlayer } from './music.ts';
@@ -132,6 +132,28 @@ function subscribeAhead(events: SoundEvents, a: { feel: Feel; play: (name: CueNa
   upcoming.on('cd-insert', () => a.play('cd-insert'));
 }
 
+/** The bus queue catches your ringtone: each phone joins in turn, panned to where it stands. Returns how long it lasts. */
+function playQueue(s: Sound): number {
+  let end = 0;
+  for (const phone of queueRingtones()) {
+    const pan = s.ctx.createStereoPanner();
+    pan.pan.value = phone.pan;
+    pan.connect(s.master);
+    playCue(s.ctx, pan, phone.cue, s.noise, phone.delaySec);
+    end = Math.max(end, phone.delaySec + cueLength(phone.cue));
+  }
+  return end;
+}
+
+/** Plays a cue now (the whoosh waits for a CD's spin-up), the queue after the ringtone, and ducks the music. */
+function playOn(s: Sound, name: CueName, insertAt: number | null): void {
+  const cue = buildCue(name);
+  const delay = name === 'whoosh' ? whooshDelay(insertAt, s.ctx.currentTime) : DELAY[name] ?? 0;
+  playCue(s.ctx, s.master, cue, s.noise, delay);
+  const spread = name === 'ringtone' ? playQueue(s) : 0; // and then the whole queue rings
+  if (DUCK_CUES.includes(name)) s.music.duck(Math.max(cueLength(cue), spread));
+}
+
 /** Creates the game's audio and subscribes it to game events. */
 export function createAudio(events: SoundEvents, options: AudioOptions = {}): GameAudio {
   const makeContext = options.makeContext ?? defaultContext;
@@ -181,11 +203,8 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
     const s = sound;
     if (!s || muted) return;
     safely(() => {
-      const cue = buildCue(name);
       if (name === 'cd-insert') insertAt = s.ctx.currentTime;
-      const delay = name === 'whoosh' ? whooshDelay(insertAt, s.ctx.currentTime) : DELAY[name] ?? 0;
-      playCue(s.ctx, s.master, cue, s.noise, delay);
-      if (DUCK_CUES.includes(name)) s.music.duck(cueLength(cue));
+      playOn(s, name, insertAt);
     });
   }
 
