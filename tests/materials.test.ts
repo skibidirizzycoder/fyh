@@ -107,7 +107,7 @@ describe('cel material', () => {
     expect(m.vertexColors).toBe(true);
     const s = patched(m);
     expect(s.vertexShader).toContain(`attribute vec3 ${SHADE_ATTRIBUTE};`);
-    expect(s.fragmentShader).toContain('vec3 shadeTone = vCelShade * diffuse;');
+    expect(s.fragmentShader).toContain('vec3 shadeTone = vCelShade * diffuse * celDetail;');
     expect(shadeColor('#7a4a3a').getHexString()).toBe(shadowTone('#7a4a3a').slice(1));
   });
 
