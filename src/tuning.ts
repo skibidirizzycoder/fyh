@@ -227,7 +227,8 @@ export const T = {
   // ---- Teammate A's sections ----
   flip: { // the flip-phone transition when you travel (src/fx/flip.ts)
     closeSec: 0.45, // the screen folds shut after the CD goes in (less than cdPlayer.insertSec)
-    holdSec: 0.55, // shut, the outer screen shows the destination's clock and date...
+    rollSec: 1.6, // shut, the outer screen's clock races from now to the destination (slow, fast, slow)...
+    holdSec: 0.45, // ...and rests on the destination's clock and date...
     lcdFadeSec: 0.12,
     openSec: 0.5, // ...then it flips open on the new time
   },
