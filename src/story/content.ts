@@ -24,7 +24,7 @@ function goldChange(cd: LoadedCd): PresentChange {
     id: `gold_${cd.id}`,
     label: `${cd.artist}'s "${cd.title}" went gold`,
     requires: [cd.finalAction],
-    line: cd.today,
+    line: cd.today ?? `${cd.artist}'s "${cd.title}" went gold.`,
     effects: { show: [`gold_${cd.id}`], hide: [] },
   };
 }

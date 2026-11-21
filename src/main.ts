@@ -45,7 +45,7 @@ function boot(): void {
   const input = createInput(window);
   const news = createNewsDesk({ content });
   const events = createEvents();
-  const audio = createAudio(events);
+  const audio = createAudio(events, { target: window });
   const game = createGame(content, input, { news, events });
   const world = buildWorld();
   const avatar = createAvatar(world.scene);

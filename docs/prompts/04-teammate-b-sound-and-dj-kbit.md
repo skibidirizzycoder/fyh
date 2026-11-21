@@ -3,6 +3,13 @@
 **How to use:** first do "Before you start" yourself. Then paste everything under
 "The prompt" into your AI agent (JetBrains Air or any other).
 
+> **Update (foundation merged):** your first two commits (all sound + the K-Bit moment) are merged
+> into `main` with the foundation, and everything passes. Run `git pull origin main` on your branch
+> before your next commit. One change in your files: in `tests/kbit.test.ts`, "the 2004 street" is
+> now `PROPS` **without** a `moments` field, because `PROPS` now also contains every moment's props.
+> Still to do: `scripts/checks/audio.ts` + `kbit.ts` (they exist with TODOs), a `"today"` line in
+> `kbit.json`'s `cd`, and the polish ideas below.
+
 ## Before you start (you, not the agent)
 
 1. Clone and set up (about 10 minutes):
@@ -35,10 +42,10 @@ screenshots in `artifacts/`, then commit with a clear message. Never start the n
 - `src/core/events.ts` (Claude's): the game announces `game-start`, `travel`, `action-done`,
   `action-locked`, `phone-open`, `phone-close`, `phone-move`, `phone-select`, `reputation` and
   `mute` (the M key). Read the file for what each one carries.
-- `src/audio/audio.ts` (yours): a silent PLACEHOLDER. `createAudio(events)` already listens to every
-  event and records the cue name it would play. Keep its interface: `lastCue()` and `muted()`.
-  Cue names the checks use: `whoosh` (travel), `chime` (action done), `ringtone` (action
-  `kbit_ring` done), `nope` (locked), `flip-open`, `flip-close`, `beep` (menu move), `select`, `fanfare` (reputation).
+- `src/audio/` (yours): your sound, already merged. `main.ts` calls `createAudio(events, { target: window })`,
+  and the debug API reads `lastCue()` and `isMuted()`, so keep those two.
+  Cue names the checks use: `whoosh` (travel), `chime` (action done), `ringtone` (the actions in
+  `T.audio.ringtoneActions`), `nope` (locked), `flip-open`, `flip-close`, `beep` (menu move), `blip` (select), `fanfare` (reputation).
 - `src/story/cds/kbit.json` + `src/world/props/kbit.ts` (yours): PLACEHOLDER story and magenta props.
 - `scripts/checks/audio.ts` + `kbit.ts` (yours): basic checks that already pass, with TODOs.
   Use the helpers in `scripts/checks/tools.ts` (`restart`, `tap`, `travel`, `walkTo`, `interact`,
@@ -56,7 +63,8 @@ write an **original** melody.
   Switch it on `travel` (the event says the era). This makes the eras differ in a third way.
 - Browsers only allow sound after a key press: create or resume the `AudioContext` on the
   `game-start` event (Enter on the title), never at page load.
-- M mutes and unmutes everything (the `mute` event).
+- M mutes and unmutes everything. (The game also emits `mute` and `game-start` events, if you'd
+  rather listen to those than to the keyboard; then `__game.press('KeyM')` works in tests too.)
 - Keep `lastCue()` working, even when muted. Headless Chrome in the smoke test plays no real
   sound; we test which cue was triggered. A console **error** fails the smoke test, so catch audio failures.
 

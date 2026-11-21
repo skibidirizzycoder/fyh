@@ -45,7 +45,7 @@ export interface Cd {
   moment: string; // id of its 2004 moment, e.g. "street_gig"
   date: string; // shown in the phone menu, e.g. "2 July 2004"
   situation: string; // what is going wrong in that moment (shown when you arrive)
-  today: string; // what is different today once this CD is fixed
+  today?: string; // what is different today once this CD is fixed (optional)
 }
 
 /** The file for one CD: src/story/cds/<id>.json */

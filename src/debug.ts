@@ -190,7 +190,7 @@ function snapshot(rt: Runtime): Snapshot {
     dialogue: s.dialogueLeft > 0 ? s.dialogue : '',
     card: { visible: playing && s.era === 'present' && changes.length > 0 && !s.phone.open, changes, causes: rt.game.causes().map((a) => a.id) },
     phone: { open: s.phone.open, index: s.phone.index, selected: s.phone.items[s.phone.index]?.target ?? '', items: s.phone.items.map((i) => i.target) },
-    audio: { lastCue: rt.audio.lastCue(), muted: rt.audio.muted() },
+    audio: { lastCue: rt.audio.lastCue() ?? '', muted: rt.audio.isMuted() },
     events: rt.game.events.recent(),
     player: { x: s.player.x, y: 0, z: s.player.z, yawDeg: s.player.yawDeg, facing: forwardFromYaw(s.player.yawDeg), measuredFacing: rt.avatar.measuredFacing() },
     camera: { x: cam.position.x, y: cam.position.y, z: cam.position.z, forward: { x: forward.x, y: forward.y, z: forward.z } },
