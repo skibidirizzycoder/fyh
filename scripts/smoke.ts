@@ -13,6 +13,7 @@
 // Writes screenshots to artifacts/ (2004.png, present.png, moment-*.png, ...) and one JSON line.
 
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:net';
 import { chromium, type BrowserContext, type Page } from 'playwright';
 import { build, preview, type PreviewServer } from 'vite';
 import type { Snapshot } from '../src/debug.ts';
@@ -31,8 +32,9 @@ import {
   state, step, travel, waitForNews, walkTo, type Check,
 } from './checks/tools.ts';
 
-const PROD = { outDir: 'dist', port: 4173 };
-const TEST = { outDir: 'dist-test', port: 4174 };
+// Ports are picked free at start, so several agents can run smoke on one machine at once.
+const PROD = { outDir: 'dist', port: 0 };
+const TEST = { outDir: 'dist-test', port: 0 };
 const STEP = 1 / T.loop.stepsPerSecond;
 const READ_FRAMES = Math.round(T.pitch.readSec * T.loop.stepsPerSecond);
 const started = Date.now();
@@ -72,7 +74,20 @@ async function buildVariant(mode: string, outDir: string): Promise<void> {
   await build({ mode, logLevel: 'warn', build: { outDir, emptyOutDir: true } });
 }
 
-/** Serves a build folder on a fixed port. */
+/** A port nobody is listening on right now. */
+async function freePort(): Promise<number> {
+  return new Promise((done, fail) => {
+    const probe = createServer();
+    probe.once('error', fail);
+    probe.listen(0, 'localhost', () => {
+      const address = probe.address();
+      const port = typeof address === 'object' && address ? address.port : 0;
+      probe.close(() => done(port));
+    });
+  });
+}
+
+/** Serves a build folder on a given port. */
 async function serve(outDir: string, port: number): Promise<PreviewServer> {
   return preview({ logLevel: 'warn', build: { outDir }, preview: { port, strictPort: true } });
 }
@@ -311,6 +326,8 @@ async function main(): Promise<void> {
     await buildVariant('production', PROD.outDir);
     await buildVariant('test', TEST.outDir);
     assertNoDebugApiShipped();
+    PROD.port = await freePort();
+    TEST.port = await freePort();
     servers.push(await serve(PROD.outDir, PROD.port), await serve(TEST.outDir, TEST.port));
     const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
     await mockNewsApi(context);

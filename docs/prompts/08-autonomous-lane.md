@@ -4,6 +4,10 @@
 paste "The prompt" into your agent and change `<LANE>` to `phone-static` (Teammate A) or
 `sound-kbit` (Teammate B). Check in on it now and then; it doesn't need you to keep going.
 
+**Second session** (its own folder and branch, see `docs/BACKLOG.md` step 4): paste the same prompt
+and add a last line `Only task: A4` (or `B4`). That session builds and ships just that task, then
+takes Free tasks. Tell the first session to skip it: add `Skip: A4`.
+
 ---
 
 ## The prompt
@@ -15,8 +19,9 @@ and `STATUS.md`.
 
 Work through your queue in `docs/BACKLOG.md` **on your own, top to bottom, without stopping to ask**:
 
-1. Take the first task in your section that your notes don't mark as done. If the task points to a
-   prompt in `docs/prompts/`, follow that prompt.
+1. Take the first task in your section that your notes don't mark as done (respect `Only task:` and
+   `Skip:` lines at the end of this prompt). If the task points to a prompt in `docs/prompts/`,
+   follow that prompt.
 2. Build it in small steps. After each step: `npm run check`, then `npm run smoke`, look at the
    screenshots in `artifacts/`, and commit with a clear message.
 3. When the task works end to end: `npm run ship`. If it stops, read why, fix it, ship again.
