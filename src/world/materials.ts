@@ -21,6 +21,8 @@ type Rgb = readonly [number, number, number];
 
 /** Name of the per-vertex shade tone attribute that celVertexMaterial() reads. */
 export const SHADE_ATTRIBUTE = 'celShade';
+/** Vertex attribute of the decoration atlas (atlas.ts): cell column, row, and how much of it shows. */
+export const ATLAS_ATTRIBUTE = 'celAtlas';
 
 /** What a prop's surface looks like in one era. */
 export interface Surface {
@@ -128,8 +130,18 @@ function shadeDetail(): number {
 /** Constants and the lighting function added to the Lambert fragment shader. */
 function fragmentHeader(): string {
   const c = T.cel;
+  const a = c.atlas;
   return /* glsl */ `
 uniform vec3 celShadow;    // this material's shade tone (linear)
+vec3 celDetail = vec3( 1.0 ); // an atlas image's pattern here (1: none); the shade keeps it too
+#ifdef CEL_ATLAS
+varying vec3 vCelAtlas;    // the atlas cell (column, row) and how much of it shows
+#define CEL_ATLAS_CELLS ${a.columns * a.rows}
+uniform float celAtlasMean[ CEL_ATLAS_CELLS ]; // each cell's mean brightness, so its pattern averages 1
+#define CEL_ATLAS_GRID vec2( ${glsl(a.columns)}, ${glsl(a.rows)} )
+#define CEL_ATLAS_INSET ${glsl(a.inset)}
+#define CEL_ATLAS_COLOR ${glsl(a.colorAmount)}
+#endif
 uniform float celMapAll;   // 1: the texture covers every face; 0: only the front (+Z) face
 varying float vCelFront;   // 1 on the front (+Z) face of the unit box
 #ifdef CEL_VERTEX_SHADE
@@ -160,7 +172,7 @@ vec3 celLight( vec3 base, vec3 n ) {
   float lit = smoothstep( CEL_EDGE - CEL_SOFT, CEL_EDGE + CEL_SOFT, nl );
   vec3 litTone = base * ( 1.0 - CEL_GRADIENT * ( 1.0 - saturate( nl ) ) );
   #ifdef CEL_VERTEX_SHADE
-    vec3 shadeTone = vCelShade * diffuse;
+    vec3 shadeTone = vCelShade * diffuse * celDetail;
   #else
     vec3 shadeTone = max( celShadow + ( base - diffuse ) * CEL_SHADE_DETAIL, 0.0 ); // texture detail on the shade
   #endif
@@ -169,24 +181,44 @@ vec3 celLight( vec3 base, vec3 n ) {
 `;
 }
 
-/** Texture: mixed into the base colour on the faces it covers. */
+/**
+ * Texture: mixed into the base colour on the faces it covers. With the decoration atlas (CEL_ATLAS),
+ * each vertex names its cell; the image tiles inside the cell (explicit gradients, so no seams where
+ * it wraps) and its brightness, divided by the cell's mean, patterns the vertex colour.
+ */
 const MAP_FRAGMENT = /* glsl */ `
 #ifdef USE_MAP
+#ifdef CEL_ATLAS
+  vec2 celCell = floor( vCelAtlas.xy + 0.5 );
+  vec2 celUv = ( celCell + mix( vec2( CEL_ATLAS_INSET ), vec2( 1.0 - CEL_ATLAS_INSET ), fract( vMapUv ) ) ) / CEL_ATLAS_GRID;
+  vec3 celTexel = textureGrad( map, celUv, dFdx( vMapUv ) / CEL_ATLAS_GRID, dFdy( vMapUv ) / CEL_ATLAS_GRID ).rgb;
+  vec3 celPattern = mix( vec3( dot( celTexel, vec3( 0.2126, 0.7152, 0.0722 ) ) ), celTexel, CEL_ATLAS_COLOR );
+  celDetail = mix( vec3( 1.0 ), celPattern / celAtlasMean[ int( celCell.y * CEL_ATLAS_GRID.x + celCell.x ) ], vCelAtlas.z );
+  diffuseColor.rgb *= celDetail;
+#else
   vec4 celTexel = texture2D( map, vMapUv );
   float celCover = celMapAll > 0.5 ? CEL_MIX_TILED : vCelFront * CEL_MIX_FRONT;
   diffuseColor.rgb = mix( diffuseColor.rgb, celTexel.rgb, celCover );
 #endif
+#endif
 `;
 
-/** Vertex shader additions: the front-face flag, and each vertex's shade tone when it has one. */
+/** Vertex shader additions: the front-face flag, and each vertex's shade tone and atlas cell when it has them. */
 const VERTEX_HEADER = `varying float vCelFront;
 #ifdef CEL_VERTEX_SHADE
 attribute vec3 ${SHADE_ATTRIBUTE};
 varying vec3 vCelShade;
+#endif
+#ifdef CEL_ATLAS
+attribute vec3 ${ATLAS_ATTRIBUTE};
+varying vec3 vCelAtlas;
 #endif`;
 const VERTEX_MAIN = `vCelFront = step( 0.5, objectNormal.z );
 #ifdef CEL_VERTEX_SHADE
 vCelShade = ${SHADE_ATTRIBUTE};
+#endif
+#ifdef CEL_ATLAS
+vCelAtlas = ${ATLAS_ATTRIBUTE};
 #endif`;
 
 const LAMBERT_OUT = 'vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + totalEmissiveRadiance;';
@@ -195,6 +227,7 @@ const LAMBERT_OUT = 'vec3 outgoingLight = reflectedLight.directDiffuse + reflect
 function patchShader(shader: THREE.WebGLProgramParametersWithUniforms, uniforms: CelUniforms): void {
   shader.uniforms.celShadow = uniforms.celShadow;
   shader.uniforms.celMapAll = uniforms.celMapAll;
+  shader.uniforms.celAtlasMean = uniforms.celAtlasMean;
   shader.vertexShader = shader.vertexShader
     .replace('#include <common>', `#include <common>\n${VERTEX_HEADER}`)
     .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>\n${VERTEX_MAIN}`);
@@ -207,6 +240,7 @@ function patchShader(shader: THREE.WebGLProgramParametersWithUniforms, uniforms:
 interface CelUniforms {
   celShadow: { value: THREE.Color };
   celMapAll: { value: number };
+  celAtlasMean: { value: number[] }; // CEL_ATLAS only
 }
 
 /** Sets a cel material's colour and shade tone. */
@@ -218,7 +252,8 @@ function setColor(m: THREE.MeshLambertMaterial, color: string): void {
 /** A new cel material (Lambert with the cel light patched in), without a texture yet. */
 export function celMaterial(color: string, glow = false): THREE.MeshLambertMaterial {
   const m = new THREE.MeshLambertMaterial({ emissive: glow ? T.interact.highlightColor : '#000000', emissiveIntensity: 0 });
-  const uniforms: CelUniforms = { celShadow: { value: new THREE.Color() }, celMapAll: { value: 0 } };
+  const cells = T.cel.atlas.columns * T.cel.atlas.rows;
+  const uniforms: CelUniforms = { celShadow: { value: new THREE.Color() }, celMapAll: { value: 0 }, celAtlasMean: { value: new Array<number>(cells).fill(1) } };
   m.userData.cel = uniforms;
   m.onBeforeCompile = (shader) => patchShader(shader, uniforms);
   m.customProgramCacheKey = () => 'cel'; // every cel material shares the same shader code
@@ -237,6 +272,23 @@ export function celVertexMaterial(): THREE.MeshLambertMaterial {
   m.vertexColors = true;
   m.defines = { CEL_VERTEX_SHADE: '' };
   return m;
+}
+
+/**
+ * A vertex-coloured cel material that also reads the decoration atlas: the geometry needs `color`,
+ * SHADE_ATTRIBUTE, ATLAS_ATTRIBUTE and `uv`. It stays plain until showAtlas gives it the atlas.
+ */
+export function celAtlasMaterial(): THREE.MeshLambertMaterial {
+  const m = celVertexMaterial();
+  m.defines = { CEL_VERTEX_SHADE: '', CEL_ATLAS: '' };
+  return m;
+}
+
+/** Gives an atlas material its texture and each cell's mean brightness (the shader is rebuilt with the map). */
+export function showAtlas(m: THREE.MeshLambertMaterial, texture: THREE.Texture, means: readonly number[]): void {
+  (m.userData.cel as CelUniforms).celAtlasMean.value = [...means];
+  m.map = texture;
+  m.needsUpdate = true;
 }
 
 // ---------- textures ----------

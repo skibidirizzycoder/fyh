@@ -6,7 +6,8 @@
 // interactables get their own material (for the glow). Every standing prop and the player
 // get a soft contact shadow, all drawn as one instanced mesh.
 // Street decoration (`decor`) is merged into one vertex-coloured mesh per set of eras,
-// so the whole street costs a couple of draw calls. A prop with a `label` gets its text
+// so the whole street costs a couple of draw calls; its building fronts and wooden bits show images
+// from one atlas texture (atlas.ts) made at load. A prop with a `label` gets its text
 // painted on a canvas texture, one per era. Everything is cel-shaded alike.
 
 import * as THREE from 'three';
@@ -14,8 +15,11 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ERAS, T, type Era } from '../tuning.ts';
 import { placed } from './areas.ts';
 import { GROUND, PROPS, inScene, propColor, propTexture, visibleProps, type Prop } from './layout.ts';
+import { atlasVertices, loadAtlas } from './atlas.ts';
 import { lookFor } from './look.ts';
-import { SHADE_ATTRIBUTE, celMaterial, celVertexMaterial, createMaterials, shadowTone, type Materials, type Surface } from './materials.ts';
+import {
+  ATLAS_ATTRIBUTE, SHADE_ATTRIBUTE, celAtlasMaterial, celMaterial, createMaterials, shadowTone, showAtlas, type Materials, type Surface,
+} from './materials.ts';
 import { createBlobs, createShapes, type Shapes } from './shapes.ts';
 
 export interface PropView {
@@ -44,6 +48,7 @@ interface DecorGroup {
   mesh: THREE.Mesh;
   colors: Record<Era, Float32Array>; // vertex colours for each era
   shades: Record<Era, Float32Array>; // and their shade tones (cel shading)
+  cells: Record<Era, Float32Array>; // and the atlas cell each vertex shows (atlas.ts)
 }
 
 const labelBox = frontFaceBox();
@@ -55,7 +60,7 @@ export function buildWorld(): WorldView {
   const shapes = createShapes();
   const materials = createMaterials();
   const markerMaterial = new THREE.MeshBasicMaterial({ color: T.interact.markerColor });
-  const decorMaterial = celVertexMaterial();
+  const decorMaterial = celAtlasMaterial();
   const views = new Map<string, PropView>();
   const labels = new Map<string, Record<Era, THREE.MeshLambertMaterial>>();
 
@@ -68,6 +73,13 @@ export function buildWorld(): WorldView {
   }
   const decor = buildDecor(PROPS.filter((p) => p.decor), decorMaterial, shapes);
   decor.forEach((d) => scene.add(d.mesh));
+  let disposed = false;
+  let atlas: THREE.Texture | null = null;
+  loadAtlas((texture, means) => { // facades and wood on the decoration, once the images are in
+    if (disposed) return texture.dispose();
+    atlas = texture;
+    showAtlas(decorMaterial, texture, means);
+  });
   const blobs = createBlobs([GROUND, ...PROPS].map(placed)); // shadows under where props stand (areas.ts)
   scene.add(blobs.mesh);
   // The player's blob follows the avatar (named 'player'), read just before each draw, after it moved.
@@ -133,6 +145,8 @@ export function buildWorld(): WorldView {
     }));
     decor.forEach((d) => d.mesh.geometry.dispose());
     decorMaterial.dispose();
+    atlas?.dispose();
+    disposed = true;
     markerMaterial.dispose();
     shapes.dispose();
     blobs.dispose();
@@ -280,11 +294,14 @@ function mergeDecor(key: string, props: readonly Prop[], material: THREE.Materia
   }
   geometry.setAttribute('color', new THREE.BufferAttribute(colors['2004'].slice(), 3));
   geometry.setAttribute(SHADE_ATTRIBUTE, new THREE.BufferAttribute(shades['2004'].slice(), 3));
+  const { uv, cells } = atlasVertices(props, counts, geometry);
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  geometry.setAttribute(ATLAS_ATTRIBUTE, new THREE.BufferAttribute(cells['2004'].slice(), 3));
   const first = props[0];
   if (!first) throw new Error(`street decoration "${key}" is empty`);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = `street_decor_${first.eras.join('_')}`;
-  return { first, mesh, colors, shades };
+  return { first, mesh, colors, shades, cells };
 }
 
 /** One RGB colour per vertex: a colour for each prop (its era colour or shade), repeated over its vertices. */
@@ -306,9 +323,10 @@ function setAttribute(geometry: THREE.BufferGeometry, name: string, values: Floa
   attr.needsUpdate = true;
 }
 
-/** Shows a decoration group in the scenes it belongs to, in the era's colours and shades. */
+/** Shows a decoration group in the scenes it belongs to, in the era's colours, shades and atlas images. */
 function showDecor(group: DecorGroup, era: Era, moment: string | null): void {
   group.mesh.visible = inScene(group.first, era, moment);
   setAttribute(group.mesh.geometry, 'color', group.colors[era]);
   setAttribute(group.mesh.geometry, SHADE_ATTRIBUTE, group.shades[era]);
+  setAttribute(group.mesh.geometry, ATLAS_ATTRIBUTE, group.cells[era]);
 }

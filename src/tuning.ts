@@ -99,6 +99,30 @@ export const T = {
     blobMinHeight: 0.25, // ...and gets a blob if it is at least this tall (not kerbs or road paint)
     playerBlob: 1, // the player's blob, metres across
     blobTexturePx: 64,
+    // Street decoration atlas (src/world/atlas.ts): the merged decor's building fronts and wooden bits show
+    // images from one texture made at load, so they add no draw calls. Each image is a detail pattern on the
+    // prop's own colour (its brightness, a little of its colour), so every building keeps its tint.
+    atlas: {
+      files: [ // the cells, left to right then bottom to top
+        'textures/facade_2004_a.png', 'textures/facade_2004_b.png', 'textures/wood.png',
+        'textures/facade_today_a.png', 'textures/facade_today_b.png',
+      ],
+      columns: 3,
+      rows: 2,
+      cellPx: 512, // each image is drawn this many pixels square (facades are stretched back by their UVs)
+      blankGrey: '#808080', // a cell whose file is missing (or the spare one) shows this, so it adds no detail
+      facades: { '2004': [0, 1], present: [3, 4] } as Record<'2004' | 'present', readonly number[]>, // cells per era; buildings take turns
+      wood: 2, // the wood cell
+      facadeAspect: 341 / 512, // a facade image's width / height: a front is tiled across so windows keep their shape
+      facadeMix: 0.8, // how strongly the facade pattern shows on a building front...
+      woodMix: 0.85, // ...and the wood grain on wooden decoration
+      colorAmount: 0.3, // 0: only the image's light and dark; 1: its own colours too (times the prop colour)
+      inset: 0.015, // each cell is sampled this far in from its edges, so neighbours don't bleed in
+      facadeMinHeight: 4.5, // a decoration box is a building (and gets a facade) if at least this tall...
+      facadeMinWidth: 2.5, // ...and this wide...
+      streetZ: 5.4, // ...and stands on one side of the road (its centre line here): the face towards it is its front
+      woodDecor: ['bench_back'] as readonly string[], // decoration props made of wood
+    },
   },
 
   eras: {
