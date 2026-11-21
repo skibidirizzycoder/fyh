@@ -31,6 +31,15 @@ to access this endpoint", legacy `SNOWFLAKE.CORTEX.COMPLETE` is blocked for new 
 - Placeholders above, until the teammates' branches are merged.
 - GitHub Pages has no endpoint, so the paper is always the offline edition there.
 
+**Hackathon rules** (opening ceremony, slide 27). Everyone, and every agent, follow these:
+1. **Build with JetBrains Air (required).** Run your agents through Air (IntelliJ IDEA 2026.3 or the
+   Air app: Claude, Codex and Junie are built in). Take a screenshot of Air in use for the submission.
+2. Teams of up to 3 people. 3. **All project work happens today** (hacking started 11:00): no code
+   from before the event, only credited libraries and assets. 4. Any language, framework or API.
+5. MLH Code of Conduct. **Submit at mlh.link/first-year-hack**: team, project name, repo (public)
+   and demo (https://flip-phone-2004-8a09.netlify.app). Draft by 17:30, hard deadline 18:00; late
+   entries aren't judged. Judging at 18:10. Track 2 looks for "Reinventive" and "Surprising + Faithful".
+
 **Now (hackathon day, 15:00):** all three CDs, the CD music (real songs, 2004 raw -> today remix),
 each moment's look and sound, today's shop by reputation, and collisions are on `main`. Live:
 https://flip-phone-2004-8a09.netlify.app (updated by `npm run checkpoint`). Teammates ship themselves
