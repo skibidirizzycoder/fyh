@@ -305,6 +305,14 @@ export const T = {
     kbitBody: '#1e1e28',
     headphones: '#39ff88', // neon, very 2004
     kbitPhone: '#ffd23f', // K-Bit's phone: interactable
+    // street life (decoration: never glows)
+    bin: '#3a3f3a',
+    binLid: '#262a26',
+    newsBox: '#2b5fa8',
+    newsWindow: '#d8dde3',
+    pigeon: '#8a8f99',
+    dog: '#b07a45',
+    dogHead: '#8f5f33',
   },
 
   ui: {

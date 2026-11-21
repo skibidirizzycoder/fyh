@@ -2,6 +2,7 @@
 // Plays the moment like a player: walk to each object and press E, in order.
 
 import type { Page } from 'playwright';
+import { T } from '../../src/tuning.ts';
 import { expect, interact, restart, screenshot, state, travel, walkTo, type Check } from './tools.ts';
 
 export const checkKbit: Check = async (page: Page) => {
@@ -11,6 +12,8 @@ export const checkKbit: Check = async (page: Page) => {
   expect(s.visibleMeshes.includes('kbit_bus_stop'), 'the bus stop is not in the ringtone moment');
   expect(!s.visibleMeshes.includes('kbit_queue_phone_1'), 'the queue\'s phones should be hidden until yours rings');
   await screenshot(page, 'kbit-arrive'); // moment-ringtone.png (after the fix) is smoke's
+  const arriveDrawCalls = s.drawCalls;
+  expect(arriveDrawCalls <= T.limits.maxDrawCalls, `the bus stop needs ${arriveDrawCalls} draw calls, max ${T.limits.maxDrawCalls}`);
 
   const locked = await interact(page, 'kbit_bus_stop');
   expect(!locked.ok && locked.reason === 'locked', `the bus stop should be locked first, got ${JSON.stringify(locked)}`);
@@ -27,5 +30,5 @@ export const checkKbit: Check = async (page: Page) => {
 
   s = await travel(page, 'present');
   expect(s.visibleMeshes.includes('gold_kbit'), 'K-Bit\'s gold disc is not on the wall today');
-  return { walkFrames: beam.frames + ring.frames };
+  return { walkFrames: beam.frames + ring.frames, drawCalls: arriveDrawCalls };
 };

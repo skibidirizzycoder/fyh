@@ -46,6 +46,28 @@ const KBIT_H = 1.7;
 const HEADPHONES = [0.6, 0.12, 0.2] as const;
 const KBIT_PHONE = [0.18, 0.3, 0.08] as const; // big enough to read as "a phone" from the start
 
+// --- street life (decoration only): a bin, a newspaper box, pigeons, a dog waiting with the queue ---
+const roofTop = standOn(shelterTop, 0.1) + 0.05;
+const BIN = [0.45, 0.8, 0.45] as const;
+const NEWS_BOX = [0.5, 1, 0.45] as const;
+const PIGEON = [0.12, 0.1, 0.2] as const;
+const DOG = [0.25, 0.3, 0.6] as const;
+const DOG_HEAD = [0.2, 0.2, 0.22] as const;
+const DOG_X = -4.95;
+const DOG_Z = 0.3;
+
+const streetLife: Prop[] = [
+  { id: 'kbit_bin', shape: 'cylinder', eras: PAST, moments: M, pos: [-4.5, standOn(0, BIN[1]), -1], size: BIN, color: K.bin },
+  { id: 'kbit_bin_lid', shape: 'cylinder', eras: PAST, moments: M, pos: [-4.5, standOn(standOn(0, BIN[1]) + BIN[1] / 2, 0.05), -1], size: [0.5, 0.05, 0.5], color: K.binLid },
+  { id: 'kbit_news_box', shape: 'box', eras: PAST, moments: M, pos: [-2.3, standOn(0, NEWS_BOX[1]), -2.2], size: NEWS_BOX, color: K.newsBox },
+  { id: 'kbit_news_window', shape: 'box', eras: PAST, moments: M, pos: [-2.3, 0.75, mountOn(-2.2 + NEWS_BOX[2] / 2, 0.02)], size: [0.4, 0.3, 0.02], color: K.newsWindow },
+  { id: 'kbit_pigeon_1', shape: 'box', eras: PAST, moments: M, pos: [-5.5, standOn(roofTop, PIGEON[1]), -1], size: PIGEON, color: K.pigeon },
+  { id: 'kbit_pigeon_2', shape: 'box', eras: PAST, moments: M, pos: [-6, standOn(roofTop, PIGEON[1]), 0.3], size: PIGEON, color: K.pigeon },
+  { id: 'kbit_pigeon_3', shape: 'box', eras: PAST, moments: M, pos: [-1.6, standOn(0, PIGEON[1]), 0.9], size: PIGEON, color: K.pigeon },
+  { id: 'kbit_dog', shape: 'box', eras: PAST, moments: M, pos: [DOG_X, standOn(0, DOG[1]), DOG_Z], size: DOG, color: K.dog },
+  { id: 'kbit_dog_head', shape: 'box', eras: PAST, moments: M, pos: [DOG_X, 0.35, mountOn(DOG_Z + DOG[2] / 2, DOG_HEAD[2])], size: DOG_HEAD, color: K.dogHead },
+];
+
 const queue: Prop[] = QUEUE_Z.flatMap((z, i): Prop[] => [
   { id: `kbit_person_${i + 1}`, shape: 'cylinder', eras: PAST, moments: M, pos: [SHELTER_X, standOn(0, PERSON_H), z], size: [PERSON_D, PERSON_H, PERSON_D], color: K.people[i % K.people.length] ?? K.kbitBody },
   { id: `kbit_queue_phone_${i + 1}`, shape: 'box', eras: PAST, moments: M, pos: [phoneX, 1.4, z], size: PHONE, color: K.flipPhone, startsHidden: true },
@@ -57,6 +79,7 @@ export const KBIT_PROPS: readonly Prop[] = [
   { id: 'kbit_shelter_post_2', shape: 'cylinder', eras: PAST, moments: M, pos: [frontX, standOn(0, SHELTER_H), SHELTER_Z + SHELTER_LENGTH / 2 - 0.05], size: [0.08, SHELTER_H, 0.08], color: K.shelterFrame },
   { id: 'kbit_shelter_roof', shape: 'box', eras: PAST, moments: M, pos: [SHELTER_X, standOn(shelterTop, 0.1), SHELTER_Z], size: [SHELTER_DEPTH + 0.1, 0.1, SHELTER_LENGTH + 0.2], color: K.shelterRoof },
   ...queue,
+  ...streetLife,
   { id: 'kbit_sign_pole', shape: 'cylinder', eras: PAST, moments: M, pos: [SIGN_X, standOn(0, POLE_H), SIGN_Z], size: [POLE_D, POLE_H, POLE_D], color: K.signPole },
   { id: 'kbit_bus_stop', shape: 'box', eras: PAST, moments: M, pos: [SIGN_X, SIGN_Y, SIGN_Z], size: SIGN, color: K.sign, interactable: true },
   { id: 'kbit_sign_band', shape: 'box', eras: PAST, moments: M, pos: [SIGN_X, SIGN_Y + 0.08, mountOn(SIGN_Z + SIGN[2] / 2, BAND[2])], size: BAND, color: K.signBand },

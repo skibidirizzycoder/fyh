@@ -38,6 +38,6 @@ A = Mira's moment, then the screens; B = the CD music (`docs/prompts/06-*`), the
 Director: moment looks, collisions, the rest of `docs/prompts/05-*`, Netlify deploy. No pitch work yet.
 
 **Claims (free tasks):**
-- F1 street life, DJ K-Bit's bus stop (`src/world/props/kbit.ts`): Teammate B, from 14:55.
+- F1 street life, DJ K-Bit's bus stop (`src/world/props/kbit.ts`): Teammate B, done 15:00 (bin, newspaper box, pigeons, a dog).
 
 **Next session:** read `AGENTS.md`, run `npm run gate`, run `npm run snowflake:ping` if `.env` is set.
