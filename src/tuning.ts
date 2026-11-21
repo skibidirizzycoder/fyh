@@ -124,6 +124,14 @@ export const T = {
   phone: {
     flipSec: 0.25, // open/close animation time
     keyFlashSec: 0.15, // how long a keypad key stays pressed down after a move
+    connectSec: 0.9, // after choosing a moment: "Connecting..." with the signal bars filling...
+    staticSec: 0.35, // ...then a burst of static, then the phone flips shut
+    blinkSec: 0.8, // one on/off cycle of the selected row's cursor
+    momentTimes: { open_mic: '19:30', street_gig: '15:10', ringtone: '16:45' } as Record<string, string>, // outer screen clock in 2004
+    foldedWidthPx: 96, // the closed phone
+    foldedBottomPx: 16, // the closed phone sits lower than the open one (it is short)
+    outerScreen: '#0d1b2a', // the closed phone's small outer screen...
+    outerText: '#9be7ff', // ...blue-backlit text
     widthPx: 220, // whole phone; stays under 300 px
     rightPx: 16, // gap to the window's right edge
     bottomPx: 104, // sits above #dialogue (bottom centre), so they never overlap
