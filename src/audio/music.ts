@@ -7,6 +7,7 @@
 import { T } from '../tuning.ts';
 import { barSec, beatBar } from './beat.ts';
 import type { MusicMode, NowPlaying } from './music-rules.ts';
+import { songFor } from './songs.ts';
 
 export interface MusicPlayer {
   /** Plays a pick (or silence) at a reputation level (today's volume and beat). */
@@ -79,9 +80,10 @@ function startVoice(ctx: BaseAudioContext, bus: AudioNode, song: AudioBuffer, cd
   gain.gain.value = 0;
   src.connect(lowpass).connect(highpass).connect(gate).connect(gain).connect(bus);
   const v: Voice = { cd, today, sources: [src], lowpass, highpass, gate, gain, beatGain: null, lfo: null };
-  const offset = CDS[cd]?.beatOffsetSec ?? 0;
+  const playing = songFor(cd); // the local real song or the stand-in: their own tempo and start
+  const offset = playing?.beatOffsetSec ?? 0;
   if (today) {
-    const bar = barSec(CDS[cd]?.bpm ?? 120);
+    const bar = barSec(playing?.bpm ?? 120);
     const bars = Math.floor((song.duration - offset) / bar);
     if (bars >= 1) {
       src.loopStart = offset; // loop whole bars so the beat stays in time
@@ -89,7 +91,7 @@ function startVoice(ctx: BaseAudioContext, bus: AudioNode, song: AudioBuffer, cd
     }
     v.beatGain = ctx.createGain();
     v.beatGain.gain.value = 0;
-    const samples = beatBar(CDS[cd]?.bpm ?? 120, ctx.sampleRate);
+    const samples = beatBar(playing?.bpm ?? 120, ctx.sampleRate);
     const buffer = ctx.createBuffer(1, samples.length, ctx.sampleRate);
     buffer.getChannelData(0).set(samples);
     const beat = ctx.createBufferSource();
