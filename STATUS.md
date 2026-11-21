@@ -38,5 +38,6 @@ Director: moment looks, collisions, the rest of `docs/prompts/05-*`, Netlify dep
 
 **Claims (free tasks):**
 - F1 street life, DJ K-Bit's bus stop (`src/world/props/kbit.ts`): Teammate B, done 15:00 (bin, newspaper box, pigeons, a dog).
+- F2 playtest `checkpoint-11` (keys only, headless Chrome; no sound): Teammate B, from 15:10.
 
 **Next session:** read `AGENTS.md`, run `npm run gate`, run `npm run snowflake:ping` if `.env` is set.
