@@ -1,8 +1,7 @@
 # Teammate B: sound, music, DJ K-Bit, today's shop
 
-**Status (2026-11-21, 14:30):** B1, B2, B4 and B5 are done and shipped. B3 (CD music) is finished in
-code and shipped, but it is **silent until the songs are picked** (see "Waiting on a human" below).
-Last gate on `feat/sound-kbit`: 158 unit tests, smoke `"ok":true`.
+**Status (2026-11-21, 14:50): B1–B6 are all done and shipped.** Last gate on `feat/sound-kbit`:
+170 unit tests, smoke `"ok":true`, `pitchSec` 26.7. Two small things need a human or Claude (below).
 
 ## Done
 
@@ -12,41 +11,46 @@ Last gate on `feat/sound-kbit`: 158 unit tests, smoke `"ok":true`.
   quieter and clean. Starts on `game-start`, M mutes, failures go quiet (no console errors).
 - **B2 DJ K-Bit** (`ringtone`, 5 December 2004): bus stop shelter, a queue whose flip phones come out when
   yours rings, K-Bit in neon headphones. Beam the track (`kbit_phone`), then let it ring (`kbit_bus_stop`).
+- **B3 CD music**: real songs, 2004 raw → today remix. The ★ picks from `docs/music-shortlist.md` (the backlog
+  said not to wait for a vote): Mira = "Deflated & Alone (acoustic)", The Static = "Teenager" by The Crypts!,
+  K-Bit = "Enthusiast" by Tours. Credits in `public/music/CREDITS.md`; licences re-checked on each track page.
+  Clips cut at MP3 frame boundaries (no re-encoding): 40 / 40 / 24 s, 800 / 995 / 960 KB, the loudest
+  stretch, starting on a detected beat. 2004 = low-passed and mono; The Static cut out until the amp is
+  plugged in and open up with the mic; Mira silent until her CD is played; K-Bit leaks from his headphones
+  until the beam. Today = fixed CDs only, most recent first, rotating every 30 s, clean stereo, louder with
+  reputation, ducked under whoosh/chime/ringtone/beam. Verified in the test build: nothing loads before
+  Enter, then all three load (200 audio/mpeg) and decode with no console errors.
+- **B4 Today's shop**: level 0 boards on the window and door, three empty frames by the door; 1 lit window,
+  open sign, a customer; 2 posters in the window and a queue of four; 3 blue plaque, neon HOLLOW RECORDS,
+  a crowd. Each gold disc sits in its frame. Draw calls today by level: 19 / 21 / 29 / 37 (max 60).
 - **B5 K-Bit polish**: "BUS" band and timetable on the stop, bigger phone for K-Bit, `beam` sound.
-- **B4 Today's shop** (`props/today.ts`, the `reputation` entries of `content.json`): level 0 boards on the
-  window and door with three empty frames by the door; 1 lit window, open sign, a customer; 2 posters in the
-  window and a queue of four; 3 blue plaque, neon HOLLOW RECORDS, a crowd. Each gold disc sits in its frame.
-  Draw calls today by level: 19 / 21 / 29 / 37 (max 60).
-- **B3 CD music, code** (`music-rules.ts`, `music-state.ts`, `music-director.ts`, `music.ts`, `beat.ts`):
-  2004 = low-passed and mono; The Static cut in and out until `static_plug_amp` and open up after
-  `static_give_mic`; Mira silent until `mira_play_cd`; K-Bit's track leaks from his headphones until the beam.
-  Today = the fixed CDs only, most recent first, rotating every 30 s, clean stereo + a code beat locked to whole
-  bars; louder and fuller with reputation; ducks under whoosh/chime/ringtone/beam. `nowPlaying()` →
-  `state().audio.music`. Measured with a fake song in Chromium: 2004 brightness 0.32 vs today 1.40; the
-  dying-amp gate swings 0.051 ↔ 0.004 RMS about every 0.8 s.
+- **B6 Soundscapes**: open mic = pub murmur + clinking glasses; street gig = summer traffic, chatter and a
+  distant ice-cream van (original jingle); ringtone = December wind, traffic and a bus pulling in (air-brake
+  hiss) when you arrive; today = quieter modern traffic. Measured mix RMS: today 0.010, plain 2004 0.025,
+  open mic 0.034, street gig 0.040, ringtone 0.046 (0.054 with the bus).
 
-## Waiting on a human (B3)
+## Needs a human (by ear)
 
-Claude can't listen, so the songs need a person (the lead has the final say), from `docs/music-shortlist.md`:
-1. Pick one song per CD by ear.
-2. Cut the best 30–45 s, MP3 128 kbps, ≤ 1 MB: `public/music/mira.mp3`, `static.mp3`, `kbit.mp3`.
-3. Then the agent: set each `file` in `T.audio.music.cds` (e.g. `'music/mira.mp3'`), the song's `bpm` and
-   `beatOffsetSec`, and write `public/music/CREDITS.md`. Until a `file` is set, that CD is silent on purpose:
-   a missing file would 404 in the console and fail smoke (`tests/music.test.ts` checks every set file exists).
+- **The remix beat is off** (`beat: 0` per CD in `T.audio.music.cds`). Tempo was measured, not heard, and the
+  detector was unsure (Mira 68 vs 157 bpm scored the same; K-Bit 160–164 tied; The Static 104.5, with 197 close).
+  Someone should play today with a fixed CD, set the right `bpm`, set `beat: 1`, and check it's in time.
+- **Swap any song** you don't like: keep the file name, update `public/music/CREDITS.md` and the `bpm`.
+
+## Requests for Claude
+
+- **`debug.ts`: please show `audio.ambience`** in `state()`, read from `audio.soundscape()` (same duck-typed
+  way as `nowPlaying()`). `scripts/checks/audio.ts` then asserts each moment's soundscape; until then it
+  reports "not exposed by the debug API yet" instead of failing.
+- `STATUS.md` still says sound is "currently silent". `docs/BACKLOG.md`: B3–B6 can be ticked.
 
 ## Checks
 
-`scripts/checks/audio.ts`, `kbit.ts`, `music.ts`, `today.ts`; `tests/audio.test.ts`, `kbit.test.ts`,
-`music.test.ts`, `today.test.ts`.
+`scripts/checks/audio.ts`, `kbit.ts`, `music.ts`, `today.ts`; `tests/audio.test.ts`, `audio-soundscape.test.ts`,
+`kbit.test.ts`, `music.test.ts`, `today.test.ts`.
 
 ## Smoke line (last run)
 
 ```
-{"ok":true,"headings":4,"pitchSec":26.7,"drawCalls":29,...,"team":{...,"audio":{"cues":7,"muteToggles":2},"kbit":{"walkFrames":89},"music":{"music":"mira:today"},"today":{"drawCalls":[19,21,29,37]}},...}
+{"ok":true,"pitchSec":26.7,"drawCalls":29,...,"team":{...,"audio":{"cues":7,"muteToggles":2,"soundscapes":"not exposed by the debug API yet"},"kbit":{"walkFrames":89},"music":{"music":"mira:today"},"today":{"drawCalls":[19,21,29,37]}},...}
 ```
 Screenshots I looked at: `kbit-arrive.png`, `kbit-ringing.png`, `today-0.png` to `today-3.png`.
-
-## Requests for Claude
-
-- `STATUS.md` still says sound is "currently silent". Please update it.
-- `docs/BACKLOG.md`: B4 and B5 can be ticked; B3 waits on the songs (above).

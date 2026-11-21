@@ -255,6 +255,31 @@ export const T = {
       present: { humHz: 0, humGain: 0, noiseGain: 0.012, noiseLowpassHz: 6000, cracklePerSec: 0, crackleGain: 0 },
     },
 
+    // Each moment's own background (on top of the era hum/crackle above). Made in code, seeded.
+    soundscape: {
+      loopSec: 8, // looping layers are this long, so repeats are hard to hear
+      seed: 77,
+      fadeSec: 1.5,
+      layerRms: 0.25, // every layer is scaled to this loudness; its `gain` then sets how loud it is
+      open_mic: { // a pub-ish evening: murmuring people and clinking glasses
+        babble: { gain: 0.08, voices: 6, syllableHz: 4, lowHz: 250, highHz: 1100 },
+        clinks: { gain: 0.05, perSec: 0.7, minHz: 2600, maxHz: 5200, decaySec: 0.2 },
+      },
+      street_gig: { // a busy summer street, a little chatter, an ice-cream van far away
+        traffic: { gain: 0.1, carsPerSec: 0.4, lowpassHz: 350, passSec: 2.5 },
+        babble: { gain: 0.035, voices: 4, syllableHz: 5, lowHz: 300, highHz: 1300 },
+        iceCream: { gain: 0.04, notes: [79, 84, 83, 79, 76, 77, 79, 72], noteSec: 0.2, startSec: 2, vibratoHz: 6, vibrato: 0.004 }, // an ORIGINAL jingle
+      },
+      ringtone: { // cold December dusk: wind, traffic, and a bus pulling in when you arrive
+        wind: { gain: 0.1, minHz: 300, maxHz: 1200, gustHz: 0.13, q: 3 },
+        traffic: { gain: 0.05, carsPerSec: 0.3, lowpassHz: 300, passSec: 3 },
+        bus: { gain: 0.16, delaySec: 1.2, sec: 3.2, engineHz: 42, hissSec: 0.7, hissGain: 0.35 },
+      },
+      present: { // today: quieter, smoother modern traffic
+        traffic: { gain: 0.04, carsPerSec: 0.25, lowpassHz: 500, passSec: 3.5 },
+      },
+    },
+
     // The CD music: in 2004 the raw/broken/ignored version, today the modern remix (+ a code beat).
     // A CD's `file` stays '' until its MP3 is in public/music/ (a missing file would log a 404).
     music: {
