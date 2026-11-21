@@ -145,6 +145,23 @@ export const T = {
     banner: '#ff6b6b', // hand-painted banner behind the stage
     crowd: ['#2b8a3e', '#d6336c', '#1971c2'], // people who stop to watch once the mic works
   },
+  mira: {
+    // Mira's open mic, 14 March 2004 (props in src/world/props/mira.ts).
+    cd: '#d0d8e0', // her dropped demo CD on the bench
+    listeningPost: '#8a3fb0',
+    sign: '#ffd166', // "OPEN MIC" board on the listening post
+    flyer: '#ff5fa2',
+    micStand: '#868e96',
+    amp: '#2b2b30', // small practice amp by the window
+    wire: '#2a2a2a', // string lights' wire
+    bulbs: ['#ffe066', '#ffa94d', '#fff3bf'], // warm bulbs, repeated along the wire
+    mira: '#c2255c', // Mira's coat
+    skin: '#d9a07b',
+    guitar: '#a0522d', // acoustic guitar body
+    neck: '#5c3a1e',
+    listeners: ['#495057', '#1864ab', '#5f3dc4'], // the bored crowd
+    phoneGlow: '#a5f3fc', // their phone screens: everyone's looking down
+  },
 
   // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
   moments: {
@@ -204,6 +221,29 @@ export const T = {
       seed: 2004, // crackle is random but the same every run
       '2004': { humHz: 55, humGain: 0.035, noiseGain: 0.03, noiseLowpassHz: 1200, cracklePerSec: 9, crackleGain: 0.12 },
       present: { humHz: 0, humGain: 0, noiseGain: 0.012, noiseLowpassHz: 6000, cracklePerSec: 0, crackleGain: 0 },
+    },
+
+    // The CD music: in 2004 the raw/broken/ignored version, today the modern remix (+ a code beat).
+    // A CD's `file` stays '' until its MP3 is in public/music/ (a missing file would log a 404).
+    music: {
+      busGain: 0.55, // music sits under the dialogue
+      fadeSec: 1.5, // crossfade between songs
+      todaySwitchSec: 30, // today, with several fixed CDs: next song after this long
+      duckGain: 0.3, // music volume while a whoosh, chime or ringtone plays
+      duckCues: ['whoosh', 'chime', 'ringtone'],
+      duckAttackSec: 0.05,
+      duckReleaseSec: 0.5,
+      past: { lowpassHz: 2500, gain: 0.7 }, // "2004 style": muffled, mono
+      broken: { cutHz: 0.6 }, // the dying amp: the song cuts in and out this many times a second
+      live: { lowpassHz: 9000, gain: 1 }, // The Static with the shop's mic: opens up, louder
+      leak: { lowpassHz: 4000, highpassHz: 1500, gain: 0.12 }, // tinny spill from K-Bit's headphones
+      today: { levelGain: [0, 0.7, 0.85, 1], beatGain: [0, 0.3, 0.45, 0.6] }, // by reputation level 0-3
+      beat: { kickHz: 130, kickEndHz: 45, kickSec: 0.25, kickGain: 0.9, hatSec: 0.04, hatGain: 0.22, seed: 909 },
+      cds: {
+        mira: { file: '', gain: 0.9, bpm: 76, beatOffsetSec: 0, past: { silentUntil: 'mira_play_cd' } },
+        static: { file: '', gain: 0.8, bpm: 150, beatOffsetSec: 0, past: { brokenUntil: 'static_plug_amp', liveAfter: 'static_give_mic' } },
+        kbit: { file: '', gain: 0.8, bpm: 120, beatOffsetSec: 0, past: { leakUntil: 'kbit_beam_track' } },
+      },
     },
   },
 

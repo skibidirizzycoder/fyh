@@ -2,18 +2,18 @@
 
 Branch: `feat/phone-static`. Owned paths: see `docs/prompts/05-agentic-workflow.md` (Part 5).
 
-## Status (2026-11-21)
+## Status (2026-11-21, 14:40)
 
-**Done:** both tasks from `docs/prompts/03-teammate-a-phone-and-the-static.md`. `npm run gate`
-passes: 122 unit tests, smoke `"ok":true`, `pitchSec` 26.8, max draw calls 19, phone LCD contrast 10.45:1.
-Team block in smoke.json:
-`"phone":{"items":4,"widthPx":220,"flipSec":0.25,"starred":["street_gig"]},"static":{"walkFrames":[89,2]}`.
+**Done and on `main`:** A1 (the phone's look), A2 (The Static).
+**Done, shipping now:** A3 (Mira's open mic). `npm run gate` passes: 139 unit tests (10 new in
+`tests/mira.test.ts`), smoke `"ok":true`, `pitchSec` 26.7, draw calls 19, phone contrast 10.45.
+Team block: `"mira":{"walkFrames":[43,103]}`.
+**Next:** A4, the screens (title boot screen, tabloid card + newspaper, wall of gold discs).
 
-**Ready to merge:** yes. Branch is merged with `main` at `145f38f`.
-
-**Screenshots checked:** `artifacts/phone.png` (phone open in 2 July 2004, The Static row selected
-with ★ and ◄, clear of the dialogue), `artifacts/static-arrive.png` (stage, band, red amp light,
-reel and mic markers), `artifacts/static-fixed.png` (green amp light, cable, crowd either side).
+**Screenshots checked:** `artifacts/mira-arrive.png` (Mira waiting by the lamp post with her
+guitar, string lights over the window, three listeners on glowing phones on the right),
+`artifacts/mira-fixed.png` and `artifacts/moment-open_mic.png` (Mira at the mic, the crowd round
+her, phones gone; she is not hidden from the pitch camera).
 
 ## Requests for the director
 
@@ -37,6 +37,19 @@ reel and mic markers), `artifacts/static-fixed.png` (green amp light, cable, cro
   closing plays it backwards, then sets `hidden`. `#phone[data-state]` is
   opening / open / closing / closed. Reduced-motion users get no animation.
 - All numbers and colours: `T.phone` in `src/tuning.ts`.
+
+## Task 3: Mira's open mic (14 March 2004, `open_mic`)
+
+- **Props** (`src/world/props/mira.ts`, colours in `T.mira`): her dropped CD on the bench
+  (`mira_cd`), the listening post with its OPEN MIC board (`listening_post`), a mic stand and a
+  small amp in front of the window, string lights over the window, Mira with an acoustic guitar,
+  three bored listeners holding glowing phones.
+- **Step 1, pick up the CD:** the CD goes.
+- **Step 2, play it at the listening post** (locked until step 1): Mira moves from the lamp post to
+  the mic, the phones go away and the listeners gather round her, and her flyer goes up.
+  `MIRA_PLAY_SHOWS` / `MIRA_PLAY_HIDES` in `mira.ts` are the one list; a unit test keeps
+  `mira.json` equal to them.
+- **Text:** rewritten in `src/story/cds/mira.json`; paper: "The Open Mic Nobody Was Watching".
 
 ## Task 2: The Static (2 July 2004, `street_gig`)
 
