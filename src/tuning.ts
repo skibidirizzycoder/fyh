@@ -574,6 +574,19 @@ export const T = {
     pigeonHopHz: 5, // ...this many hops a second
     pigeonHomeMs: 0.35, // when you are gone they walk back home this fast
   },
+  dressing: { // what makes each year's street its own (street.ts yearDressing), all merged decor
+    bunting: ['#d8343b', '#f2f2ee', '#2f5fb3', '#f2c230'], // 1988: summer flags across the square
+    fordBody: '#c9a24a', fordGlass: '#3a4752', fordChrome: '#d9dde0', tyre: '#1d1d1f',
+    phoneBox: '#c4231c', phoneGlass: '#d9e6ea', phoneSign: '#f4f1e6',
+    deckchair: ['#e24c3a', '#2f8fc4', '#f0c23a'], deckFrame: '#8a6a44',
+    xmasBulbs: ['#ff4a3d', '#4cd964', '#ffd23f', '#4aa3ff'], xmasWire: '#1e2a1e', // 2002: lights on the fronts
+    xmasTree: '#1f5a32', xmasTrunk: '#5a3a22', xmasStar: '#ffd84a',
+    bin: ['#2e6b3a', '#3c4148'], binLid: '#25292e', // 2017: wheelie bins, bikes, scooters, an ad panel
+    rack: '#9aa2aa', bike: ['#c23b4a', '#2c6fb0'], escooter: '#3ad17a', escooterDeck: '#202326',
+    adFrame: '#2a2e33', adLight: '#f4f7ff',
+    basket: '#4a3b2a', flowers: ['#e0558f', '#f4d03f', '#9b59b6'], // today: baskets, café tables, a cargo bike
+    cafeTable: '#e8e4dc', cafeChair: '#2f6f64', cargoBox: '#2f7d6a', cargoFrame: '#222428',
+  },
   areas: {
     list: [
       { id: 'shop', title: 'Hollow Records', x: [-99, 7.5], shiftX: 0 },
