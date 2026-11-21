@@ -67,7 +67,7 @@ function boot(): void {
   const hud = createHud(app, withCdPrompts(content), news); // the HUD finds E prompts in `actions`, the CD player's too
   const phone = createPhoneView(app);
   if (import.meta.env.MODE !== 'test') createFlipTransition(app, events, content); // tests screenshot right after a jump
-  const tv = createTv(app, audio); // each CD's real song, from its official YouTube video
+  const tv = createTv(app, audio, content.cds); // each CD's real song, once its moment is fixed
   let drawCalls = 0;
 
   function resize(): void {
@@ -97,7 +97,7 @@ function boot(): void {
     drawCalls = renderer.info.render.calls;
     hud.render(game);
     phone.render(s.phone);
-    tv.update();
+    tv.update(s);
   }
 
   const loop = createLoop({

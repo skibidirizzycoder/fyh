@@ -27,10 +27,10 @@ export function blocks(p: Prop): boolean {
   return Math.max(p.size[0], p.size[2]) >= T.collide.minWidth; // thin poles and stands
 }
 
-/** A prop's footprint: a circle for a cylinder, else its rectangle. */
+/** A prop's footprint: a circle for a cylinder or a person, else its rectangle. */
 export function footprintOf(p: Prop): Footprint {
   const [x, , z] = p.pos;
-  if (p.shape === 'cylinder') return { shape: 'circle', x, z, r: Math.max(p.size[0], p.size[2]) / 2 };
+  if (p.shape === 'cylinder' || p.shape === 'person') return { shape: 'circle', x, z, r: Math.max(p.size[0], p.size[2]) / 2 };
   return { shape: 'rect', x, z, halfW: p.size[0] / 2, halfD: p.size[2] / 2 };
 }
 

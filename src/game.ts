@@ -16,7 +16,7 @@ import { cdForObject, fillCdText, situationOf } from './story/cdplayer.ts';
 import { actionForObject, causesOf, changeCauses, doAction, fixedCds, presentState, propOverrides, reputationLevel, type Flags } from './story/timeline.ts';
 import type { LoadedCd, PastAction, PresentChange, StoryContent } from './story/types.ts';
 import { T, type Era } from './tuning.ts';
-import { areaAt } from './world/areas.ts';
+import { areaAt, areaOfMoment } from './world/areas.ts';
 import { visibleProps } from './world/layout.ts';
 
 export type SceneName = 'title' | 'play' | 'ending';
@@ -209,6 +209,17 @@ function arrivalLine({ content, state }: Ctx, cd: LoadedCd): string {
 }
 
 /** Travels to a 2004 moment id or "present". False if there is no such place. */
+/**
+ * Where you stand when you arrive: today at the start of the street; in a past moment just in front
+ * of that moment's scene in its own area (T.areas), facing the shop side, where its people and objects are.
+ */
+export function arrivalSpot(moment: string | null): PlayerState {
+  const start = startPlayer();
+  if (!moment) return start;
+  const A = T.areas.arrive;
+  return { ...start, x: areaOfMoment(moment).shiftX + A.x, z: A.z, yawDeg: A.yawDeg };
+}
+
 function travelTo(ctx: Ctx, to: string): boolean {
   const { content, state } = ctx;
   const cd = content.cds.find((c) => c.moment === to);
@@ -217,7 +228,7 @@ function travelTo(ctx: Ctx, to: string): boolean {
   state.moment = cd ? cd.moment : null;
   if (cd && !state.visited.includes(cd.moment)) state.visited = [...state.visited, cd.moment];
   state.inserting = null;
-  state.player = startPlayer(); // every moment starts on the same spot, facing the shop
+  state.player = arrivalSpot(state.moment); // a moment starts in its own area, facing what's going on
   ctx.area = null; // ...and announces where you are again
   state.target = null;
   state.phone = closedPhone(phoneItemsNow(ctx), to);

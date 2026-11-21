@@ -8,7 +8,8 @@
 // Street decoration (`decor`) is merged into one vertex-coloured mesh per set of eras,
 // so the whole street costs a couple of draw calls; its building fronts and wooden bits show images
 // from one atlas texture (atlas.ts) made at load. A prop with a `label` gets its text
-// painted on a canvas texture, one per era. Everything is cel-shaded alike.
+// painted on a canvas texture, one per era. Everything is cel-shaded alike. People (shape 'person')
+// are round people from person.ts, drawn instanced (people.ts); their prop meshes stay hidden.
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -16,10 +17,12 @@ import { ERAS, T, type Era } from '../tuning.ts';
 import { placed } from './areas.ts';
 import { GROUND, PROPS, inScene, propColor, propTexture, visibleProps, type Prop } from './layout.ts';
 import { atlasVertices, loadAtlas } from './atlas.ts';
+import { createPersonTextures } from '../player/person.ts';
 import { lookFor } from './look.ts';
 import {
   ATLAS_ATTRIBUTE, SHADE_ATTRIBUTE, celAtlasMaterial, celMaterial, createMaterials, shadowTone, showAtlas, type Materials, type Surface,
 } from './materials.ts';
+import { createPeople, headsOfPeople, isPerson } from './people.ts';
 import { createBlobs, createShapes, type Shapes } from './shapes.ts';
 
 export interface PropView {
@@ -71,7 +74,11 @@ export function buildWorld(): WorldView {
     if (view.marker) scene.add(view.marker);
     if (prop.label) labels.set(prop.id, labelMaterials(prop));
   }
-  const decor = buildDecor(PROPS.filter((p) => p.decor), decorMaterial, shapes);
+  const personTextures = createPersonTextures();
+  const people = createPeople([...PROPS].filter((p) => !p.decor).map(placed), personTextures);
+  people.meshes.forEach((m) => scene.add(m));
+  const drawnByPerson = headsOfPeople(PROPS);
+  const decor = buildDecor(PROPS.filter((p) => p.decor).map(placed), decorMaterial, shapes); // a moment's decor where it stands (areas.ts)
   decor.forEach((d) => scene.add(d.mesh));
   let disposed = false;
   let atlas: THREE.Texture | null = null;
@@ -102,7 +109,7 @@ export function buildWorld(): WorldView {
     const visible = new Set(visibleProps(era, moment, shown, hidden).map((p) => p.id));
     for (const view of views.values()) {
       const on = visible.has(view.prop.id);
-      view.mesh.visible = on;
+      view.mesh.visible = on && !isPerson(view.prop) && !drawnByPerson.has(view.prop.id); // people.ts draws those
       if (view.marker) view.marker.visible = on && !used.has(view.prop.id); // used things stop glowing
       const surface = propSurface(view.prop, era);
       const label = labels.get(view.prop.id);
@@ -111,6 +118,7 @@ export function buildWorld(): WorldView {
       else view.mesh.material = materials.shared(surface);
     }
     decor.forEach((d) => showDecor(d, era, moment));
+    people.show((id) => visible.has(id));
     blobs.show((p) => (p.decor ? inScene(p, era, moment) : visible.has(p.id)));
     const look = lookFor(era, moment);
     scene.background = new THREE.Color(look.sky);
@@ -129,6 +137,7 @@ export function buildWorld(): WorldView {
   }
 
   function animate(seconds: number): void {
+    people.animate(seconds);
     const bob = Math.sin(seconds * Math.PI * 2 * T.world.markerBobHz) * T.world.markerBobAmount;
     for (const view of views.values()) {
       if (!view.marker) continue;
@@ -145,6 +154,8 @@ export function buildWorld(): WorldView {
     }));
     decor.forEach((d) => d.mesh.geometry.dispose());
     decorMaterial.dispose();
+    people.dispose();
+    personTextures.dispose();
     atlas?.dispose();
     disposed = true;
     markerMaterial.dispose();

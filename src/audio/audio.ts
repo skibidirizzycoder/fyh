@@ -40,8 +40,8 @@ export interface GameAudio {
   history(): readonly CueName[];
   isMuted(): boolean;
   toggleMute(): boolean;
-  /** CDs played outside Web Audio (the shop TV, src/ui/tv.ts): their built-in song stays silent. */
-  external(cds: readonly string[]): void;
+  /** CDs played outside Web Audio (the shop TV, src/ui/tv.ts): their built-in song stays silent; `playing`: the TV is playing one now. */
+  external(cds: readonly string[], playing: boolean): void;
   /** Makes or resumes the AudioContext (the game calls this on game-start). */
   unlock(): void;
   play(name: CueName): void;
@@ -160,6 +160,41 @@ function playOn(s: Sound, name: CueName, insertAt: number | null): void {
 }
 
 /** Creates the game's audio and subscribes it to game events. */
+/**
+ * Who plays each CD's song (the shop TV covers some: src/ui/tv.ts) and when the background ducks under it:
+ * while the TV plays, or while a built-in song plays that the TV doesn't cover.
+ */
+function createMix(sound: () => Sound | null, safely: (fn: () => void) => void) {
+  let external: ReadonlySet<string> = new Set();
+  let tvOn = false;
+  let pick: string | null = null; // the CD the music rules want now
+  const duck = (): void => {
+    const s = sound();
+    if (s) safely(() => s.ambience.setUnderMusic(tvOn || (pick !== null && !external.has(pick))));
+  };
+  return {
+    /** The music director picked a CD (or none). */
+    onPick(cd: string | null): void {
+      pick = cd;
+      duck();
+    },
+    /** The TV covers these CDs, and is (or isn't) playing one. */
+    external(cds: readonly string[], playing: boolean): void {
+      external = new Set(cds);
+      tvOn = playing;
+      const s = sound();
+      if (s) safely(() => s.music.setExternal(external));
+      duck();
+    },
+    /** Sound just started: tell the new player and ambience. */
+    attach(): void {
+      const s = sound();
+      if (s) safely(() => s.music.setExternal(external));
+      duck();
+    },
+  };
+}
+
 export function createAudio(events: SoundEvents, options: AudioOptions = {}): GameAudio {
   const makeContext = options.makeContext ?? defaultContext;
   const played: CueName[] = [];
@@ -169,7 +204,6 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
   let scene: SceneId = 'present';
   let sound: Sound | null = null;
   let insertAt: number | null = null; // audio-clock time the last CD went into the player
-  let external: ReadonlySet<string> = new Set();
   /** Runs some Web Audio code; if it throws, sound switches off for good instead of breaking the game. */
   function safely(fn: () => void): void {
     if (broken) return;
@@ -180,7 +214,8 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
     }
   }
 
-  const music = createMusicDirector(() => sound?.music ?? null, safely, (on) => { const s = sound; if (s) safely(() => s.ambience.setUnderMusic(on)); });
+  const mix = createMix(() => sound, safely);
+  const music = createMusicDirector(() => sound?.music ?? null, safely, mix.onPick);
 
   function resume(): void {
     if (sound?.ctx.state === 'suspended') sound.ctx.resume().catch(() => undefined);
@@ -197,7 +232,7 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
         const noise = makeNoiseBuffer(ctx, T.audio.ambience.loopSec, T.audio.ambience.seed);
         const music = createMusicPlayer(ctx, master);
         sound = { ctx, master, noise, ambience: createAmbience(ctx, master, era), music };
-        music.setExternal(external);
+        mix.attach();
         sound.ambience.setScene(scene);
         loadSongs(ctx, music);
       }
@@ -250,7 +285,7 @@ export function createAudio(events: SoundEvents, options: AudioOptions = {}): Ga
     history: () => played,
     isMuted: () => muted,
     toggleMute,
-    external: (cds) => { external = new Set(cds); const s = sound; if (s) safely(() => s.music.setExternal(external)); },
+    external: mix.external,
     unlock,
     play,
     era: () => era,

@@ -15,6 +15,7 @@
 // noticeboard (3.6, 0.5), lamp_post (-3.5, -3), the shop wall, door and window.
 
 import { T, type Era } from '../tuning.ts';
+import { areaOfMoment } from './areas.ts';
 import type { Prop } from './layout.ts';
 import { BOARD_FRONT, BOTH, GAP, NOW, PAST, WALL_FRONT_Z, mountOn } from './props/helpers.ts';
 
@@ -553,6 +554,148 @@ function terrace(): Prop[] {
 }
 
 /** Every street detail. */
+const D = T.dressing;
+const FAR_TOP = KERB_TOP - 0.03 + GAP; // things standing on the far pavement start here
+
+/** A moment's own decoration, written where it stands in the street: placed() moves a moment's props by its
+ *  area's shift, so these are stored that much back and land where they are written. */
+function inMoment(moment: string, props: readonly Prop[]): Prop[] {
+  const shift = areaOfMoment(moment).shiftX;
+  return props.map((p) => ({ ...p, eras: PAST, moments: [moment], pos: [p.pos[0] - shift, p.pos[1], p.pos[2]] }));
+}
+
+/** Parts of one thing that rest on each other: each part not on the ground sinks SINK_M into what holds it,
+ *  so no two faces meet exactly (that flickers; zfight.ts). */
+const SINK_M = 0.015;
+function rested(parts: readonly Prop[]): Prop[] {
+  return parts.map((p) => {
+    const bottom = p.pos[1] - p.size[1] / 2;
+    if (bottom <= FAR_TOP + 1e-6) return p; // on the ground or the far pavement
+    return { ...p, pos: [p.pos[0], p.pos[1] - SINK_M / 2, p.pos[2]], size: [p.size[0], p.size[1] + SINK_M, p.size[2]] };
+  });
+}
+
+/** A string of small things in a row along x at height y and depth z, every `step` metres. */
+function stringAlong(id: string, x: Span, y: Span, z: Span, step: number, size: number, colors: readonly Color[], wire: Color): Prop[] {
+  const n = Math.floor((x[1] - x[0]) / step);
+  const items = Array.from({ length: n }, (_, i) => slab(`${id}_${i + 1}`, BOTH, around(x[0] + step * (i + 0.5), size), [y[0], y[0] + size], z, colors[i % colors.length] ?? wire));
+  return [slab(`${id}_wire`, BOTH, x, [y[0] + size + 0.03, y[0] + size + 0.048], around(mid(z), 0.012), wire), ...items];
+}
+
+/** 1988, a summer afternoon: bunting across the square; over the road a boxy saloon, a red phone box and deckchairs.
+ *  A moment's things stay in its area (areas.test), here the square. */
+function summer1988(): Prop[] {
+  const [x0, x1] = [24.0, 28.2]; // the saloon, parked at the far kerb
+  const [z0, z1] = [6.8, 8.15];
+  const sides: Span[] = [[z0 - 0.03, z0 + 0.2], [z1 - 0.2, z1 + 0.03]]; // tyres just proud of the body's sides
+  const deck = [24.6, 26.0, 27.4].flatMap((x, i) => [
+    slab(`deckchair_${i + 1}_seat`, BOTH, around(x, 0.55), [FAR_TOP, FAR_TOP + 0.38], [9.35, 9.95], D.deckchair[i] ?? D.deckFrame),
+    slab(`deckchair_${i + 1}_back`, BOTH, around(x, 0.55), [FAR_TOP + 0.38, FAR_TOP + 0.95], [9.96, 10.1], D.deckchair[i] ?? D.deckFrame),
+    slab(`deckchair_${i + 1}_arm`, BOTH, around(x, 0.62), [FAR_TOP + 0.42, FAR_TOP + 0.46], [9.4, 9.9], D.deckFrame),
+  ]);
+  return inMoment('street_gig', rested([
+    ...stringAlong('bunting_front', [23.6, 34.0], [3.75, 4.05], around(1.9, 0.02), 0.55, 0.26, D.bunting, D.xmasWire),
+    ...stringAlong('bunting_hall', [24.4, 31.6], [4.45, 4.75], around(-1.2, 0.02), 0.6, 0.26, D.bunting, D.xmasWire),
+    slab('ford_body', BOTH, [x0, x1], [0.3, 0.92], [z0, z1], D.fordBody),
+    slab('ford_cabin', BOTH, [x0 + 1.05, x1 - 1.2], [0.92, 1.42], [z0 + 0.1, z1 - 0.1], D.fordGlass),
+    slab('ford_roof', BOTH, [x0 + 1.0, x1 - 1.15], [1.42, 1.5], [z0 + 0.06, z1 - 0.06], D.fordBody),
+    slab('ford_bumper_front', BOTH, [x0 - 0.06, x0 + 0.02], [0.34, 0.48], [z0 + 0.05, z1 - 0.05], D.fordChrome),
+    slab('ford_bumper_back', BOTH, [x1 - 0.02, x1 + 0.06], [0.34, 0.48], [z0 + 0.05, z1 - 0.05], D.fordChrome),
+    ...[x0 + 0.8, x1 - 0.8].flatMap((x, i) => sides.map((z, j) => rod(`ford_wheel_${i * 2 + j + 1}`, BOTH, around(x, 0.6), [GAP, GAP + 0.6], z, D.tyre, 'z'))),
+    slab('phone_box', BOTH, [29.6, 30.6], [FAR_TOP, FAR_TOP + 2.45], [9.1, 10.1], D.phoneBox),
+    slab('phone_box_roof', BOTH, [29.54, 30.66], [FAR_TOP + 2.45, FAR_TOP + 2.6], [9.04, 10.16], D.phoneBox),
+    slab('phone_box_glass', BOTH, [29.75, 30.45], [FAR_TOP + 0.9, FAR_TOP + 2.1], [9.07, 9.085], D.phoneGlass),
+    slab('phone_box_sign', BOTH, [29.75, 30.45], [FAR_TOP + 2.18, FAR_TOP + 2.36], [9.07, 9.085], D.phoneSign),
+    ...deck,
+  ]));
+}
+
+/** 2002, a December night: coloured lights along the shop front, a small lit tree over the road (both in the shop's area). */
+function december2002(): Prop[] {
+  const lights = (id: string, x: Span, front: number, y: number): Prop[] =>
+    stringAlong(id, x, [y, y + 0.09], out(front, 0.05, 0.12), 0.36, 0.09, D.xmasBulbs, D.xmasWire);
+  const [tx, tz] = [-3, 10.3]; // on the far pavement
+  const lift = FAR_TOP - GAP;
+  const tiers: [number, Span][] = [[1.3, [0.45, 1.0]], [0.98, [1.0, 1.5]], [0.66, [1.5, 1.92]], [0.34, [1.92, 2.22]]];
+  return inMoment('open_mic', rested([
+    ...lights('xmas_shop', [-4.9, 4.9], WALL_FRONT_Z, 4.12),
+    rod('xmas_tree_trunk', BOTH, around(tx, 0.18), [FAR_TOP, lift + 0.47], around(tz, 0.18), D.xmasTrunk),
+    ...tiers.map(([w, y], i) => slab(`xmas_tree_${i + 1}`, BOTH, around(tx, w), [y[0] + lift, y[1] + lift], around(tz, w), D.xmasTree)),
+    slab('xmas_tree_star', BOTH, around(tx, 0.16), [lift + 2.26, lift + 2.42], around(tz, 0.06), D.xmasStar),
+    ...[[-0.5, 0.75, -0.52], [0.42, 0.85, 0.5], [-0.3, 1.3, 0.38], [0.28, 1.68, -0.24]].map(([dx = 0, y = 0, dz = 0], i) =>
+      slab(`xmas_tree_bulb_${i + 1}`, BOTH, around(tx + dx, 0.08), around(y + lift, 0.08), around(tz + dz, 0.08), D.xmasBulbs[i % D.xmasBulbs.length] ?? D.xmasStar)),
+  ]));
+}
+
+/** 2017, a January dusk: wheelie bins, a bike rack with bikes, two e-scooters and a lit ad panel, over the road by the bus stop. */
+function january2017(): Prop[] {
+  const bins = [9.2, 9.95].flatMap((x, i) => [
+    slab(`wheelie_bin_${i + 1}`, BOTH, around(x, 0.6), [FAR_TOP, FAR_TOP + 1.0], [9.05, 9.75], D.bin[i] ?? D.binLid),
+    slab(`wheelie_bin_${i + 1}_lid`, BOTH, around(x, 0.66), [FAR_TOP + 1.0, FAR_TOP + 1.07], [9.01, 9.79], D.binLid),
+  ]);
+  const hoops = [18.9, 19.9, 20.9].flatMap((x, i) => [
+    slab(`bike_rack_${i + 1}_a`, BOTH, around(x, 0.05), [FAR_TOP, FAR_TOP + 0.8], around(9.3, 0.05), D.rack),
+    slab(`bike_rack_${i + 1}_b`, BOTH, around(x, 0.05), [FAR_TOP, FAR_TOP + 0.8], around(10.1, 0.05), D.rack),
+    slab(`bike_rack_${i + 1}_top`, BOTH, around(x, 0.07), [FAR_TOP + 0.8, FAR_TOP + 0.86], [9.25, 10.15], D.rack),
+  ]);
+  const bikes = [19.2, 20.2].flatMap((x, i) => [
+    ...[9.2, 10.25].map((z, j) => rod(`bike_${i + 1}_wheel_${j + 1}`, BOTH, around(x, 0.016), [FAR_TOP, FAR_TOP + 0.66], around(z, 0.66), D.tyre, 'x')),
+    slab(`bike_${i + 1}_frame`, BOTH, around(x, 0.065), [FAR_TOP + 0.42, FAR_TOP + 0.48], [9.2, 10.25], D.bike[i] ?? D.rack),
+    slab(`bike_${i + 1}_post`, BOTH, around(x, 0.04), [FAR_TOP + 0.48, FAR_TOP + 0.95], around(9.32, 0.05), D.bike[i] ?? D.rack),
+    slab(`bike_${i + 1}_bars`, BOTH, around(x, 0.5), [FAR_TOP + 0.95, FAR_TOP + 0.99], around(9.32, 0.03), D.binLid),
+  ]);
+  const scooters = [16.0, 16.65].flatMap((x, i) => [
+    slab(`escooter_${i + 1}_deck`, BOTH, around(x, 0.15), [FAR_TOP + 0.08, FAR_TOP + 0.13], [9.2, 10.05], D.escooterDeck),
+    slab(`escooter_${i + 1}_stem`, BOTH, around(x, 0.05), [FAR_TOP + 0.13, FAR_TOP + 1.1], around(9.26, 0.05), D.escooter),
+    slab(`escooter_${i + 1}_bar`, BOTH, around(x, 0.44), [FAR_TOP + 1.1, FAR_TOP + 1.14], around(9.26, 0.03), D.escooterDeck),
+  ]);
+  return inMoment('ringtone', rested([
+    ...bins, ...hoops, ...bikes, ...scooters,
+    slab('ad_panel', BOTH, [12.9, 14.3], [FAR_TOP, FAR_TOP + 2.2], [9.05, 9.25], D.adFrame),
+    slab('ad_panel_light', BOTH, [13.0, 14.2], [FAR_TOP + 0.35, FAR_TOP + 2.05], [9.02, 9.035], D.adLight),
+  ]));
+}
+
+/** Today: hanging flower baskets on the fronts, café tables in the square, a cargo bike over the road. */
+function today(): Prop[] {
+  const basket = (id: string, x: number, front: number, i: number): Prop[] => [
+    slab(`${id}_bracket`, NOW, around(x, 0.04), [2.78, 2.83], out(front, -0.03, 0.48), D.basket),
+    slab(`${id}_chain`, NOW, around(x, 0.02), [2.56, 2.78], around(front + 0.42, 0.02), D.basket),
+    slab(`${id}`, NOW, around(x, 0.44), [2.2, 2.5], around(front + 0.42, 0.44), D.basket),
+    slab(`${id}_flowers`, NOW, around(x, 0.54), [2.5, 2.64], around(front + 0.42, 0.54), D.flowers[i % D.flowers.length] ?? D.basket),
+  ];
+  const table = (id: string, x: number, z: number): Prop[] => [
+    rod(`${id}_top`, NOW, around(x, 0.7), [0.72, 0.76], around(z, 0.7), D.cafeTable),
+    rod(`${id}_stem`, NOW, around(x, 0.07), [GAP, 0.72], around(z, 0.07), D.cafeTable),
+    ...[-0.62, 0.62].flatMap((dx, i) => [
+      slab(`${id}_chair_${i + 1}`, NOW, around(x + dx, 0.4), [0.42, 0.46], around(z, 0.4), D.cafeChair),
+      slab(`${id}_chair_${i + 1}_back`, NOW, around(x + dx * 1.3, 0.05), [0.46, 0.88], around(z, 0.36), D.cafeChair),
+      slab(`${id}_chair_${i + 1}_leg`, NOW, around(x + dx, 0.05), [GAP, 0.42], around(z, 0.05), D.cafeChair),
+    ]),
+  ];
+  return rested([
+    ...basket('basket_left', -6.5, LEFT.front, 0),
+    ...basket('basket_right', 6.5, RIGHT.front, 1),
+    ...basket('basket_pub_1', 12.95, BUS_FRONT, 2),
+    ...basket('basket_pub_2', 17.45, BUS_FRONT, 0),
+    ...table('cafe_table_1', 26.4, -2.6),
+    ...table('cafe_table_2', 29.2, -2.9),
+    slab('cargo_bike_box', NOW, [0.6, 1.4], [FAR_TOP + 0.35, FAR_TOP + 0.85], around(9.6, 0.66), D.cargoBox),
+    rod('cargo_bike_wheel_front', NOW, around(1.0, 0.46), [FAR_TOP, FAR_TOP + 0.46], around(9.6, 0.02), D.tyre, 'z'),
+    rod('cargo_bike_wheel_back', NOW, around(2.6, 0.64), [FAR_TOP, FAR_TOP + 0.64], around(9.6, 0.02), D.tyre, 'z'),
+    slab('cargo_bike_frame', NOW, [1.38, 2.6], [FAR_TOP + 0.42, FAR_TOP + 0.48], around(9.6, 0.07), D.cargoFrame),
+    slab('cargo_bike_seatpost', NOW, around(2.24, 0.04), [FAR_TOP + 0.48, FAR_TOP + 0.95], around(9.6, 0.045), D.cargoFrame),
+    slab('cargo_bike_seat', NOW, around(2.24, 0.24), [FAR_TOP + 0.95, FAR_TOP + 1.0], around(9.6, 0.12), D.cargoFrame),
+    slab('cargo_bike_stem', NOW, around(1.55, 0.04), [FAR_TOP + 0.48, FAR_TOP + 1.05], around(9.6, 0.045), D.cargoFrame),
+    slab('cargo_bike_bars', NOW, around(1.55, 0.06), [FAR_TOP + 1.05, FAR_TOP + 1.09], around(9.6, 0.5), D.cargoFrame),
+  ]);
+}
+
+/** The things that make each year's street its own (merged decor: almost no draw calls). Kept apart from
+ *  STREET_DETAIL: most of it belongs to one moment, not to every scene of an era. */
+export const YEAR_DRESSING: readonly Prop[] = [...summer1988(), ...december2002(), ...january2017(), ...today()];
+
+
 export const STREET_DETAIL: readonly Prop[] = [
   ...road(),
   ...shopFront(),
