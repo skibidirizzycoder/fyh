@@ -29,7 +29,6 @@ to access this endpoint", legacy `SNOWFLAKE.CORTEX.COMPLETE` is blocked for new 
 
 **Known gaps:**
 - Placeholders above, until the teammates' branches are merged.
-- The player walks through props.
 - GitHub Pages has no endpoint, so the paper is always the offline edition there.
 
 **Now (hackathon day):** all three CDs are real and merged (The Static from Teammate A). Teammates

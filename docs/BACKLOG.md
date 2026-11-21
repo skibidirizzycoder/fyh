@@ -94,7 +94,7 @@ Two sessions: B3/B5/B6 in one (they all touch `src/audio/`), B4 in the other.
 
 - [x] Foundation, merges, used objects stop glowing, `ship` + checkpoints
 - [x] C1. Each moment gets its own look (evening / summer afternoon / December dusk), measured in smoke
-- [ ] C2. The player can't walk through props (collisions). *Helper agent, branch `director/collisions`.*
+- [x] C2. The player can't walk through props (collisions). *Helper agent, branch `director/collisions`.*
 - [ ] C5. The shared street and the player look like a real place and a real person (shop front,
   neighbouring buildings, kerb; a low-poly person instead of the cylinder). *Helper agent, `director/street`.*
 - ~~C3. The rest of `docs/prompts/05-agentic-workflow.md`~~ **Cut:** `ship` already enforces
