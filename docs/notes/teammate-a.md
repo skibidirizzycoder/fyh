@@ -2,12 +2,14 @@
 
 Branch: `feat/phone-static`. Owned paths: see `docs/prompts/05-agentic-workflow.md` (Part 5).
 
-## Status (2026-11-21, 16:20)
+## Status (2026-11-21, 16:45)
 
-**Done and on `main`:** A1-A6, the review fixes (F2 bug 4), M-A3 and M-A2 (`checkpoint-20`).
-**Done, shipping now:** M-A1 (the title over the live street). Smoke `"ok":true`; button contrast
-13.64, every title line ≥ 8.91.
-**Queue:** Teammate A's list is done. Next: whatever the director adds, or a Free task.
+**Done and on `main`:** A1-A6, the review fixes, M-A1/M-A2/M-A3 (`checkpoint-21`).
+**Shipping now:** the songs rework, our lane (the lead's request): Mira covers "Lose Yourself"
+(battle night, 13 December 2002), The Static cover "Sweet Child O' Mine" (street gig, 6 August
+1988). The rest (K-Bit → "Despacito", 14 July 2017; the shop closed in 2019; local real songs) is in
+the `feat/songs` pull request, because those files are Teammate B's and Claude's.
+**Queue:** A7-A9 (Round 3) once C7/C8 land (`cd-insert`, `area`, `locked` rows).
 
 **Live site check (15:15, real keys, production has no debug API):** https://flip-phone-2004-8a09.netlify.app
 loads and plays (title, Enter, phone, travel to 14 March 2004 and back, no script errors), but it
@@ -175,3 +177,17 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
   without its own "Press Enter" line.
 - **Checks:** `scripts/checks/ui.ts` checks the button (text, contrast) and the tilt (mouse
   top-left vs bottom-right), and starts the game by clicking it.
+
+## The songs (lead's request, 16:30)
+
+- **Mapping (song themes → moments, each in its song's year):** Mira covers "Lose Yourself" at a
+  battle night (13 December 2002: one shot, frozen at the mic); The Static cover "Sweet Child O'
+  Mine" at their street gig (6 August 1988: the amp dies mid-riff); DJ K-Bit's "Despacito" remix
+  at the bus stop (14 July 2017: AirDrop it, the queue reaches for Shazam). The performers stay our
+  own characters; the original artists are only named.
+- **The real recordings are never committed:** the `feat/songs` branch plays your own copies from
+  `src/audio/local-songs/<cd>.mp3` (git-ignored) when present; otherwise the Creative Commons
+  stand-ins in `public/music/`. GitHub and the Netlify site never get the copyrighted audio.
+- Moment ids (`open_mic`, `street_gig`, `ringtone`) and every prop/action id are unchanged. Dates in
+  checks now come from the story files (`scripts/checks/phone.ts`); `shortDate` moved to
+  `src/ui/dates.ts` so Node checks can import it without CSS.

@@ -131,7 +131,7 @@ export const T = {
     connectSec: 0.9, // after choosing a moment: "Connecting..." with the signal bars filling...
     staticSec: 0.35, // ...then a burst of static, then the phone flips shut
     blinkSec: 0.8, // one on/off cycle of the selected row's cursor
-    momentTimes: { open_mic: '19:30', street_gig: '15:10', ringtone: '16:45' } as Record<string, string>, // outer screen clock in 2004
+    momentTimes: { open_mic: '21:30', street_gig: '15:10', ringtone: '17:45' } as Record<string, string>, // outer screen clock in each past moment
     foldedWidthPx: 96, // the closed phone
     foldedBottomPx: 64, // the closed phone sits lower than the open one, clear of a host's corner badge (Netlify's is ~50 px tall)
     outerScreen: '#0d1b2a', // the closed phone's small outer screen...
@@ -154,7 +154,7 @@ export const T = {
     endKey: '#c92a2a',
   },
   static: {
-    // The Static's street gig, 2 July 2004 (props in src/world/props/static.ts).
+    // The Static's street gig, 6 August 1988 (props in src/world/props/static.ts).
     stage: '#3b3f47', // low wooden-pallet stage, painted black-ish
     amp: '#1c1c1f',
     ampDead: '#e03131', // the amp's light while it keeps cutting out...
@@ -178,7 +178,7 @@ export const T = {
     banknote: '#69db7c', // a fiver poking out of the tip jar
   },
   mira: {
-    // Mira's open mic, 14 March 2004 (props in src/world/props/mira.ts).
+    // Mira's battle night, 13 December 2002 (props in src/world/props/mira.ts).
     cd: '#d0d8e0', // her dropped demo CD on the bench
     listeningPost: '#8a3fb0',
     sign: '#ffd166', // "OPEN MIC" board on the listening post
@@ -370,6 +370,17 @@ export const T = {
       ] },
     },
     whoosh: { sec: 0.9, gain: 0.8, fromHz: 250, toHz: 5000, q: 4 }, // travel: filtered noise sweep
+    // The CD player is the time machine (cd-insert): tray out, disc clicks in, tray in, spin-up, laser seeks,
+    // and the travel whoosh lands at whooshAtSec (later if travel comes early).
+    cdInsert: {
+      whooshAtSec: 1.05,
+      motor: { sec: 0.18, note: 50, toNote: 53, gain: 0.05, noiseHz: 900, noiseGain: 0.12 }, // tray motor whine
+      trays: [0, 0.36], // tray out, tray back in (motor runs, then a clunk)
+      clunk: { sec: 0.07, note: 33, gain: 0.3, noiseHz: 1400, toHz: 500, noiseGain: 0.3 },
+      click: { at: 0.27, sec: 0.02, hz: 5200, q: 3, gain: 0.45, note: 96, toneGain: 0.05 }, // the disc snaps onto the spindle
+      spin: { at: 0.62, sec: 0.75, fromNote: 36, toNote: 74, gain: 0.11, hissFromHz: 400, hissToHz: 3200, hissGain: 0.1 },
+      seek: { notes: [100, 103, 98], at: [0.84, 0.94, 1.02], sec: 0.025, gain: 0.04 }, // the laser finding the track
+    },
     chime: { notes: [76, 81, 88], gapSec: 0.08, sec: 0.5, gain: 0.2, wave: 'sine' }, // action-done
     nope: { notes: [50, 46], gapSec: 0.12, sec: 0.14, gain: 0.2, wave: 'square' }, // action-locked
     fanfare: { notes: [67, 72, 76, 79, 84], gapSec: 0.1, sec: 0.35, gain: 0.18, wave: 'square', delaySec: 0.7 }, // reputation; waits for the travel whoosh
@@ -436,7 +447,7 @@ export const T = {
       fadeSec: 1.5, // crossfade between songs
       todaySwitchSec: 30, // today, with several fixed CDs: next song after this long
       duckGain: 0.3, // music volume while a whoosh, chime or ringtone plays
-      duckCues: ['whoosh', 'chime', 'ringtone', 'beam'],
+      duckCues: ['whoosh', 'chime', 'ringtone', 'beam', 'cd-insert'],
       duckAttackSec: 0.05,
       duckReleaseSec: 0.5,
       past: { lowpassHz: 2500, gain: 0.7 }, // "2004 style": muffled, mono

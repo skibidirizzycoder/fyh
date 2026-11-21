@@ -20,9 +20,10 @@ function intersects(a: Box, b: Box, eps = 1e-6): boolean {
 }
 
 describe('Mira story', () => {
-  it('happens in the "open_mic" moment on 14 March 2004, with the ids other code uses', () => {
+  it('happens in the "open_mic" moment on 13 December 2002 (Lose Yourself), with the ids other code uses', () => {
     expect(mira.cd.moment).toBe('open_mic');
-    expect(mira.cd.date).toBe('14 March 2004');
+    expect(mira.cd.date).toBe('13 December 2002');
+    expect(mira.cd.title).toBe('Lose Yourself');
     expect(mira.actions.map((a) => [a.id, a.objectId])).toEqual([['mira_take_cd', 'mira_cd'], ['mira_play_cd', 'listening_post']]);
   });
 
