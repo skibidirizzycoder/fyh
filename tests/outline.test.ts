@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { Color } from 'three';
 import { content } from '../src/story/content.ts';
 import { ERAS, T } from '../src/tuning.ts';
-import { creaseOffset, lookFor, outlineWidth, renderSize, toScenePx } from '../src/world/look.ts';
+import { creaseOffset, lookFor, msaaSamples, outlineWidth, renderSize, toScenePx } from '../src/world/look.ts';
 
 const SCREENS = [720, 768, 900, 1080, 1200, 1440, 1600, 1800, 2160];
 
@@ -96,9 +96,20 @@ describe('outline look', () => {
 });
 
 describe('anti-aliasing and sky', () => {
-  it('today is anti-aliased (MSAA); 2004 never is, so its pixels stay hard', () => {
-    expect(lookFor('present', null).msaa).toBeGreaterThan(1);
-    for (const m of [null, ...content.cds.map((c) => c.moment)]) expect(lookFor('2004', m).msaa, String(m)).toBe(0);
+  it('every full-resolution scene (today, 2017) gets MSAA; chunky scenes never do, so their pixels stay hard', () => {
+    const scenes = [lookFor('present', null), ...[null, ...content.cds.map((c) => c.moment)].map((m) => lookFor('2004', m))];
+    for (const look of scenes) {
+      const { scale } = renderSize(1920, 1080, look.pixelHeight);
+      const samples = msaaSamples(look.msaa, scale, 16);
+      if (look.pixelHeight > 0) expect(samples, look.sky).toBe(0);
+      else expect(samples, look.sky).toBeGreaterThan(1);
+    }
+  });
+
+  it('MSAA never asks for more samples than the GPU has (a software GPU has 0)', () => {
+    expect(msaaSamples(4, 1, 0)).toBe(0);
+    expect(msaaSamples(4, 1, 2)).toBe(2);
+    expect(msaaSamples(4, 3, 8)).toBe(0);
   });
 
   it('every scene has a soft sky gradient that never goes black', () => {
@@ -110,5 +121,29 @@ describe('anti-aliasing and sky', () => {
 
   it('the pixel ratio is capped at 2 (sharp on retina, affordable on phones)', () => {
     expect(T.limits.maxPixelRatio).toBe(2);
+  });
+});
+
+describe('bloom and FXAA', () => {
+  const scenes = [lookFor('present', null), ...[null, ...content.cds.map((c) => c.moment)].map((m) => lookFor('2004', m))];
+  const luminance = (hex: string): number => {
+    const c = new Color(hex); // linear, like the scene the bloom reads
+    return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+  };
+
+  it('the sky never glows: every bloom threshold is above its sky, but below the markers', () => {
+    for (const look of scenes) {
+      if (look.bloom <= 0) continue;
+      expect(look.bloomThreshold, look.sky).toBeGreaterThan(luminance(look.sky));
+      expect(look.bloomThreshold, look.sky).toBeLessThan(luminance(T.interact.markerColor));
+    }
+  });
+
+  it('the glow is worked out at a lower resolution, and FXAA is on for every scene (it only runs at full resolution)', () => {
+    for (const look of scenes) {
+      expect(look.bloomScale, look.sky).toBeGreaterThan(0);
+      expect(look.bloomScale, look.sky).toBeLessThanOrEqual(1);
+      expect(look.fxaa, look.sky).toBe(1);
+    }
   });
 });

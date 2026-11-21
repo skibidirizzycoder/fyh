@@ -14,6 +14,8 @@ export interface Ambience {
   setScene(scene: SceneId): void;
   /** A bus pulls in, `delaySec` from now (K-Bit's payoff: and nobody gets on). */
   bus(delaySec: number): void;
+  /** Turns the whole background down while a song plays (T.audio.ambience.underMusic), so the song is heard. */
+  setUnderMusic(on: boolean): void;
   stop(): void;
 }
 
@@ -98,10 +100,13 @@ function playBus(ctx: BaseAudioContext, out: AudioNode, delaySec: number): Audio
 export function createAmbience(ctx: BaseAudioContext, out: AudioNode, era: Era): Ambience {
   const beds = new Map<Era, GainNode>();
   const sources: AudioScheduledSourceNode[] = [];
+  const level = ctx.createGain(); // everything below goes through this: ducked while a song plays
+  level.connect(out);
+  let under = false;
   ERAS.forEach((e, i) => {
     const bed = ctx.createGain();
     bed.gain.value = e === era ? 1 : 0;
-    bed.connect(out);
+    bed.connect(level);
     beds.set(e, bed);
     sources.push(...buildBed(ctx, bed, e, T.audio.ambience.seed + i * 10));
   });
@@ -115,7 +120,7 @@ export function createAmbience(ctx: BaseAudioContext, out: AudioNode, era: Era):
       current = next;
       const now = ctx.currentTime;
       if (!scenes.has(next)) {
-        const built = buildScene(ctx, out, next);
+        const built = buildScene(ctx, level, next);
         scenes.set(next, built.bed);
         sources.push(...built.sources);
       }
@@ -127,6 +132,14 @@ export function createAmbience(ctx: BaseAudioContext, out: AudioNode, era: Era):
     },
     bus(delaySec) {
       sources.push(playBus(ctx, out, delaySec));
+    },
+    setUnderMusic(on) {
+      if (on === under) return;
+      under = on;
+      const now = ctx.currentTime;
+      level.gain.cancelScheduledValues(now);
+      level.gain.setValueAtTime(level.gain.value, now);
+      level.gain.linearRampToValueAtTime(on ? T.audio.ambience.underMusic : 1, now + T.audio.ambience.fadeSec);
     },
     setEra(next) {
       const now = ctx.currentTime;
@@ -140,6 +153,7 @@ export function createAmbience(ctx: BaseAudioContext, out: AudioNode, era: Era):
       sources.forEach((s) => s.stop());
       beds.forEach((bed) => bed.disconnect());
       scenes.forEach((bed) => bed.disconnect());
+      level.disconnect();
     },
   };
 }

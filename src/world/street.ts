@@ -381,6 +381,9 @@ function square(): Prop[] {
   ];
 }
 
+/** The centre of the clock face on the tower's front, for the hands in life.ts. */
+export const CLOCK = { x: (TOWER.x[0] + TOWER.x[1]) / 2, y: 10.6, front: TOWER.front + 0.06 } as const;
+
 /** The clock tower at the end of the square: a landmark you can see from the whole street. */
 function clockTower(): Prop[] {
   const f = TOWER.front;
@@ -394,8 +397,7 @@ function clockTower(): Prop[] {
     band('clock_tower_band_2', [7.6, 7.8]),
     ...[33.0, 34.4].map((x, i) => slab(`clock_tower_louvre_${i + 1}`, BOTH, around(x, 0.6), [8.2, 9.3], out(f, GAP, 0.05), S.hallDoor)),
     rod('clock_face', BOTH, around(TOWER_MID, 1.6), around(10.6, 1.6), out(f, GAP, 0.06), S.clockFace, 'z'),
-    slab('clock_hand_hour', BOTH, around(TOWER_MID, 0.08), [10.6, 11.05], out(f, 0.08, 0.1), S.clockHands),
-    slab('clock_hand_minute', BOTH, [TOWER_MID, TOWER_MID + 0.6], around(10.6, 0.06), out(f, 0.12, 0.14), S.clockHands),
+    // The hands turn to each scene's time, so they live in life.ts (CLOCK), not here.
     // A stepped lead roof and a spire.
     slab('clock_tower_roof_1', BOTH, [TOWER.x[0] - 0.08, TOWER.x[1] + 0.08], [TOWER.top - 0.05, TOWER.top + 0.3], [TOWER.back - 0.08, f + 0.08], S.towerRoof),
     slab('clock_tower_roof_2', BOTH, around(TOWER_MID, 2.2), [TOWER.top + 0.32, TOWER.top + 0.9], around(z, 2.45), S.towerRoof),

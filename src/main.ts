@@ -9,6 +9,7 @@ import { createLoop } from './core/loop.ts';
 import { createGame, usedObjects } from './game.ts';
 import { createNewsDesk } from './news/desk.ts';
 import { createAvatar } from './player/avatar.ts';
+import { createStreetLife } from './world/life.ts';
 import { createPhoneView } from './phone/view.ts';
 import { withCdPrompts } from './story/cdplayer.ts';
 import { content } from './story/content.ts';
@@ -16,10 +17,12 @@ import { propOverrides } from './story/timeline.ts';
 import { validateContent } from './story/validate.ts';
 import { T } from './tuning.ts';
 import { createHud, showFallback } from './ui/hud.ts';
+import { createTv } from './ui/tv.ts';
 import { buildWorld } from './world/build.ts';
 import { GROUND, PROPS } from './world/layout.ts';
 import { lookFor } from './world/look.ts';
 import { createParticles } from './world/particles.ts';
+import { createFlipTransition } from './fx/flip.ts';
 import { createPostFilter, msaaLimit } from './world/post.ts';
 import { installDebugApi } from './debug.ts';
 
@@ -54,11 +57,17 @@ function boot(): void {
   const game = createGame(content, input, { news, events });
   const world = buildWorld();
   const avatar = createAvatar(world.scene);
+  events.on('action-done', (e) => { // the action that fixes a CD: the camera pushes in for a moment
+    if (content.cds.some((c) => c.finalAction === e.actionId)) avatar.cheer(game.state.frame);
+  });
   const particles = createParticles(world.scene); // dust, snow or pollen in the air
+  const life = createStreetLife(world.scene, world.views.get('pub_sign')?.mesh); // clock hands, pub sign, pigeons
   const camera = new THREE.PerspectiveCamera(T.camera.fovDeg, 1, T.camera.near, T.camera.far);
   const post = createPostFilter(1, 1, msaaLimit(renderer));
   const hud = createHud(app, withCdPrompts(content), news); // the HUD finds E prompts in `actions`, the CD player's too
   const phone = createPhoneView(app);
+  if (import.meta.env.MODE !== 'test') createFlipTransition(app, events, content); // tests screenshot right after a jump
+  const tv = createTv(app, audio); // each CD's real song, from its official YouTube video
   let drawCalls = 0;
 
   function resize(): void {
@@ -79,13 +88,15 @@ function boot(): void {
     world.highlight(s.target);
     world.animate(s.frame / T.loop.stepsPerSecond);
     post.setLook(lookFor(s.era, s.moment));
-    avatar.sync(s.player, camera, s.frame); // the frame lets the camera glide by game time
+    avatar.sync(s.player, camera, s.frame, { talking: s.dialogueLeft > 0 }); // game time: the camera glides, and frames a dialogue line
     particles.update(s.era, s.moment, s.frame / T.loop.stepsPerSecond, camera); // game time: step() stays exact
+    life.update(s.moment ?? s.era, s.frame, s.player);
     renderer.info.reset();
     post.render(renderer, world.scene, camera, s.frame);
     drawCalls = renderer.info.render.calls;
     hud.render(game);
     phone.render(s.phone);
+    tv.update();
   }
 
   const loop = createLoop({

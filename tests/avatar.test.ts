@@ -2,7 +2,8 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { forwardFromYaw } from '../src/core/facing.ts';
-import { createAvatar, followShare, settlePhase } from '../src/player/avatar.ts';
+import { createAvatar, settlePhase } from '../src/player/avatar.ts';
+import { cheerCurve, followShare, framing } from '../src/player/camera.ts';
 import { T } from '../src/tuning.ts';
 
 /** A fresh avatar in its own scene, with a camera to sync. */
@@ -75,6 +76,39 @@ describe('avatar', () => {
     expect(camera.position.z).toBeCloseTo(T.camera.distance - 1, 6);
     avatar.sync({ x: 20, z: -1, yawDeg: 0 }, camera, 401); // a jump (travel): cut straight there
     expect(camera.position.x).toBeCloseTo(20, 6);
+    avatar.dispose();
+  });
+
+  it('while a dialogue line shows the camera eases closer and lower, then back, by game steps', () => {
+    const { camera, avatar } = made();
+    const at = { x: 0, z: 0, yawDeg: 0 };
+    avatar.sync(at, camera, 0);
+    const normal = camera.position.clone();
+    for (let f = 1; f <= 600; f++) avatar.sync(at, camera, f, { talking: true });
+    const close = framing(1, 0);
+    expect(camera.position.z).toBeCloseTo(close.distance, 3);
+    expect(camera.position.y).toBeCloseTo(close.height, 3);
+    expect(camera.position.z).toBeLessThan(normal.z);
+    for (let f = 601; f <= 1200; f++) avatar.sync(at, camera, f, { talking: false });
+    expect(camera.position.distanceTo(normal)).toBeLessThan(1e-3);
+    avatar.dispose();
+  });
+
+  it('a fixed CD pushes the camera in with a tilt, then it settles back level', () => {
+    const { camera, avatar } = made();
+    const at = { x: 0, z: 0, yawDeg: 0 };
+    avatar.sync(at, camera, 0);
+    avatar.cheer(0);
+    const peak = (T.avatar.cheerSec * T.loop.stepsPerSecond) / 2;
+    for (let f = 1; f <= peak; f++) avatar.sync(at, camera, f);
+    expect(camera.position.z).toBeLessThan(T.camera.distance - 0.3);
+    const level = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+    expect(Math.abs(level.x)).toBeGreaterThan(0.01); // tilted
+    for (let f = peak + 1; f <= peak + 600; f++) avatar.sync(at, camera, f);
+    expect(camera.position.z).toBeCloseTo(T.camera.distance, 3);
+    expect(Math.abs(new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion).x)).toBeLessThan(1e-9);
+    expect(cheerCurve(0)).toBe(0);
+    expect(cheerCurve(T.avatar.cheerSec * T.loop.stepsPerSecond)).toBe(0);
     avatar.dispose();
   });
 

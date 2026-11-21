@@ -1,0 +1,13 @@
+/* tv.css — the shop TV (src/ui/tv.ts): just the YouTube player, at the smallest size YouTube allows.
+   The player must stay fully visible and uncovered: no clipping, no overlay, no tilt, above everything. */
+#tv {
+  position: absolute;
+  left: var(--tv-left);
+  bottom: var(--tv-bottom); /* above the dialogue's tallest (three-line) box */
+  z-index: 1001; /* YouTube: nothing may cover the player, not even the flip transition (z 1000) */
+  border: 3px solid var(--tv-frame);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+}
+#tv[hidden] { display: none; }
+.tv-screen { width: var(--tv-screen); height: var(--tv-screen); background: #000; }
+.tv-screen iframe { display: block; border: 0; }

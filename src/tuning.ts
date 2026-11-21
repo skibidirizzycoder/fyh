@@ -126,8 +126,13 @@ export const T = {
       outlineCreaseTone: 0.03, // (when creases are on) their colour must change this much, so flat unlit markers stay clean
       outlineBreakup: 0.6, // how much the lines fade in the noise's gaps (0 = solid lines)
       outlineNoisePx: 72, // size of the noise patches that break the lines up
-      msaa: 0, // post filter: no anti-aliasing, the pixels stay hard
+      msaa: 4, // post filter: MSAA samples, only for full-resolution moments (2017); chunky pixels never get it
       skyDeepen: 0.3, // sky gradient: the top of the sky is this much darker than the horizon (0 = flat)
+      bloom: 1.0, // post filter: the brightest light (lit windows, neon, markers) glows this strongly (0 = off)
+      bloomThreshold: 0.7, // ... only light brighter than this (linear luminance: markers 0.75; keeps 1988's sunlit walls calm)
+      bloomScale: 0.5, // ... the glow is worked out at half the (chunky) resolution, added per chunky pixel
+      bloomSpread: 1, // ... glow texels between blur taps: one chunky pixel is already wide
+      fxaa: 1, // post filter: FXAA after the ink, only for full-resolution moments (2017)
       badgeText: '#ffcf7a',
     },
     present: {
@@ -155,6 +160,11 @@ export const T = {
       outlineNoisePx: 72, // size of the noise patches that break the lines up
       msaa: 4, // post filter: multisample anti-aliasing samples (smooth edges)
       skyDeepen: 0.3, // sky gradient: the top of the sky is this much darker than the horizon (0 = flat)
+      bloom: 1.2, // post filter: the brightest light (lit windows, neon, markers) glows this strongly (0 = off)
+      bloomThreshold: 0.6, // ... only light brighter than this (linear luminance: the markers are 0.75, skies below 0.6) glows
+      bloomScale: 0.5, // ... the glow is worked out at half resolution
+      bloomSpread: 2, // ... glow texels between blur taps (a soft glow about 30 px wide at 1080p)
+      fxaa: 1, // post filter: FXAA after the ink, so ink lines and edges are smooth too
       badgeText: '#bfe6ff',
     },
   },
@@ -225,6 +235,14 @@ export const T = {
   },
 
   // ---- Teammate A's sections ----
+  flip: { // the flip-phone transition when you travel (src/fx/flip.ts)
+    closeSec: 0.45, // the screen folds shut after the CD goes in (less than cdPlayer.insertSec)
+    rollSec: 1.6, // shut, the outer screen's clock races from now to the destination (slow, fast, slow)...
+    holdSec: 0.45, // ...and rests on the destination's clock and date...
+    lcdFadeSec: 0.12,
+    openSec: 0.5, // ...then it flips open on the new time
+  },
+
   phone: {
     flipSec: 0.25, // open/close animation time
     keyFlashSec: 0.15, // how long a keypad key stays pressed down after a move
@@ -437,6 +455,12 @@ export const T = {
     cameraFollow: 0.12, // each step (60 a second) the camera moves this part of the way to its spot behind you...
     cameraLookFollow: 0.2, // ...and its aim this part of the way to you, so it glides after you instead of jerking
     cameraSnapM: 3, // the camera cuts instead of gliding when its spot jumps further than this (travel, restart)
+    talkCloser: 0.25, // while a dialogue line shows the camera comes this part of its distance closer...
+    talkLowerM: 0.45, // ...and this much lower...
+    talkEase: 0.05, // ...easing in (and back out after) this part of the way each step
+    cheerSec: 1.2, // when a CD is fixed the camera pushes in and back out over this long...
+    cheerCloser: 0.3, // ...coming this part of its distance closer at the peak...
+    cheerTiltDeg: 4, // ...with this much tilt
   },
 
   // Round people (src/player/person.ts): capsule body and limbs, a sphere head with a face, rounded shoes.
@@ -507,6 +531,25 @@ export const T = {
   // Each 2004 moment's props are laid out around the shop in their own files and drawn in their
   // moment's area, moved along x by its shiftX (src/world/areas.ts).
   // Walking into an area's span of x emits the `area` event; between two spans the area stays as it was.
+  life: { // street life in the areas (src/world/life.ts), all by game time
+    presentClock: '17:55', // the tower clock today; in a moment it shows the phone's time (T.phone.momentTimes). It runs on from there
+    hourHand: { length: 0.45, width: 0.08 },
+    minuteHand: { length: 0.62, width: 0.06 },
+    pubGlow: '#ffd98a', // the pub sign is lit with this glow...
+    pubGlowIntensity: 0.35,
+    pubFlickerHz: 12, // ...which may dip this many times a second...
+    pubFlickerShare: 0.1, // ...this share of those times...
+    pubFlickerDim: 0.15, // ...to this much of itself
+    pigeon: '#6f7480',
+    pigeonHomes: [[24.8, 1.4], [25.5, 1.9], [31.2, 1.3], [31.9, 1.75], [32.6, 1.1]] as [number, number][], // x, z by the kerb, clear of the gig crowd
+    pigeonArea: { x: [24, 34], z: [0.9, 2.15] }, // where they may hop (clear of the memorial, the lamp and the crowd)
+    pigeonScareM: 2.2, // they hop away when you come this close...
+    pigeonFleeM: 3.2, // ...until they are this far from you...
+    pigeonHopMs: 3, // ...at this speed (m/s), hopping this high...
+    pigeonHopM: 0.18,
+    pigeonHopHz: 5, // ...this many hops a second
+    pigeonHomeMs: 0.35, // when you are gone they walk back home this fast
+  },
   areas: {
     list: [
       { id: 'shop', title: 'Hollow Records', x: [-99, 7.5], shiftX: 0 },
@@ -518,6 +561,25 @@ export const T = {
   },
 
   // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
+  tv: {
+    // The shop TV (src/ui/tv.ts): each CD's real song from its official YouTube video. Owner: Teammate A.
+    // YouTube's embed rules: the player stays visible, at least 200 x 200 px, and nothing covers it.
+    enabled: true,
+    apiUrl: 'https://www.youtube.com/iframe_api',
+    apiTimeoutSec: 8, // no YouTube by then: the CDs play their Creative Commons stand-ins
+    screenPx: 200, // the smallest YouTube allows
+    leftPx: 16,
+    bottomPx: 150, // clear of the dialogue box (three lines reach ~134 px up)
+    frame: '#1f1d1b',
+    volume: { '2004': 85, '2004-broken': 100, '2004-live': 100, '2004-leak': 40, today: 100 } as Record<string, number>, // 0-100, by music mode
+    // startSec: each song starts at its first chorus (from the videos' own lyric captions, and LRCLIB lyric
+    // timings for Lose Yourself, which has no captions); at the end it goes back there. lengthSec 0 = to the end.
+    videos: {
+      mira: { id: 'xFYQQPAOz7Y', startSec: 98, lengthSec: 0, credit: 'Lose Yourself · Eminem' }, // "You better lose yourself..." at 1:39
+      static: { id: '1w7OgIMMRc4', startSec: 59, lengthSec: 0, credit: "Sweet Child O' Mine · Guns N' Roses" }, // "Whoa, oh, oh, sweet child..." at ~1:00
+      kbit: { id: 'kJQP7kiw5Fk', startSec: 81, lengthSec: 0, credit: 'Despacito · Luis Fonsi ft. Daddy Yankee' }, // "Des-pa-ci-to" at 1:23
+    },
+  },
   moments: {
     // Each moment is in its own year, so each looks like the screens of its time (overrides on the 2004 era):
     // 1988 is a worn VHS tape (fewer, chunkier pixels, few colours, heavy grain), 2002 the era's retro
@@ -538,7 +600,7 @@ export const T = {
   },
 
   limits: {
-    maxDrawCalls: 60, // smoke fails above this
+    maxDrawCalls: 64, // smoke fails above this (includes up to 4 cheap full-screen post passes: bloom x2, ink, FXAA)
     minLookDistance: 18, // smoke: mean scene colours of any two scenes differ by at least this (0..441)
     maxPixelRatio: 2, // draw at most this many device pixels per CSS pixel (sharp on retina, affordable on phones)
   },
@@ -600,9 +662,10 @@ export const T = {
     beam: { swooshSec: 0.35, swooshGain: 0.35, swooshFromHz: 600, swooshToHz: 5000, swooshQ: 3, pingAt: 0.4, pingNotes: [88, 95], pingGapSec: 0.11, pingSec: 0.32, pingGain: 0.16, wave: 'sine' },
     ambience: {
       fadeSec: 1.2, // crossfade when you travel
+      underMusic: 0.3, // era bed + moment soundscape volume while a song plays (TV or built-in), so the song is heard
       loopSec: 2, // length of the looping noise buffers
       seed: 2004, // crackle is random but the same every run
-      '2004': { humHz: 55, humGain: 0.035, noiseGain: 0.03, noiseLowpassHz: 1200, cracklePerSec: 9, crackleGain: 0.12 },
+      '2004': { humHz: 55, humGain: 0.025, noiseGain: 0.02, noiseLowpassHz: 1200, cracklePerSec: 9, crackleGain: 0.06 },
       present: { humHz: 0, humGain: 0, noiseGain: 0.012, noiseLowpassHz: 6000, cracklePerSec: 0, crackleGain: 0 },
     },
 
@@ -610,11 +673,11 @@ export const T = {
     // are never the lastCue, so they can't hide the story sounds from the checks.
     feel: {
       seed: 31,
-      step: { variants: 4, sec: 0.07, gain: 0.12, fromHz: 1800, toHz: 500, q: 1.2, thumpNote: 40, thumpGain: 0.09, pitchJitter: 0.12, strideM: 0.9 }, // game: one `footstep` event per strideM walked
+      step: { variants: 4, sec: 0.07, gain: 0.08, fromHz: 1800, toHz: 500, q: 1.2, thumpNote: 40, thumpGain: 0.09, pitchJitter: 0.12, strideM: 0.9 }, // game: one `footstep` event per strideM walked
       paper: { rustles: 4, gapSec: 0.045, sec: 0.07, gain: 0.3, minHz: 2500, maxHz: 6500, q: 1.5 },
       zoom: { sec: 0.45, gain: 0.25, lowHz: 300, highHz: 1600, q: 2 }, // a soft whoosh: rising in, falling out
       voice: {
-        blipSec: 0.06, gapSec: 0.085, gain: 0.16, maxBlips: 24, // one blip per syllable-ish, at most ~2 s
+        blipSec: 0.06, gapSec: 0.085, gain: 0.1, maxBlips: 24, // one blip per syllable-ish, at most ~2 s
         spread: 5, // semitones up from the speaker's note, picked by each letter
         speakers: { // base MIDI note and wave per speaker
           mira: { note: 74, wave: 'triangle' },
