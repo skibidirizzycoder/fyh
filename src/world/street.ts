@@ -24,6 +24,7 @@ export const SCOOTER = { x: 5, z: 3.5, length: 1.4, width: 0.4, bottom: 0.3, hei
 
 const STREET_X: Span = [-14.5, 14.5]; // road and kerb run on past both ends of the walkable ground
 const KERB_Z: Span = [2.34, 2.56]; // pavement behind the kerb (towards the shop), road in front
+const KERB_TOP = 0.09; // under T.collide.stepHeight, so the player steps up onto the pavement
 const ROAD_TOP = 0.035; // just above the ground, so wheels standing at y = GAP sink a little into it
 const LINE_Y: Span = [ROAD_TOP + GAP, ROAD_TOP + GAP + 0.01]; // road paint
 
@@ -87,7 +88,7 @@ function road(): Prop[] {
   return [
     slab('street_road', BOTH, STREET_X, [-0.08, ROAD_TOP], [mid(KERB_Z), 8], S.road),
     // The kerb and pavement stop a little short of the road's ends, so their end faces never meet.
-    slab('street_kerb', BOTH, [STREET_X[0] + 0.1, STREET_X[1] - 0.1], [-0.05, 0.13], KERB_Z, S.kerb),
+    slab('street_kerb', BOTH, [STREET_X[0] + 0.1, STREET_X[1] - 0.1], [-0.05, KERB_TOP], KERB_Z, S.kerb),
     slab('street_pavement_left', BOTH, [STREET_X[0] + 0.2, -7.85], [-0.2, -0.015], [-6.5, 2.5], S.pavement),
     slab('street_pavement_right', BOTH, [7.85, STREET_X[1] - 0.2], [-0.2, -0.015], [-6.5, 2.5], S.pavement),
     slab('street_yellow_1', BOTH, STREET_X, LINE_Y, [2.6, 2.65], S.yellowLine),
@@ -122,12 +123,13 @@ function shopFront(): Prop[] {
     slab('shop_awning_front', BOTH, [-3.35, 0.35], [2.78, 2.84], [W + 0.58, W + 1.14], S.awning),
     slab('shop_valance', BOTH, [-3.37, 0.37], [2.62, 2.8], [W + 1.12, W + 1.16], S.awning),
     ...stripes.map((x, i) => slab(`shop_stripe_${i + 1}`, BOTH, around(x, 0.16), [2.64, 2.78], [W + 1.18, W + 1.19], S.awningStripe)),
-    // The door frame, knob and letterbox.
-    slab('shop_door_jamb_l', BOTH, [DOOR_X[0] - 0.16, DOOR_X[0] - 0.04], [-0.05, 2.3], [W - 0.06, W + 0.16], S.woodwork),
-    slab('shop_door_jamb_r', BOTH, [DOOR_X[1] + 0.04, DOOR_X[1] + 0.16], [-0.05, 2.3], [W - 0.06, W + 0.16], S.woodwork),
-    slab('shop_door_head', BOTH, [DOOR_X[0] - 0.2, DOOR_X[1] + 0.2], [2.28, 2.38], [W - 0.08, W + 0.18], S.woodwork),
-    slab('shop_door_knob', BOTH, [2.02, 2.1], [1.0, 1.08], [W + 0.14, W + 0.18], S.brass),
-    slab('shop_letterbox', BOTH, [2.3, 2.7], [0.84, 0.9], [W + 0.14, W + 0.155], S.brass),
+    // The door frame (narrow, clear of today's gold-disc frames at x < 1.74), and in 2004 a brass
+    // knob and letterbox (today the door is boarded up, then a plain modern door).
+    slab('shop_door_jamb_l', BOTH, [DOOR_X[0] - 0.12, DOOR_X[0] - 0.04], [-0.05, 2.3], [W - 0.06, W + 0.16], S.woodwork),
+    slab('shop_door_jamb_r', BOTH, [DOOR_X[1] + 0.04, DOOR_X[1] + 0.12], [-0.05, 2.3], [W - 0.06, W + 0.16], S.woodwork),
+    slab('shop_door_head', BOTH, [DOOR_X[0] - 0.14, DOOR_X[1] + 0.14], [2.28, 2.38], [W - 0.08, W + 0.18], S.woodwork),
+    slab('shop_door_knob', PAST, [2.02, 2.1], [1.0, 1.08], [W + 0.14, W + 0.18], S.brass),
+    slab('shop_letterbox', PAST, [2.3, 2.7], [0.84, 0.9], [W + 0.14, W + 0.155], S.brass),
   ];
 }
 
@@ -202,13 +204,14 @@ function lamp(): Prop[] {
   ];
 }
 
-/** A backrest on the bench, on two supports. */
+/** A backrest a little behind the bench, on two thin supports. It stays out of the bench's own spot
+ *  (the player's radius around its centre), so the bench alone decides where you can stand. */
 function benchBack(): Prop[] {
   const b = BENCH.back;
   return [
-    slab('bench_back', BOTH, [BENCH.x[0] + 0.05, BENCH.x[1] - 0.05], [BENCH.top + 0.12, BENCH.top + 0.48], [b - 0.06, b + 0.02], S.bench),
+    slab('bench_back', BOTH, [BENCH.x[0] + 0.05, BENCH.x[1] - 0.05], [BENCH.top + 0.12, BENCH.top + 0.48], [b - 0.14, b - 0.06], S.bench),
     ...[BENCH.x[0] + 0.19, BENCH.x[1] - 0.19].map((x, i) =>
-      slab(`bench_support_${i + 1}`, BOTH, around(x, 0.08), [BENCH.top - 0.04, BENCH.top + 0.16], [b - 0.045, b - 0.015], S.bench)),
+      slab(`bench_support_${i + 1}`, BOTH, around(x, 0.08), [BENCH.top - 0.04, BENCH.top + 0.16], [b - 0.11, b + GAP], S.bench)),
   ];
 }
 
