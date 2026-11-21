@@ -5,7 +5,7 @@ import { inflateSync } from 'node:zlib';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import {
-  advancePhase, createPerson, createPersonTextures, easePose, gaitBlend, lookAngle, headGeometry, posePerson, strideLength, type Gait, type Person, type PersonImage,
+  advancePhase, cheerAmount, createPerson, createPersonTextures, easePose, gaitBlend, lookAngle, headGeometry, posePerson, strideLength, type Gait, type Person, type PersonImage,
 } from '../src/player/person.ts';
 import { forwardFromYaw } from '../src/core/facing.ts';
 import { createAvatar } from '../src/player/avatar.ts';
@@ -366,6 +366,39 @@ describe('where round people look', () => {
       const f = forwardFromYaw(yawDeg);
       expect(m.x * f.x + m.z * f.z, `frame ${frame}`).toBeGreaterThan(0.999);
     }
+    avatar.dispose();
+  });
+});
+
+describe('round people cheer', () => {
+  it('raise both arms and hop mid-cheer, and are back to their pose before and after it', () => {
+    const person = made();
+    posePerson(person, gait(1, WALK));
+    const plain = poseOf(person);
+    for (const t of [0, 1, 1.5, -0.2]) {
+      posePerson(person, { ...gait(1, WALK), cheer: t });
+      expect(poseOf(person), `cheer at ${t}`).toEqual(plain);
+    }
+    posePerson(person, { ...gait(0, 0), cheer: 0.5 / P.gait.cheer.hops / 2 + 0.25 }); // mid-cheer, mid-hop
+    for (const arm of person.arms) expect(arm.rotation.x).toBeGreaterThan(Math.PI / 2); // above the shoulders
+    expect(person.rig.position.y).toBeGreaterThan(GAP + P.gait.cheer.hopM * 0.5);
+    expect(cheerAmount(0.5)).toBe(1);
+    expect(cheerAmount(0.01)).toBeGreaterThan(0);
+    expect(cheerAmount(0.01)).toBeLessThan(0.1); // it eases in
+    person.dispose();
+  });
+
+  it('the avatar cheers from the frame a CD is fixed, for T.avatar.cheerSec', () => {
+    const avatar = createAvatar(new THREE.Scene());
+    const camera = new THREE.PerspectiveCamera();
+    const arm = (frame: number): number => {
+      avatar.sync({ x: 0, z: 0, yawDeg: 0, speed: 0, turnRate: 0 }, camera, frame);
+      return avatar.root.getObjectByName('player_arm_l')?.rotation.x ?? NaN;
+    };
+    expect(arm(100)).toBeCloseTo(0, 6);
+    avatar.cheer(100);
+    expect(arm(100 + T.avatar.cheerSec * T.loop.stepsPerSecond * 0.5)).toBeGreaterThan(Math.PI / 2);
+    expect(arm(100 + T.avatar.cheerSec * T.loop.stepsPerSecond + 1)).toBeCloseTo(0, 6);
     avatar.dispose();
   });
 });
