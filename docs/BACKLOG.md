@@ -31,11 +31,11 @@
 
 ## Teammate A: `feat/phone-static`
 
-Two sessions: A3 in one, A4 in the other.
+Two sessions: A4 in one, A5 in the other.
 
 - [x] A1. The flip phone's look
 - [x] A2. The Static's street gig
-- [ ] **A3. Mira's open mic (14 March 2004).** You now own `src/story/cds/mira.json`,
+- [x] **A3. Mira's open mic (14 March 2004).** You now own `src/story/cds/mira.json`,
   `src/world/props/mira.ts` and `scripts/checks/mira.ts`. Make it an open mic night outside the
   shop: a mic and small amp by the window, string lights, a few bored listeners who turn round (or
   appear) after step 2, and Mira with a guitar. Rewrite the text in your voice (`situation`, lines,
@@ -49,13 +49,20 @@ Two sessions: A3 in one, A4 in the other.
   screenshot and let the team pick. Checks in `scripts/checks/ui.ts`: contrast of each screen and
   screenshots of the title and the ending.
 
+- [ ] **A5. The phone feels alive.** In your phone files: while travelling, the LCD shows
+  "Connecting..." with the signal bars filling, then a burst of static before you arrive; the
+  closed phone shows a small outer screen with the date and time where you are; the selected row
+  blinks like a 2004 menu. Checks in `scripts/checks/phone.ts` (read `data-state`, screenshot it).
+- [ ] **A6. The Static after the fix:** the crowd you show with `static_give_mic` gets bigger and
+  closer (more people, some with their arms up), plus a dropped set list and a tip jar. Your props only.
+
 ## Teammate B: `feat/sound-kbit`
 
-Two sessions: B3 in one, B4 in the other. B5 comes after B3 (both touch `src/audio/`).
+Two sessions: B3/B5/B6 in one (they all touch `src/audio/`), B4 in the other.
 
 - [x] B1. All sound effects, made in code
 - [x] B2. DJ K-Bit's bus stop
-- [ ] **B3. The CD music**: `docs/prompts/06-teammate-b-cd-music.md`. **Don't wait for a song
+- [ ] **B3. The CD music**: code merged; **the MP3s are still missing, so it's silent. Don't wait for a song
   pick:** if the team hasn't chosen, use the ★ picks in `docs/music-shortlist.md` (anyone can swap a
   file later). ccMixter files download with the track page as the `Referer` (e.g. `curl -e <page> -o …`).
   No trimming tool? Commit the full MP3 and play a 30–45 s section (`start` and `length` in `T.audio.music`).
@@ -70,6 +77,11 @@ Two sessions: B3 in one, B4 in the other. B5 comes after B3 (both touch `src/aud
   `travel` + `interact`), screenshots `today-0` to `today-3`.
 - [ ] **B5. K-Bit polish** (from your notes): a timetable panel and a "BUS" band on the stop, a
   bigger phone for K-Bit, and an infrared "beam" sound for step 1.
+
+- [ ] **B6. Each moment sounds like its time and place**: open mic = evening pub murmur and
+  clinking glasses; street gig = busy summer street and a distant ice-cream van; ringtone = December
+  wind, traffic and a bus pulling in; today = quieter, modern traffic. In `src/audio/`, driven by the
+  `travel` event (it has `moment`). Checks in `scripts/checks/audio.ts`.
 
 ## Free (anyone: claim it in STATUS.md first)
 
