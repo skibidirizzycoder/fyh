@@ -15,6 +15,71 @@
 }
 #phone[hidden] { display: none; }
 #phone.is-compact { transform: scale(var(--phone-compact-scale)); }
+/* No phone on the title or the ending screen. */
+#app:has(> #title:not([hidden])) > #phone, #app:has(> #ending:not([hidden])) > #phone { display: none; }
+
+/* Closed: only the folded phone. Any other state: only the open phone. */
+#phone[data-state='closed'] .phone-body { display: none; }
+#phone:not([data-state='closed']) .phone-folded { display: none; }
+
+/* --- the folded (closed) phone: small outer screen with the time and date where you are --- */
+.phone-folded {
+  position: absolute;
+  right: 0;
+  bottom: calc(var(--phone-folded-bottom) - var(--phone-bottom));
+  width: var(--phone-folded-width);
+  padding: 10px 9px 9px;
+  box-sizing: border-box;
+  border-radius: 24px 24px 14px 14px;
+  background: linear-gradient(160deg, var(--phone-shell-light) 0%, var(--phone-shell-dark) 100%);
+  border: 1px solid var(--phone-shell-edge);
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.45));
+  text-align: center;
+}
+.phone-folded-camera { display: block; width: 8px; height: 8px; margin: 0 auto 7px; border-radius: 50%; background: var(--phone-hinge); }
+.phone-outer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 2px;
+  border-radius: 6px;
+  background: var(--phone-outer);
+  color: var(--phone-outer-text);
+  font: 700 10px/1.1 'Lucida Console', 'Courier New', monospace;
+}
+.phone-outer-time { font-size: 18px; letter-spacing: 1px; }
+.phone-folded-hint { display: block; margin-top: 7px; color: var(--phone-key-ink); font: 700 11px/1 system-ui, sans-serif; }
+
+/* --- travelling: drawn over the LCD so the phone keeps its size --- */
+.phone-lcd { position: relative; }
+.phone-connect, .phone-static { display: none; position: absolute; inset: 0; border-radius: 3px; }
+#phone[data-state='connecting'] .phone-connect {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--phone-lcd);
+}
+.phone-connect p { margin: 0; }
+.phone-connect-text { font-size: 14px; letter-spacing: 1px; }
+.phone-connect-to { font-size: 12px; }
+.phone-connect-bars { display: flex; align-items: flex-end; gap: 4px; height: 30px; }
+.phone-connect-bars i { display: block; width: 8px; background: var(--phone-ink); opacity: 0; }
+#phone[data-state='connecting'] .phone-connect-bars i { animation: phone-bar-on 1ms linear forwards; } /* delays set per bar in view.ts */
+#phone[data-state='static'] .phone-static {
+  display: block;
+  background:
+    repeating-linear-gradient(0deg, var(--phone-ink) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, var(--phone-ink) 0 2px, var(--phone-lcd) 2px 5px);
+  background-size: 7px 5px, 11px 7px;
+  animation: phone-noise 0.12s steps(3) infinite;
+}
+@keyframes phone-bar-on { to { opacity: 1; } }
+@keyframes phone-noise {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 5px 3px, -7px 2px; }
+}
 
 .phone-body { display: flex; flex-direction: column; filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.45)); }
 
@@ -79,6 +144,9 @@
 .phone-row-label { font-size: 13px; }
 .phone-row-date { font-size: 10px; }
 .phone-row.is-selected { background: var(--phone-ink); color: var(--phone-lcd); } /* inverted, like a real LCD */
+/* A blinking cursor on the selected row, like a 2004 menu (the row's colours stay put). */
+.phone-row.is-selected .phone-row-label::before { content: '>'; margin-right: 4px; animation: phone-blink var(--phone-blink) step-end infinite; }
+@keyframes phone-blink { 50% { visibility: hidden; } }
 
 .phone-soft { display: flex; justify-content: space-between; margin-top: 2px; padding-top: 1px; border-top: 1px solid var(--phone-ink); font-size: 10px; }
 
@@ -166,5 +234,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #phone[data-state] .phone-body, #phone[data-state] .phone-lid { animation: none; }
+  #phone[data-state] .phone-body, #phone[data-state] .phone-lid, #phone .phone-static,
+  .phone-row.is-selected .phone-row-label::before { animation: none; }
+  #phone[data-state='connecting'] .phone-connect-bars i { animation: none; opacity: 1; }
 }
