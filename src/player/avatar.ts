@@ -59,6 +59,7 @@ export function createAvatar(scene: THREE.Scene): Avatar {
   let last: { x: number; z: number } | null = null;
   let eased: { speed: number; turnRate: number; look: number; frame: number } | null = null; // what the pose follows, a little behind
   let lookPoint: { x: number; z: number } | null = null;
+  let cheerFrame: number | null = null; // when the last CD was fixed
   const follow = createFollowCamera();
 
   /** Moves the stride on by the distance walked since the last frame (settles it when standing still) and poses the body. */
@@ -72,7 +73,8 @@ export function createAvatar(scene: THREE.Scene): Avatar {
     eased = frame === undefined ? null : { speed, turnRate, look, frame };
     if (moved > 0 && moved < A.teleportM) phase = advancePhase(phase, moved, speed);
     else phase = settlePhase(phase, A.settleRad);
-    posePerson(person, { phase, speed, turnRate, look, time: (frame ?? 0) / T.loop.stepsPerSecond });
+    const cheer = cheerFrame === null || frame === undefined ? 0 : (frame - cheerFrame) / (A.cheerSec * T.loop.stepsPerSecond);
+    posePerson(person, { phase, speed, turnRate, look, cheer, time: (frame ?? 0) / T.loop.stepsPerSecond });
   }
 
   function sync(p: PlayerState, camera: THREE.PerspectiveCamera, frame?: number, mood: CameraMood = { talking: false }): void {
@@ -97,5 +99,11 @@ export function createAvatar(scene: THREE.Scene): Avatar {
     textures.dispose();
   }
 
-  return { root, nose, sync, cheer: (frame) => follow.cheer(frame), lookAt: (point) => (lookPoint = point), measuredFacing, dispose };
+  /** A CD was fixed: the camera pushes in and the player cheers, both from this game frame. */
+  function cheer(frame: number): void {
+    follow.cheer(frame);
+    cheerFrame = frame;
+  }
+
+  return { root, nose, sync, cheer, lookAt: (point) => (lookPoint = point), measuredFacing, dispose };
 }

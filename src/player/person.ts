@@ -62,6 +62,7 @@ export interface Gait {
   turnRate: number; // degrees per second, + = turning left
   time: number; // seconds of game time (for breathing)
   look?: number; // radians the head turns from straight ahead (+ = left), e.g. towards what they could use
+  cheer?: number; // how far through a cheer (0..1; none outside that)
 }
 
 /** The people's images as cel materials, each loaded once. The caller disposes it. */
@@ -435,7 +436,7 @@ function poseLeg(person: Person, side: 'l' | 'r', a: { thigh: number; knee: numb
 
 /** Sets an arm's bones: swing from the shoulder (+ = forward) and elbow bend (+ = hand up and forward). */
 function poseArm(person: Person, side: 'l' | 'r', swing: number, elbow: number): void {
-  person.bones[`arm_${side}`].rotation.x = swing;
+  person.bones[`arm_${side}`].rotation.set(swing, 0, (side === 'l' ? -1 : 1) * P.armOutDeg * DEG);
   person.bones[`forearm_${side}`].rotation.x = elbow;
 }
 
@@ -451,6 +452,29 @@ function poseSpine(person: Person, gait: Gait, walk: number, run: number): void 
   b.spine.position.set(G.swayM * s * walk, P.hipY + breath, 0);
 }
 
+/** How much of a cheer shows at its progress `t` (0..1): in quickly, held, out at the end; 0 outside. */
+export function cheerAmount(t: number): number {
+  const C = G.cheer;
+  if (t <= 0 || t >= 1) return 0;
+  return ramp(t, 0, C.inShare) * (1 - ramp(t, 1 - C.outShare, 1));
+}
+
+/** Cheers on top of the pose: arms go up and out (elbows nearly straight) and the body hops. */
+function poseCheer(person: Person, t: number): void {
+  const C = G.cheer;
+  const up = cheerAmount(t);
+  if (up <= 0) return;
+  const b = person.bones;
+  for (const [side, s] of [['l', -1], ['r', 1]] as const) {
+    const arm = b[`arm_${side}`];
+    arm.rotation.x += (C.armDeg * DEG - arm.rotation.x) * up;
+    arm.rotation.z = s * (P.armOutDeg + C.spreadDeg * up) * DEG;
+    const fore = b[`forearm_${side}`];
+    fore.rotation.x += (C.elbowDeg * DEG - fore.rotation.x) * up;
+  }
+  person.rig.position.y += C.hopM * Math.abs(Math.sin(Math.PI * C.hops * t)) * up;
+}
+
 /** Keeps the head level and facing ahead whatever the body does (it undoes the spine's lean, twist and tilt), then turns it by `look`. */
 function poseHead(person: Person, look: number): void {
   const b = person.bones;
@@ -461,7 +485,7 @@ function poseHead(person: Person, look: number): void {
  * Poses a person for a gait. Legs swing from the hips with bent knees, arms counter-swing from the
  * shoulders, the body rests on the longer leg (so it dips twice per stride and the feet stay on the
  * ground), the upper body sways, twists, leans and breathes (poseSpine), and the head stays level and
- * looks where `gait.look` says (poseHead). A pure function of the
+ * looks where `gait.look` says (poseHead); a cheer goes on top (poseCheer). A pure function of the
  * gait, which comes from eased speed and turn rate, so poses never snap.
  */
 export function posePerson(person: Person, gait: Gait): void {
@@ -478,4 +502,5 @@ export function posePerson(person: Person, gait: Gait): void {
   person.rig.position.y = GAP - drop + G.runBounceM * run * Math.abs(Math.sin(gait.phase));
   poseSpine(person, gait, walk, run);
   poseHead(person, gait.look ?? 0);
+  poseCheer(person, gait.cheer ?? 0);
 }
