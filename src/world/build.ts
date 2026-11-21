@@ -12,6 +12,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ERAS, T, type Era } from '../tuning.ts';
+import { placed } from './areas.ts';
 import { GROUND, PROPS, inScene, propColor, propTexture, visibleProps, type Prop } from './layout.ts';
 import { lookFor } from './look.ts';
 import { SHADE_ATTRIBUTE, celMaterial, celVertexMaterial, createMaterials, shadowTone, type Materials, type Surface } from './materials.ts';
@@ -58,7 +59,7 @@ export function buildWorld(): WorldView {
   const views = new Map<string, PropView>();
   const labels = new Map<string, Record<Era, THREE.MeshLambertMaterial>>();
 
-  for (const prop of [GROUND, ...PROPS].filter((p) => !p.decor)) {
+  for (const prop of [GROUND, ...PROPS].filter((p) => !p.decor).map(placed)) { // where it stands (areas.ts)
     const view = buildProp(prop, markerMaterial, materials, shapes);
     views.set(prop.id, view);
     scene.add(view.mesh);
@@ -67,7 +68,7 @@ export function buildWorld(): WorldView {
   }
   const decor = buildDecor(PROPS.filter((p) => p.decor), decorMaterial, shapes);
   decor.forEach((d) => scene.add(d.mesh));
-  const blobs = createBlobs([GROUND, ...PROPS]);
+  const blobs = createBlobs([GROUND, ...PROPS].map(placed)); // shadows under where props stand (areas.ts)
   scene.add(blobs.mesh);
   // The player's blob follows the avatar (named 'player'), read just before each draw, after it moved.
   scene.onBeforeRender = () => {

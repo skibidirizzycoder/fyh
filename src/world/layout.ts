@@ -1,17 +1,18 @@
-// layout.ts — the ONE layout of the location: a street corner outside a record shop.
+// layout.ts — the ONE layout of the location: a high street with a record shop in the middle.
 // Each prop says which eras it exists in, and (for 2004) optionally which moments.
 // Props are boxes or cylinders described by their centre and size (metres). Ground top is at y = 0.
 // Props for each CD's moment live in src/world/props/<cd>.ts; today's shop in props/today.ts.
 // The street's details (shop front, neighbours, kerb, car parts...) live in street.ts.
 
 import { T, type Era } from '../tuning.ts';
+import { placed } from './areas.ts';
 import { BOTH, DOOR_DEPTH, NOW, PAST, WALL_FRONT_Z, mountOn, standOn } from './props/helpers.ts';
 import { KBIT_PROPS } from './props/kbit.ts';
 import { PROPS_MIRA } from './props/mira.ts';
 import { PROPS_PLAYER } from './props/player.ts';
 import { PROPS_STATIC } from './props/static.ts';
 import { PROPS_TODAY } from './props/today.ts';
-import { CAR, SCOOTER, STREET_DETAIL } from './street.ts';
+import { CAR, HALL_SIGN, PUB_SIGN, SCOOTER, STREET_DETAIL } from './street.ts';
 
 export type Shape = 'box' | 'cylinder';
 
@@ -46,7 +47,7 @@ export const GROUND: Prop = {
   id: 'ground',
   shape: 'box',
   eras: BOTH,
-  pos: [0, -T.world.groundThickness / 2, 0],
+  pos: [T.world.groundCenterX, -T.world.groundThickness / 2, 0],
   size: [T.world.groundWidth, T.world.groundThickness, T.world.groundDepth],
   color: T.street.pavement,
   texture: 'textures/pavement.png',
@@ -79,7 +80,11 @@ const STREET: readonly Prop[] = [
   { id: 'planter', shape: 'box', eras: NOW, pos: [-2, standOn(0, 0.6), -4.3], size: [1.6, 0.6, 0.6], color: S.planter },
   { id: 'scooter', shape: 'box', eras: NOW, pos: [SCOOTER.x, SCOOTER.bottom + SCOOTER.height / 2, SCOOTER.z], size: [SCOOTER.length, SCOOTER.height, SCOOTER.width], color: S.scooter.body },
 
-  // --- the details: shop front, neighbours, kerb and road, car parts... (street.ts) ---
+  // --- the square's and the bus stop's name boards (painted like the shop sign) ---
+  { id: 'town_hall_sign', shape: 'box', eras: BOTH, pos: HALL_SIGN.pos, size: HALL_SIGN.size, color: S.hallSign, label: S.hallText },
+  { id: 'pub_sign', shape: 'box', eras: BOTH, pos: PUB_SIGN.pos, size: PUB_SIGN.size, color: S.pubSign, label: S.pubText },
+
+  // --- the details: shop front, neighbours, kerb and road, car parts, the square, the bus stop... (street.ts) ---
   ...STREET_DETAIL,
 ];
 
@@ -103,10 +108,10 @@ export function inScene(p: Prop, era: Era, moment: string | null): boolean {
   return !p.moments || (era === '2004' && moment !== null && p.moments.includes(moment));
 }
 
-/** Props visible in an era and moment, given story overrides. */
+/** Props visible in an era and moment, given story overrides, where they stand in the world (areas.ts). */
 export function visibleProps(era: Era, moment: string | null, shown: ReadonlySet<string>, hidden: ReadonlySet<string>): Prop[] {
   return [GROUND, ...PROPS].filter((p) => {
     if (!inScene(p, era, moment) || hidden.has(p.id)) return false;
     return !p.startsHidden || shown.has(p.id);
-  });
+  }).map(placed);
 }
