@@ -20,8 +20,14 @@ export const checkAudio: Check = async (page: Page) => {
   s = await step(page, 1); // a real frame, then read the cue
   expectCue(s, 'nope', 'a locked action');
 
-  const done = await interact(page, 'kbit_phone');
-  expect(done.ok, 'could not beam the track from K-Bit\'s phone');
+  const beamed = await interact(page, 'kbit_phone');
+  expect(beamed.ok, 'could not beam the track from K-Bit\'s phone');
+  s = await step(page, 1);
+  expectCue(s, 'beam', 'beaming the track by infrared');
+
+  await travel(page, 'open_mic');
+  const done = await interact(page, 'mira_cd');
+  expect(done.ok, 'could not pick up Mira\'s CD');
   s = await step(page, 1);
   expectCue(s, 'chime', 'a finished action');
 
@@ -36,5 +42,5 @@ export const checkAudio: Check = async (page: Page) => {
   expect(s.audio.muted, 'M did not mute');
   s = await tap(page, 'KeyM');
   expect(!s.audio.muted, 'M did not unmute');
-  return { cues: 6, muteToggles: 2 };
+  return { cues: 7, muteToggles: 2 };
 };

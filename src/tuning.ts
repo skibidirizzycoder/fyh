@@ -190,6 +190,7 @@ export const T = {
     master: 0.5, // overall volume
     muteKey: 'KeyM',
     ringtoneActions: ['kbit_ring_bus_stop'], // finishing these actions plays the ringtone instead of the chime
+    beamActions: ['kbit_beam_track'], // ...and these play the infrared beam
     attackSec: 0.005, // every note fades in this fast (no clicks)
     releaseSec: 0.05, // ...and fades out this fast
     beep: { note: 88, sec: 0.06, gain: 0.18, wave: 'square' }, // keypad (phone-move)
@@ -215,6 +216,7 @@ export const T = {
     chime: { notes: [76, 81, 88], gapSec: 0.08, sec: 0.5, gain: 0.2, wave: 'sine' }, // action-done
     nope: { notes: [50, 46], gapSec: 0.12, sec: 0.14, gain: 0.2, wave: 'square' }, // action-locked
     fanfare: { notes: [67, 72, 76, 79, 84], gapSec: 0.1, sec: 0.35, gain: 0.18, wave: 'square', delaySec: 0.7 }, // reputation; waits for the travel whoosh
+    beam: { notes: [86, 93], chirps: 14, chirpSec: 0.035, gain: 0.12, wave: 'square', doneNotes: [84, 96], doneGapSec: 0.09, doneSec: 0.08, doneGain: 0.18 }, // infrared handshake, then "got it"
     ambience: {
       fadeSec: 1.2, // crossfade when you travel
       loopSec: 2, // length of the looping noise buffers
@@ -230,7 +232,7 @@ export const T = {
       fadeSec: 1.5, // crossfade between songs
       todaySwitchSec: 30, // today, with several fixed CDs: next song after this long
       duckGain: 0.3, // music volume while a whoosh, chime or ringtone plays
-      duckCues: ['whoosh', 'chime', 'ringtone'],
+      duckCues: ['whoosh', 'chime', 'ringtone', 'beam'],
       duckAttackSec: 0.05,
       duckReleaseSec: 0.5,
       past: { lowpassHz: 2500, gain: 0.7 }, // "2004 style": muffled, mono
@@ -254,6 +256,8 @@ export const T = {
     shelterRoof: '#2f343b',
     signPole: '#2a2a2a',
     sign: '#e23b3b', // the bus stop sign: interactable
+    signBand: '#f4f4f0', // the "BUS" band on the sign
+    timetable: '#f2e6b8', // paper timetable on the pole
     people: ['#5a6fa8', '#a8605a', '#6a9a62', '#9a7ab8'], // the queue, one coat colour each
     flipPhone: '#c0c6cc', // everyone in the queue has one
     kbitBody: '#1e1e28',

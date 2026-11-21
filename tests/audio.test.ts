@@ -88,7 +88,8 @@ describe('createAudio', () => {
     const { events, audio } = silentAudio();
     events.emit('action-done', { actionId: 'kbit_ring_bus_stop', cd: 'kbit' });
     expect(audio.lastCue()).toBe('ringtone');
-    expect(actionCue('kbit_beam_track')).toBe('chime');
+    expect(actionCue('kbit_beam_track')).toBe('beam');
+    expect(actionCue('mira_take_cd')).toBe('chime');
   });
 
   it('travel switches the background era', () => {
