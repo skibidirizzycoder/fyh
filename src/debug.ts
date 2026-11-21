@@ -14,7 +14,8 @@ import { forwardFromYaw } from './core/facing.ts';
 import type { Game, InteractResult } from './game.ts';
 import type { NewsDesk, NewsState } from './news/desk.ts';
 import type { Avatar } from './player/avatar.ts';
-import { wrapDegrees } from './player/controller.ts';
+import type { Spot } from './player/collide.ts';
+import { findRoute, steerAlong, type Steer } from './player/path.ts';
 import { content } from './story/content.ts';
 import { fixedCds } from './story/timeline.ts';
 import { T, type Era } from './tuning.ts';
@@ -66,7 +67,7 @@ export interface DebugApi {
   placePlayer(x: number, z: number, yawDeg: number): Snapshot;
   /** Real input: Q, then Down until `to` is selected, then E. */
   phoneTo(to: string): Snapshot;
-  /** Real input: turn (A/D) and walk (W) to an interactable until it is targeted, then press E. */
+  /** Real input: turn (A/D) and walk (W) to an interactable (around solid props) until it is targeted, then press E. */
   walkTo(objectId: string, maxFrames?: number): WalkResult;
   tuning: typeof T;
 }
@@ -89,8 +90,8 @@ export interface Runtime {
   drawCalls: () => number;
 }
 
-const TURN_TOLERANCE_DEG = 3;
-const WALK_KEYS = ['KeyW', 'KeyA', 'KeyD'];
+const STEER_KEY: Record<Steer, string> = { walk: 'KeyW', left: 'KeyA', right: 'KeyD' };
+const WALK_KEYS = Object.values(STEER_KEY);
 
 /** Puts the debug API on window.__game. */
 export function installDebugApi(rt: Runtime): void {
@@ -144,9 +145,14 @@ export function installDebugApi(rt: Runtime): void {
   };
 }
 
-/** Steers the player to an interactable with real key presses, then presses E. */
+/**
+ * Steers the player to an interactable with real key presses, then presses E.
+ * The route (src/player/path.ts) is planned once: straight at it when nothing is in the way,
+ * else around the solid props. After the last waypoint the player turns to face the object.
+ */
 function walkTo(rt: Runtime, objectId: string, maxFrames: number, tap: (code: string) => void): WalkResult {
   const g = rt.game;
+  let route: Spot[] | null = null;
   for (let frames = 0; frames < maxFrames; frames++) {
     if (g.state.target === objectId) {
       WALK_KEYS.forEach((k) => rt.input.release(k));
@@ -156,15 +162,18 @@ function walkTo(rt: Runtime, objectId: string, maxFrames: number, tap: (code: st
     const t = g.targets().find((x) => x.id === objectId);
     if (!t || g.state.phone.open) break;
     const p = g.state.player;
-    const wantYaw = (Math.atan2(-(t.x - p.x), -(t.z - p.z)) * 180) / Math.PI; // yaw 0 faces -Z
-    const turn = wrapDegrees(wantYaw - p.yawDeg);
-    const key = Math.abs(turn) > TURN_TOLERANCE_DEG ? (turn > 0 ? 'KeyA' : 'KeyD') : 'KeyW';
-    WALK_KEYS.forEach((k) => (k === key ? rt.input.press(k) : rt.input.release(k)));
+    route ??= findRoute(p, t, g.obstacles()) ?? []; // no route: head straight for it and let it fail
+    holdOnly(rt, STEER_KEY[steerAlong(p, route, t)]);
     g.update(); // simulate only: drawing hundreds of frames here queues GPU work that stalls screenshots
   }
   WALK_KEYS.forEach((k) => rt.input.release(k));
   rt.loop.stepFrames(0); // draw once
   return { ok: false, frames: maxFrames, state: snapshot(rt) };
+}
+
+/** Holds one of the walking keys and releases the others. */
+function holdOnly(rt: Runtime, key: string): void {
+  WALK_KEYS.forEach((k) => (k === key ? rt.input.press(k) : rt.input.release(k)));
 }
 
 /** What the CD music plays now, if the audio module reports it (Teammate B adds `nowPlaying()`). */

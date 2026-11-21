@@ -23,6 +23,20 @@ export const T = {
     noseColor: '#ff8a3d', // the nose shows facing
   },
 
+  // The player bumps into solid props (src/player/collide.ts). A prop does NOT block when
+  // its top is at most stepHeight (ground, cables), its bottom is at or above player.height
+  // (signs, roofs), or its footprint is narrower than minWidth on both sides (poles, stands).
+  collide: {
+    stepHeight: 0.1, // metres: props whose top is no higher than this are walked over
+    minWidth: 0.15, // metres: props thinner than this both ways (x and z) are ignored
+    passes: 4, // push-out passes per step, so corners between two props settle
+    skin: 1e-6, // metres: overlaps smaller than this count as just touching (float rounding)
+    pathCell: 0.1, // metres between grid spots when finding a way around props (src/player/path.ts)
+    reachMargin: 0.1, // metres: a path ends this far inside the interact range, so the target gets picked
+    aimToleranceDeg: 3, // following a path: turn until facing the next point within this, then walk
+    waypointReached: 0.1, // metres: this close to a path point, head for the next one
+  },
+
   camera: {
     fovDeg: 60,
     distance: 4.5, // behind the player

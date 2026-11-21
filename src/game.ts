@@ -8,6 +8,7 @@ import { createSceneManager, type SceneManager } from './core/scenes.ts';
 import type { Input } from './core/input.ts';
 import type { NewsDesk } from './news/desk.ts';
 import { closedPhone, phoneItems, stepPhone, TODAY, type PhoneCommand, type PhoneState } from './phone/state.ts';
+import { obstaclesOf, type Footprint } from './player/collide.ts';
 import { pickTarget, startPlayer, stepPlayer, type PlayerState, type Target } from './player/controller.ts';
 import { actionForObject, causesOf, changeCauses, doAction, fixedCds, presentState, propOverrides, reputationLevel, type Flags } from './story/timeline.ts';
 import type { LoadedCd, PastAction, PresentChange, StoryContent } from './story/types.ts';
@@ -48,6 +49,8 @@ export interface Game {
   travel(to: string): boolean;
   /** Interactables that can be used right now. */
   targets(): Target[];
+  /** Footprints of the solid props the player bumps into right now. */
+  obstacles(): Footprint[];
   /** The changes the "Because you..." card explains. */
   cardChanges(): PresentChange[];
   /** Past actions that caused the card's changes, earliest first. */
@@ -92,6 +95,12 @@ function targetsNow({ content, state }: Ctx): Target[] {
   return visibleProps(state.era, state.moment, shown, hidden)
     .filter((p) => p.interactable)
     .map((p) => ({ id: p.id, x: p.pos[0], z: p.pos[2] }));
+}
+
+/** Footprints of the solid props in the scene right now (same props the world draws). */
+function obstaclesNow({ content, state }: Ctx): Footprint[] {
+  const { shown, hidden } = propOverrides(content, state.flags);
+  return obstaclesOf(visibleProps(state.era, state.moment, shown, hidden));
 }
 
 /** Ids of interactables whose action is already done (no prompt, no marker, no highlight). */
@@ -199,7 +208,7 @@ function updatePlay(ctx: Ctx, input: Input): SceneName | null {
       back: input.isDown('back'),
       turnLeft: input.isDown('turnLeft'),
       turnRight: input.isDown('turnRight'),
-    }, DT);
+    }, DT, obstaclesNow(ctx));
     const pick = (): string | null => {
       const used = usedObjects(ctx.content, state.flags);
       return pickTarget(state.player, targetsNow(ctx).filter((t) => !used.has(t.id)));
@@ -260,6 +269,7 @@ export function createGame(content: StoryContent, input: Input, deps: { news?: N
     interact: (objectId) => interactWith(ctx, objectId),
     travel: (to) => travelTo(ctx, to),
     targets: () => targetsNow(ctx),
+    obstacles: () => obstaclesNow(ctx),
     cardChanges: () => cardChangesNow(ctx),
     causes: () => causesOf(content, cardChangesNow(ctx).flatMap((c) => changeCauses(c, state.flags)))
       .sort((a, b) => state.flags.indexOf(a.id) - state.flags.indexOf(b.id)), // in the order you did them
