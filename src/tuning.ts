@@ -11,7 +11,12 @@ export const T = {
 
   player: {
     speed: 3, // metres per second
+    accelSec: 0.2, // W/S eases in: from standing to full speed in this long...
+    decelSec: 0.15, // ...and eases out: from full speed to standing after you let go
     turnSpeedDeg: 150, // degrees per second (A/D)
+    turnAccelSec: 0.1, // A/D eases in: from still to full turning speed in this long...
+    turnDecelSec: 0.05, // ...and eases out when you let go
+    easeSnap: 1e-9, // a ramp this close to its end counts as there (float rounding), so ramps take exactly sec / dt steps
     startX: -9, // the start of the high street (T.areas): you walk in towards the shop...
     startZ: 3,
     startYawDeg: -90, // ...facing +X, along the street (0 = facing -Z, -90 = facing +X)
@@ -35,6 +40,7 @@ export const T = {
     reachMargin: 0.1, // metres: a path ends this far inside the interact range, so the target gets picked
     aimToleranceDeg: 3, // following a path: turn until facing the next point within this, then walk
     waypointReached: 0.1, // metres: this close to a path point, head for the next one
+    sightStopM: 0.4, // a route ends with nothing solid between you and the target, up to this far short of it (its own stand)
   },
 
   camera: {
@@ -73,6 +79,16 @@ export const T = {
       vignette: 0.45,
       pixelHeight: 180, // post filter: drawn about this many lines tall, scaled up with chunky pixels (the lead: 'a bit more pixelated')
       colorLevels: 24, // post filter: levels per channel, ordered (Bayer 4x4) dithering
+      // Ink outlines (post filter, src/world/post.ts). Widths are screen pixels on a 1080-line screen,
+      // rounded to whole scene pixels: 6 = one chunky pixel here, so the lines are as chunky as the rest.
+      outlinePx: 6, // 0 = no outlines
+      outlineColor: '#2a2d2f', // a darker blue-grey than today, so lines stay the darkest pixels at dusk (the grade warms it)
+      outlineDepth: 0.03, // ink the far side where the neighbours are this much nearer (fraction of the distance)
+      outlineColorEdge: 0.14, // ink the darker side where neighbour colours differ this much (0..1.7, 0 = off)
+      outlineCreaseDeg: 0, // no crease lines: at 180 lines they would be 2 chunky pixels thick (and too busy)
+      outlineCreaseTone: 0.03, // (when creases are on) their colour must change this much, so flat unlit markers stay clean
+      outlineBreakup: 0.6, // how much the lines fade in the noise's gaps (0 = solid lines)
+      outlineNoisePx: 72, // size of the noise patches that break the lines up
       badgeText: '#ffcf7a',
     },
     present: {
@@ -89,6 +105,15 @@ export const T = {
       vignette: 0.15,
       pixelHeight: 0, // post filter: full resolution (crisp)
       colorLevels: 0, // post filter: no dithering
+      // Ink outlines, like the reference game: about 2 px at 1080p, scaled with the screen.
+      outlinePx: 2, // 0 = no outlines
+      outlineColor: '#363a3c', // dark blue-grey ink, never pure black
+      outlineDepth: 0.03, // ink the far side where the neighbours are this much nearer (fraction of the distance)
+      outlineColorEdge: 0.14, // ink the darker side where neighbour colours differ this much (0..1.7, 0 = off)
+      outlineCreaseDeg: 40, // ink where a surface bends more than this (box edges); round props bend 22.5° per facet
+      outlineCreaseTone: 0.03, // ... and its colour changes at least this much (flat unlit markers get no inner lines)
+      outlineBreakup: 0.6, // how much the lines fade in the noise's gaps (0 = solid lines)
+      outlineNoisePx: 72, // size of the noise patches that break the lines up
       badgeText: '#bfe6ff',
     },
   },
@@ -117,6 +142,39 @@ export const T = {
     paper: '#f3ecd9', // newspaper panel: light paper, dark ink
     ink: '#1d1a14',
     offlineInk: '#8a1c1c', // "offline edition" label
+  },
+
+  // The CD player outside the shop today: the time machine (props in src/world/props/player.ts).
+  cdPlayer: {
+    insertSec: 0.8, // E at a CD: it goes into the player at once, you arrive in its 2004 moment this much later
+    crate: '#9c7a4f', // the wooden crate it stands on
+    crateSlat: '#6f5233', // darker slats on the crate's front
+    body: '#2b2e33', // the boombox
+    grille: '#121315', // its two speakers
+    trim: '#c3c8ce', // the silver CD lid and handle
+    display: '#7cf2c4', // a small lit display
+    cds: { mira: '#f06595', static: '#ff922b', kbit: '#51cf66' } as Record<string, string>, // one clear colour per CD
+    gold: '#ffcc33', // a fixed CD turns gold
+  },
+
+  // Life in the air (src/world/particles.ts): one cloud of soft round dots per scene, one draw call.
+  // Metres and seconds. fall: downwards per second (negative rises); drift: sideways (+X) per second;
+  // wobble: metres of sway at wobbleHz. Sparse on purpose: each scene's look (smoke `looks`) barely moves.
+  particles: {
+    seed: 1987, // the motes start in the same random spots every run
+    box: [18, 5, 16] as const, // metres (x, y, z) in front of the camera that the motes fill; they wrap at its edges
+    floorM: 0.1, // the box's bottom, just above the ground
+    aheadM: 6, // the box's centre sits this far in front of the camera
+    spritePx: 64, // the soft round dot is drawn on a canvas this big...
+    softCore: 0.35, // ...solid in the middle, fading out from this far (0..1) to its edge
+    paceMin: 0.5, // each mote moves at its own pace, from this...
+    paceRange: 1, // ...to this much more
+    kinds: {
+      dust: { count: 70, size: 0.05, color: '#ffe2a6', opacity: 0.6, fall: -0.02, drift: 0.06, wobble: 0.2, wobbleHz: 0.12 }, // warm 2004 light
+      snow: { count: 220, size: 0.08, color: '#ffffff', opacity: 0.85, fall: 0.8, drift: 0.15, wobble: 0.25, wobbleHz: 0.25 }, // December
+      pollen: { count: 30, size: 0.07, color: '#f6f0c2', opacity: 0.55, fall: 0.04, drift: 0.2, wobble: 0.35, wobbleHz: 0.08 }, // today
+    },
+    byScene: { open_mic: 'dust', street_gig: 'dust', ringtone: 'snow', present: 'pollen' } as Record<string, 'dust' | 'snow' | 'pollen'>,
   },
 
   pitch: {
@@ -372,16 +430,21 @@ export const T = {
 
   // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
   moments: {
-    open_mic: { // 14 March: evening, dusk light
+    // Each moment is in its own year, so each looks like the screens of its time (overrides on the 2004 era):
+    // 1988 is a worn VHS tape (fewer, chunkier pixels, few colours, heavy grain), 2002 the era's retro
+    // pixels, 2017 a phone photo (full resolution, light grain, a little extra colour).
+    open_mic: { // 13 December 2002, 21:30: battle night, winter evening light (the era's retro pixels)
       sky: '#7a5873', fogNear: 10, fogFar: 34, sunColor: '#ffb27a', sunIntensity: 1.5, ambient: 0.75,
       tint: [1.12, 0.94, 0.86],
     },
-    street_gig: { // 2 July: bright summer afternoon
-      sky: '#f2c36b', sunColor: '#fff2cc', sunIntensity: 3.1, ambient: 1.05, tint: [1.1, 1.0, 0.8], saturation: 0.9,
+    street_gig: { // 6 August 1988: bright summer afternoon on a worn VHS tape
+      sky: '#f2c36b', sunColor: '#fff2cc', sunIntensity: 3.1, ambient: 1.05, tint: [1.1, 1.0, 0.8], saturation: 0.82,
+      pixelHeight: 144, colorLevels: 12, grain: 0.09, vignette: 0.42,
     },
-    ringtone: { // 5 December: cold grey dusk (still warmer and grainier than today)
+    ringtone: { // 13 January 2017: cold grey dusk, like a phone photo (sharp, light grain; still warmer than today)
       sky: '#8791a6', fogNear: 9, fogFar: 32, sunColor: '#ffd9b0', sunIntensity: 1.4, ambient: 0.8,
-      tint: [1.04, 0.98, 0.92], saturation: 0.72,
+      tint: [1.02, 0.98, 0.96], saturation: 0.72, // colder, so it stays apart from open_mic with ink lines on (smoke: looks)
+      pixelHeight: 0, colorLevels: 0, grain: 0.015, outlinePx: 2, // sharp like today, so today's thin ink
     },
   },
 
@@ -510,10 +573,16 @@ export const T = {
       // Clips are cut on a measured beat (beatOffsetSec 0). bpm was MEASURED, not heard, and the
       // detector was unsure (see docs/notes/teammate-b.md), so the code beat is off (beat: 0)
       // until someone confirms by ear that it plays in time; then set beat: 1.
+      // `file` is the Creative Commons stand-in (in git, deployed). `real` is used only when your own copy
+      // of the real song is in src/audio/local-songs/<cd>.mp3 (git-ignored, see src/audio/songs.ts): the
+      // part played (startSec, lengthSec: whole bars at bpm) and its tempo. Set them by ear.
       cds: {
-        mira: { file: 'music/mira.mp3', gain: 0.9, bpm: 68, beatOffsetSec: 0, beat: 0, past: { silentUntil: 'mira_play_cd' } },
-        static: { file: 'music/static.mp3', gain: 0.8, bpm: 104.5, beatOffsetSec: 0, beat: 0, past: { brokenUntil: 'static_plug_amp', liveAfter: 'static_give_mic' } },
-        kbit: { file: 'music/kbit.mp3', gain: 0.8, bpm: 163.5, beatOffsetSec: 0, beat: 0, past: { leakUntil: 'kbit_beam_track' } },
+        mira: { file: 'music/mira.mp3', gain: 0.9, bpm: 68, beatOffsetSec: 0, beat: 0, past: { silentUntil: 'mira_play_cd' },
+          real: { song: "Lose Yourself (Eminem)", startSec: 0, lengthSec: 39.3, bpm: 171 } }, // 28 bars: the "one shot" intro
+        static: { file: 'music/static.mp3', gain: 0.8, bpm: 104.5, beatOffsetSec: 0, beat: 0, past: { brokenUntil: 'static_plug_amp', liveAfter: 'static_give_mic' },
+          real: { song: "Sweet Child O' Mine (Guns N' Roses)", startSec: 0, lengthSec: 40.32, bpm: 125 } }, // 21 bars: the riff
+        kbit: { file: 'music/kbit.mp3', gain: 0.8, bpm: 163.5, beatOffsetSec: 0, beat: 0, past: { leakUntil: 'kbit_beam_track' },
+          real: { song: 'Despacito (Luis Fonsi ft. Daddy Yankee)', startSec: 0, lengthSec: 40.45, bpm: 89 } }, // 15 bars: the intro
       },
     },
   },
@@ -532,7 +601,7 @@ export const T = {
     people: ['#5a6fa8', '#a8605a', '#6a9a62', '#9a7ab8', '#c9a227'],
   },
 
-  // --- Teammate B: DJ K-Bit's moment, "5 December 2004" (where props stand: src/world/props/kbit.ts) ---
+  // --- Teammate B: DJ K-Bit's moment, "13 January 2017" (where props stand: src/world/props/kbit.ts) ---
   kbit: {
     shelterGlass: '#7f9fb0',
     shelterFrame: '#3b4048',

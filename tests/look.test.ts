@@ -13,11 +13,12 @@ describe('scene looks', () => {
     expect(new Set(skies).size).toBe(moments.length);
   });
 
-  it('every moment keeps 2004\'s grain, vignette and warm grade (red above blue)', () => {
+  it('every past moment is grainier, more vignetted and warmer than today (red above blue)', () => {
+    const today = lookFor('present', null);
     for (const m of moments) {
       const look = lookFor('2004', m);
-      expect(look.grain, m).toBe(T.eras['2004'].grain);
-      expect(look.vignette, m).toBe(T.eras['2004'].vignette);
+      expect(look.grain, m).toBeGreaterThan(today.grain);
+      expect(look.vignette, m).toBeGreaterThan(today.vignette);
       expect(look.tint[0], m).toBeGreaterThan(look.tint[2]);
     }
   });
@@ -27,12 +28,19 @@ describe('scene looks', () => {
     expect(lookFor('2004', 'nowhere')).toEqual(lookFor('2004', null));
   });
 
-  it('every 2004 scene has chunky pixels and dithering; today stays crisp', () => {
-    for (const m of [null, ...moments]) {
-      const look = lookFor('2004', m);
-      expect(look.pixelHeight, String(m)).toBeGreaterThan(0);
-      expect(look.colorLevels, String(m)).toBeGreaterThan(1);
+  it('each moment looks like its year: 1988 chunkier than 2002, 2017 sharp; today stays crisp', () => {
+    const vhs = lookFor('2004', 'street_gig'); // 1988
+    const retro = lookFor('2004', 'open_mic'); // 2002
+    const phone = lookFor('2004', 'ringtone'); // 2017
+    for (const look of [vhs, retro, lookFor('2004', null)]) {
+      expect(look.pixelHeight).toBeGreaterThan(0);
+      expect(look.colorLevels).toBeGreaterThan(1);
     }
+    expect(vhs.pixelHeight).toBeLessThan(retro.pixelHeight);
+    expect(vhs.colorLevels).toBeLessThan(retro.colorLevels);
+    expect(vhs.grain).toBeGreaterThan(retro.grain);
+    expect(phone.pixelHeight).toBe(0);
+    expect(phone.colorLevels).toBe(0);
     expect(lookFor('present', null).pixelHeight).toBe(0);
     expect(lookFor('present', null).colorLevels).toBe(0);
   });

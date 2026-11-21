@@ -24,6 +24,28 @@ export function lineClear(a: Spot, b: Spot, obstacles: readonly Footprint[]): bo
   return true;
 }
 
+/**
+ * True when nothing solid stands between a spot and a target, up to T.collide.sightStopM short of the
+ * target (its own stand or crate). A route ends where the target is in sight, so the player faces it
+ * and not another interactable in front of it (e.g. the next CD along a row).
+ */
+function inSight(s: Spot, target: Spot, obstacles: readonly Footprint[]): boolean {
+  const d = Math.hypot(target.x - s.x, target.z - s.z) - T.collide.sightStopM;
+  const steps = Math.ceil(Math.max(0, d) / (T.collide.pathCell / 2));
+  for (let i = 1; i <= steps; i++) {
+    const k = (i / steps) * (d / (d + T.collide.sightStopM));
+    const p = { x: s.x + (target.x - s.x) * k, z: s.z + (target.z - s.z) * k };
+    if (obstacles.some((f) => covers(f, p))) return false;
+  }
+  return true;
+}
+
+/** True when a point lies inside a footprint (no player radius). */
+function covers(f: Footprint, p: Spot): boolean {
+  if (f.shape === 'circle') return Math.hypot(p.x - f.x, p.z - f.z) <= f.r;
+  return Math.abs(p.x - f.x) <= f.halfW && Math.abs(p.z - f.z) <= f.halfD;
+}
+
 /** True when a footprint, grown by the player's radius, reaches into the box x0..x1, z0..z1 (only those can block in it). */
 function reachesBox(f: Footprint, x0: number, x1: number, z0: number, z1: number): boolean {
   const [halfW, halfD] = f.shape === 'circle' ? [f.r, f.r] : [f.halfW, f.halfD];
@@ -53,9 +75,9 @@ export function inReach(s: Spot, target: Spot): boolean {
  * Empty when `from` is already in reach; null when no free spot in reach can be walked to.
  */
 export function findRoute(from: Spot, target: Spot, obstacles: readonly Footprint[]): Spot[] | null {
-  if (inReach(from, target)) return [];
+  if (inReach(from, target) && inSight(from, target, obstacles)) return [];
   const direct = reachPointOnLine(from, target);
-  if (lineClear(from, direct, obstacles)) return [direct]; // nothing in the way: straight at it
+  if (lineClear(from, direct, obstacles) && inSight(direct, target, obstacles)) return [direct]; // nothing in the way: straight at it
   const cells = searchGrid(from, target, obstacles);
   return cells && straighten(from, cells, obstacles);
 }
@@ -114,7 +136,8 @@ function neighbours(g: Grid, i: number, isFree: (j: number) => boolean): number[
   return out;
 }
 
-/** Breadth-first search from the grid spot nearest `from` to the nearest free spot in reach. Spots, start excluded. */
+/** Breadth-first search from the grid spot nearest `from` to the nearest free spot in reach with the target in
+ *  sight (else the nearest free spot in reach). Spots, start excluded. */
 function searchGrid(from: Spot, target: Spot, obstacles: readonly Footprint[]): Spot[] | null {
   const g = makeGrid();
   const near = stripsOf(obstacles);
@@ -128,16 +151,20 @@ function searchGrid(from: Spot, target: Spot, obstacles: readonly Footprint[]): 
   const parent = new Int32Array(g.cols * g.rows).fill(-1);
   parent[start] = start;
   const queue = [start];
+  let fallback = -1; // the nearest free spot in reach, in case the target is in sight from none
   for (let head = 0; head < queue.length; head++) {
     const i = queue[head] ?? start;
-    if (isFree(i) && inReach(spotOf(g, i), target)) return pathBack(parent, start, i).map((j) => spotOf(g, j));
+    if (isFree(i) && inReach(spotOf(g, i), target)) {
+      if (inSight(spotOf(g, i), target, obstacles)) return pathBack(parent, start, i).map((j) => spotOf(g, j));
+      if (fallback < 0) fallback = i;
+    }
     for (const j of neighbours(g, i, isFree)) {
       if (parent[j] !== -1 || !isFree(j)) continue;
       parent[j] = i;
       queue.push(j);
     }
   }
-  return null;
+  return fallback < 0 ? null : pathBack(parent, start, fallback).map((j) => spotOf(g, j));
 }
 
 /** Indices from just after `start` to `end`, following parents back (just [end] if end is the start). */
