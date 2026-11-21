@@ -5,7 +5,7 @@
 //   present -> cool tint, clean, light vignette
 
 import * as THREE from 'three';
-import { T, type Era } from '../tuning.ts';
+import type { Look } from './look.ts';
 
 const vertexShader = /* glsl */ `
   varying vec2 vUv;
@@ -42,7 +42,8 @@ const fragmentShader = /* glsl */ `
 `;
 
 export interface PostFilter {
-  setEra(era: Era): void;
+  /** Sets the colour grade, grain and vignette (see look.ts). */
+  setLook(look: Look): void;
   setSize(width: number, height: number): void;
   /** Draws `scene` through the filter onto the screen. */
   render(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera, frame: number): void;
@@ -74,8 +75,7 @@ export function createPostFilter(width: number, height: number): PostFilter {
   const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
   return {
-    setEra: (era) => {
-      const look = T.eras[era];
+    setLook: (look) => {
       const u = material.uniforms;
       (u.tint?.value as THREE.Vector3).fromArray(look.tint);
       if (u.saturation) u.saturation.value = look.saturation;

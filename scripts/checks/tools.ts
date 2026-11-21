@@ -81,6 +81,27 @@ export async function screenshot(page: Page, name: string): Promise<void> {
   await page.screenshot({ path: `artifacts/${name}.png` });
 }
 
+/** Mean colour [r, g, b] (0-255) of the 3D scene in the middle of the screen, away from the HUD panels. */
+export async function sceneMean(page: Page): Promise<[number, number, number]> {
+  const png = await page.screenshot({ clip: { x: 320, y: 100, width: 640, height: 400 }, animations: 'disabled' });
+  return page.evaluate(async (b64) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = img.width;
+    c.height = img.height;
+    const g = c.getContext('2d');
+    if (!g) throw new Error('2D canvas unavailable for sceneMean');
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height).data;
+    const sum = [0, 0, 0];
+    for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) sum[k] = (sum[k] ?? 0) + (d[i + k] ?? 0);
+    const n = d.length / 4;
+    return sum.map((v) => Math.round(v / n)) as [number, number, number];
+  }, png.toString('base64'));
+}
+
 /** Measures text contrast of an element from a screenshot of the rendered page. Fails below the minimum. */
 export async function measureContrast(page: Page, selector: string, name: string): Promise<void> {
   const box = await page.locator(selector).boundingBox();
