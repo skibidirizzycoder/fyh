@@ -12,7 +12,7 @@ import { PROPS_MIRA } from './props/mira.ts';
 import { PROPS_PLAYER } from './props/player.ts';
 import { PROPS_STATIC } from './props/static.ts';
 import { PROPS_TODAY } from './props/today.ts';
-import { CAR, HALL_SIGN, PUB_SIGN, SCOOTER, STREET_DETAIL } from './street.ts';
+import { CAR, HALL_SIGN, PUB_SIGN, SCOOTER, STREET_DETAIL, YEAR_DRESSING } from './street.ts';
 
 export type Shape = 'box' | 'cylinder' | 'person';
 
@@ -96,6 +96,7 @@ const STREET: readonly Prop[] = [
 
   // --- the details: shop front, neighbours, kerb and road, car parts, the square, the bus stop... (street.ts) ---
   ...STREET_DETAIL,
+  ...YEAR_DRESSING, // each year's own things (street.ts)
 ];
 
 /** Every prop in the game. */
