@@ -21,12 +21,16 @@ const backX = SHELTER_X - SHELTER_DEPTH / 2 + 0.05;
 const frontX = SHELTER_X + SHELTER_DEPTH / 2 - 0.05;
 const shelterTop = standOn(0, SHELTER_H) + SHELTER_H / 2;
 
-// --- the queue: four people under the roof; their flip phones come out when yours rings ---
+// --- the queue: four people under the roof, heads down, scrolling. When yours rings, their phones go UP
+// (held over their heads, screens Shazam-blue): a swap, so the two never share a spot. ---
 const PERSON_D = 0.45;
 const PERSON_H = 1.6;
 const QUEUE_Z = [-1.2, -0.6, 0, 0.6];
 const PHONE = [0.08, 0.14, 0.04] as const;
 const phoneX = SHELTER_X + PERSON_D / 2 + GAP + PHONE[0] / 2;
+const RAISED = [0.12, 0.22, 0.06] as const; // a phone held up to Shazam, a little bigger so it reads
+const raisedX = SHELTER_X + PERSON_D / 2 + GAP + RAISED[0] / 2;
+const RAISED_Y = 1.85; // above their heads (1.6), under the roof
 
 // --- the bus stop sign on a pole, at the front corner of the shelter ---
 const SIGN_X = -4.6;
@@ -70,7 +74,8 @@ const streetLife: Prop[] = [
 
 const queue: Prop[] = QUEUE_Z.flatMap((z, i): Prop[] => [
   { id: `kbit_person_${i + 1}`, shape: 'cylinder', eras: PAST, moments: M, pos: [SHELTER_X, standOn(0, PERSON_H), z], size: [PERSON_D, PERSON_H, PERSON_D], color: K.people[i % K.people.length] ?? K.kbitBody },
-  { id: `kbit_queue_phone_${i + 1}`, shape: 'box', eras: PAST, moments: M, pos: [phoneX, 1.4, z], size: PHONE, color: K.flipPhone, startsHidden: true },
+  { id: `kbit_queue_phone_${i + 1}`, shape: 'box', eras: PAST, moments: M, pos: [phoneX, 1.4, z], size: PHONE, color: K.queuePhone },
+  { id: `kbit_shazam_${i + 1}`, shape: 'box', eras: PAST, moments: M, pos: [raisedX, RAISED_Y, z], size: RAISED, color: K.shazam, startsHidden: true },
 ]);
 
 export const KBIT_PROPS: readonly Prop[] = [

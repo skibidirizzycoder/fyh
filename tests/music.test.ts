@@ -24,9 +24,10 @@ describe('music rules in 2004', () => {
     expect(pastMode('static', ['static_plug_amp', 'static_give_mic'])).toBe('2004-live');
   });
 
-  it('K-Bit\'s track leaks from his headphones until you beam it (then the ringtone takes over)', () => {
+  it('K-Bit\'s track leaks from his headphones, goes quiet for your ringtone, then plays from every phone', () => {
     expect(pastMode('kbit', [])).toBe('2004-leak');
-    expect(pastMode('kbit', ['kbit_beam_track'])).toBeNull();
+    expect(pastMode('kbit', ['kbit_beam_track'])).toBeNull(); // AirDropped: your ringtone is next
+    expect(pastMode('kbit', ['kbit_beam_track', 'kbit_ring_bus_stop'])).toBe('2004-live'); // the queue plays it
   });
 
   it('plays the song of the moment you are in', () => {

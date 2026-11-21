@@ -38,9 +38,9 @@ export function pastMode(cd: string, done: readonly string[]): MusicMode | null 
   if (!rule) return null;
   const has = (id: string | undefined): boolean => id !== undefined && done.includes(id);
   if (rule.silentUntil && !has(rule.silentUntil)) return null;
+  if (rule.liveAfter && has(rule.liveAfter)) return '2004-live'; // the payoff: it opens up / plays from every phone
   if (rule.leakUntil) return has(rule.leakUntil) ? null : '2004-leak';
   if (rule.brokenUntil && !has(rule.brokenUntil)) return '2004-broken';
-  if (rule.liveAfter && has(rule.liveAfter)) return '2004-live';
   return '2004';
 }
 

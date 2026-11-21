@@ -16,6 +16,8 @@ export interface MusicPlayer {
   addSong(cd: string, buffer: AudioBuffer): void;
   /** Turns the music down for `sec` seconds, so a sound effect can be heard. */
   duck(sec: number): void;
+  /** Silences the music until `sec` from now, then snaps it in (the remaster sting: no fade). */
+  hold(sec: number): void;
   stop(): void;
 }
 
@@ -177,6 +179,15 @@ export function createMusicPlayer(ctx: BaseAudioContext, out: AudioNode): MusicP
       g.linearRampToValueAtTime(M.duckGain, now + M.duckAttackSec);
       g.setValueAtTime(M.duckGain, now + M.duckAttackSec + sec);
       g.linearRampToValueAtTime(1, now + M.duckAttackSec + sec + M.duckReleaseSec);
+    },
+    hold(sec) {
+      const now = ctx.currentTime;
+      const g = ducker.gain;
+      g.cancelScheduledValues(now);
+      g.setValueAtTime(g.value, now);
+      g.linearRampToValueAtTime(0, now + M.crispSec);
+      g.setValueAtTime(0, now + sec);
+      g.linearRampToValueAtTime(1, now + sec + M.crispSec);
     },
     stop() {
       if (voice) voice.sources.forEach((s) => s.stop());

@@ -502,7 +502,7 @@ export const T = {
     master: 0.5, // overall volume
     muteKey: 'KeyM',
     ringtoneActions: ['kbit_ring_bus_stop'], // finishing these actions plays the ringtone instead of the chime
-    beamActions: ['kbit_beam_track'], // ...and these play the infrared beam
+    beamActions: ['kbit_beam_track'], // ...and these play K-Bit's AirDrop
     attackSec: 0.005, // every note fades in this fast (no clicks)
     releaseSec: 0.05, // ...and fades out this fast
     beep: { note: 88, sec: 0.06, gain: 0.18, wave: 'square' }, // keypad (phone-move)
@@ -539,8 +539,17 @@ export const T = {
     },
     chime: { notes: [76, 81, 88], gapSec: 0.08, sec: 0.5, gain: 0.2, wave: 'sine' }, // action-done
     nope: { notes: [50, 46], gapSec: 0.12, sec: 0.14, gain: 0.2, wave: 'square' }, // action-locked
-    fanfare: { notes: [67, 72, 76, 79, 84], gapSec: 0.1, sec: 0.35, gain: 0.18, wave: 'square', delaySec: 0.7 }, // reputation; waits for the travel whoosh
-    beam: { notes: [86, 93], chirps: 30, chirpSec: 0.035, gain: 0.12, wave: 'square', doneNotes: [84, 96], doneGapSec: 0.09, doneSec: 0.08, doneGain: 0.18 }, // infrared handshake, then "got it"
+    // The "remaster" sting (reputation: back today after a fix): the tape rewinds (a warbling squeal rising,
+    // tape hiss), the play key clunks, and the remix comes in crisp. The music holds silent until the clunk.
+    remaster: {
+      delaySec: 0.45, // starts while the travel whoosh fades
+      rewindSec: 0.8, fromNote: 52, toNote: 90, steps: 10, warble: 0.7, gain: 0.06, // squeal: up in wobbly steps
+      hiss: { gain: 0.16, fromHz: 900, toHz: 6500, q: 0.8 },
+      clunk: { sec: 0.07, note: 38, gain: 0.28, noiseHz: 1500, toHz: 450, noiseGain: 0.32 }, // the play key
+    },
+    // K-Bit's AirDrop (2017): a quick upward swoosh as it flies over, then a bright two-note "received" ping.
+    // Our own sound (not Apple's). The cue keeps its old id, 'beam'.
+    beam: { swooshSec: 0.35, swooshGain: 0.35, swooshFromHz: 600, swooshToHz: 5000, swooshQ: 3, pingAt: 0.4, pingNotes: [88, 95], pingGapSec: 0.11, pingSec: 0.32, pingGain: 0.16, wave: 'sine' },
     ambience: {
       fadeSec: 1.2, // crossfade when you travel
       loopSec: 2, // length of the looping noise buffers
@@ -586,10 +595,10 @@ export const T = {
         babble: { gain: 0.035, voices: 4, syllableHz: 5, lowHz: 300, highHz: 1300 },
         iceCream: { gain: 0.04, notes: [79, 84, 83, 79, 76, 77, 79, 72], noteSec: 0.2, startSec: 2, vibratoHz: 6, vibrato: 0.004 }, // an ORIGINAL jingle
       },
-      ringtone: { // cold December dusk: wind, traffic, and a bus pulling in when you arrive
+      ringtone: { // cold January dusk (2017): wind and traffic; the bus pulls in at the payoff (and nobody gets on)
         wind: { gain: 0.1, minHz: 300, maxHz: 1200, gustHz: 0.13, q: 3 },
         traffic: { gain: 0.05, carsPerSec: 0.3, lowpassHz: 300, passSec: 3 },
-        bus: { gain: 0.16, delaySec: 1.2, sec: 3.2, engineHz: 42, hissSec: 0.7, hissGain: 0.35 },
+        bus: { gain: 0.16, sec: 3.2, engineHz: 42, hissSec: 0.7, hissGain: 0.35 },
       },
       present: { // today: quieter, smoother modern traffic
         traffic: { gain: 0.04, carsPerSec: 0.25, lowpassHz: 500, passSec: 3.5 },
@@ -605,6 +614,7 @@ export const T = {
       duckGain: 0.3, // music volume while a whoosh, chime or ringtone plays
       duckCues: ['whoosh', 'chime', 'ringtone', 'beam', 'cd-insert'],
       duckAttackSec: 0.05,
+      crispSec: 0.03, // after the remaster sting the remix snaps in this fast (no fade)
       duckReleaseSec: 0.5,
       past: { lowpassHz: 2500, gain: 0.7 }, // "2004 style": muffled, mono
       broken: { cutHz: 0.6 }, // the dying amp: the song cuts in and out this many times a second
@@ -623,7 +633,7 @@ export const T = {
           real: { song: "Lose Yourself (Eminem)", startSec: 0, lengthSec: 39.3, bpm: 171 } }, // 28 bars: the "one shot" intro
         static: { file: 'music/static.mp3', gain: 0.8, bpm: 104.5, beatOffsetSec: 0, beat: 0, past: { brokenUntil: 'static_plug_amp', liveAfter: 'static_give_mic' },
           real: { song: "Sweet Child O' Mine (Guns N' Roses)", startSec: 0, lengthSec: 40.32, bpm: 125 } }, // 21 bars: the riff
-        kbit: { file: 'music/kbit.mp3', gain: 0.8, bpm: 163.5, beatOffsetSec: 0, beat: 0, past: { leakUntil: 'kbit_beam_track' },
+        kbit: { file: 'music/kbit.mp3', gain: 0.8, bpm: 163.5, beatOffsetSec: 0, beat: 0, past: { leakUntil: 'kbit_beam_track', liveAfter: 'kbit_ring_bus_stop' },
           real: { song: 'Despacito (Luis Fonsi ft. Daddy Yankee)', startSec: 0, lengthSec: 40.45, bpm: 89 } }, // 15 bars: the intro
       },
     },
@@ -653,7 +663,8 @@ export const T = {
     signBand: '#f4f4f0', // the "BUS" band on the sign
     timetable: '#f2e6b8', // paper timetable on the pole
     people: ['#5a6fa8', '#a8605a', '#6a9a62', '#9a7ab8'], // the queue, one coat colour each
-    flipPhone: '#c0c6cc', // everyone in the queue has one
+    queuePhone: '#2a2e35', // 2017: everyone in the queue is looking down at a dark phone
+    shazam: '#1f8fff', // ...until yours rings: phones held up, screens bright blue
     kbitBody: '#1e1e28',
     headphones: '#39ff88', // neon, very 2004
     kbitPhone: '#ffd23f', // K-Bit's phone: interactable
@@ -666,11 +677,12 @@ export const T = {
     dog: '#b07a45',
     dogHead: '#8f5f33',
     // The demo's payoff: shared timings (Teammate A's phone screen and bubbles read these too).
-    beamSec: 1.25, // the infrared transfer: the beam sound lasts this long (an IrDA progress bar can match it)
+    beamSec: 0.83, // the AirDrop: its sound lasts this long (an AirDrop sheet on the phone can match it)
+    busAtSec: 2.6, // after K-Bit rings you, the bus pulls in (its hiss lands as the queue's ringtones end)
     spread: {
       // After your phone rings, the queue catches it: each phone joins one ringtone beat after the last.
       gapSec: 0.43, // = one beat of the ringtone (140 bpm); phone i starts at (i + 1) * gapSec
-      phones: ['kbit_queue_phone_1', 'kbit_queue_phone_2', 'kbit_queue_phone_3', 'kbit_queue_phone_4'],
+      phones: ['kbit_shazam_1', 'kbit_shazam_2', 'kbit_shazam_3', 'kbit_shazam_4'], // the raised phones, in queue order
       octaves: [1, 0, -1, 1], // each phone plays it an octave up/down: a cheap tinny speaker, a bassy one...
       waves: ['triangle', 'sawtooth', 'square', 'triangle'],
       pans: [-0.6, -0.2, 0.25, 0.65], // spread across the queue, left to right
