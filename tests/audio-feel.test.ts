@@ -1,7 +1,7 @@
 // audio-feel.test.ts — footsteps, paper, camera whoosh, blip voices, and the key click on the phone.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createAudio } from '../src/audio/audio.ts';
-import { buildCue, cueLength } from '../src/audio/cues.ts';
+import { buildCue, cueLength, noiseOffset } from '../src/audio/cues.ts';
 import { footstepCue, paperCue, SPEAKERS, speakerFor, syllables, voiceCue, zoomCue } from '../src/audio/feel.ts';
 import type { FeelEvents } from '../src/audio/feel-player.ts';
 import { createEvents } from '../src/core/events.ts';
@@ -21,40 +21,32 @@ function setup() {
 afterEach(() => vi.useRealTimers());
 
 describe('footsteps', () => {
-  it('cycle through a few variants, each a little off-pitch', () => {
+  it('cycle through a few variants, each a little off-pitch and shorter than a stride', () => {
     const steps = Array.from({ length: F.step.variants }, (_, i) => footstepCue(i));
     expect(new Set(steps.map((c) => c.noises[0]?.fromHz)).size).toBe(F.step.variants);
     expect(footstepCue(F.step.variants)).toEqual(steps[0]);
     for (const c of steps) {
       expect(Math.abs((c.noises[0]?.fromHz ?? 0) / F.step.fromHz - 1)).toBeLessThanOrEqual(F.step.pitchJitter);
-      expect(cueLength(c)).toBeLessThan(F.step.stepSec);
+      expect(cueLength(c)).toBeLessThan(F.step.strideM / T.player.speed); // steps never overlap at full speed
     }
   });
 
-  it('play while walking, one every stepSec, and stop when you stop', () => {
+  it('one step per footstep event, and none without (no timers: pausing can never leave feet running)', () => {
     vi.useFakeTimers();
     const { audio, send } = setup();
-    send('walk', { moving: true });
-    vi.advanceTimersByTime(F.step.stepSec * 1000 * 3 + 1);
-    send('walk', { moving: true }); // still walking: no second rhythm
-    expect(audio.feel().filter((n) => n === 'step')).toHaveLength(4);
-    send('walk', { moving: false });
-    vi.advanceTimersByTime(5000);
-    expect(audio.feel()).toHaveLength(4);
+    for (let i = 0; i < 3; i++) send('footstep', {});
+    expect(audio.feel()).toEqual(['step', 'step', 'step']);
+    vi.advanceTimersByTime(60_000);
+    expect(audio.feel()).toHaveLength(3);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('never become the lastCue (the story sounds stay checkable)', () => {
-    vi.useFakeTimers();
     const { audio, events, send } = setup();
     events.emit('action-done', { actionId: 'kbit_ring_bus_stop', cd: 'kbit' });
-    send('walk', { moving: true });
-    vi.advanceTimersByTime(2000);
+    send('footstep', {});
+    send('footstep', {});
     expect(audio.lastCue()).toBe('ringtone');
-    events.emit('travel', { to: 'present', era: 'present', moment: null }); // travelling stops the feet
-    const n = audio.feel().length;
-    vi.advanceTimersByTime(2000);
-    expect(audio.feel()).toHaveLength(n);
-    audio.dispose();
   });
 });
 
@@ -107,6 +99,10 @@ describe('paper, camera and keys', () => {
     send('panel', { name: 'news', open: true });
     expect(audio.feel()).toEqual(['paper', 'paper']);
     expect(paperCue().noises).toHaveLength(F.paper.rustles);
+    for (let i = 0; i < 60; i++) send('footstep', {}); // fills the history...
+    send('panel', { name: 'card', open: true });
+    send('panel', { name: 'card', open: true });
+    expect(paperCue(2)).not.toEqual(paperCue(3)); // ...but every rustle still has its own seed
   });
 
   it('the camera whoosh rises going in and falls coming out', () => {
@@ -143,5 +139,18 @@ describe('robustness', () => {
     events.emit('travel', { to: 'x', era: '2004', moment: 'constructor' });
     expect(() => send('dialogue', { line: 'hello there', speaker: 'toString' })).not.toThrow();
     expect(audio.feel()).toEqual(['voice:owner']);
+    expect(audio.failed()).toBe(false);
+  });
+});
+
+describe('noise bursts', () => {
+  it('each footstep variant and paper rustle starts at its own point in the noise', () => {
+    const bursts = [...Array.from({ length: F.step.variants }, (_, i) => footstepCue(i).noises[0]), ...paperCue().noises];
+    const offsets = bursts.map((b) => (b ? noiseOffset(b, T.audio.ambience.loopSec) : -1));
+    expect(new Set(offsets.map((o) => o.toFixed(3))).size).toBe(offsets.length);
+    for (const [i, o] of offsets.entries()) {
+      expect(o).toBeGreaterThanOrEqual(0);
+      expect(o + (bursts[i]?.sec ?? 0)).toBeLessThanOrEqual(T.audio.ambience.loopSec);
+    }
   });
 });

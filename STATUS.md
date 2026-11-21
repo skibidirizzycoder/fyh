@@ -72,11 +72,23 @@ Ranked by look per hour. **Not started: the lead picks which to build.**
    "offline" would be quiet).
 3. **E does nothing, silently,** with nothing in front of you or at an object you already used. So
    `notHereLine` and `alreadyDoneLine` can never show when playing (only via the debug API).
-4. **Phone-size screen (390×844):** the open phone covers the dialogue, and the newspaper covers the card
-   Low priority: the game needs a keyboard anyway.
+4. ~~**Phone-size screen (390×844):** the open phone covers the dialogue, and the newspaper covers the card
+   Low priority: the game needs a keyboard anyway.~~ **Fixed (Teammate A):** narrow windows stack the card and paper under the era and folded phone, and the open phone hangs from the top-right; smoke checks it at 390×844 (`narrow-today.png`, `narrow-phone.png`).
 5. **(Teammate B, needs an event)** After the ending, "Press Enter to play again" goes to the title, which
    still plays the last game's music until Enter. Music resets on `game-start`; a `title` event would let it
    stop on the title.
+From the code review of 15:45 (`/code-review`; 1–3 verified in the test build by the reviewer):
+6. **(Teammate A, static.ts)** After the fix, The Static's moment draws **70** calls (max 60): the bigger crowd,
+   set list and tip jar are 35 separate meshes. `checks/static.ts` doesn't check draw calls.
+7. **(Teammate A, static.ts)** The crowd appearing can **trap the player**: stand at (-1.2, -0.75) facing the
+   mic, press E → pushed to (-1.35, -0.49) between the bench and `static_crowd_1`; W/S for 240 frames don't move.
+   Also near (2.68, -1.34) and (2.90, -0.61).
+8. **(Teammate A, phone/view.ts)** Travelling, the phone stays drawn 1.5 s (connecting + static + flip) after
+   `phone.open` is false, so arriving today it covers the bottom of the "Because you..." card; during that time
+   Q re-opens it and W walks. Travel is guessed from `state.here` changing (misses re-picking the same moment).
+9. **(Claude, game.ts)** `phone-close` is emitted on select, so `flip-close` sounds 1.25 s before the lid shuts.
+10. **(Teammate A)** The folded phone overlaps `#dialogue` on windows under ~747 px wide; `phone-connecting.png`
+    depends on real time (stale screenshot on a slow run); two Intl formatters built every frame; "Sept" vs "Sep".
 Worked: Space/Enter start, Q/E ignored on the title, the phone list wraps, no walking with the phone open,
 walls stop you, second steps first give the right "not yet" line, mute survives travel, reputation 1→2→3
 with the right card and paper, the ending after 3 s, play again resets flags, CDs and the shop.

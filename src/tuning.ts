@@ -69,8 +69,10 @@ export const T = {
       ambient: 0.9,
       tint: [1.1, 0.97, 0.8], // post filter: warm
       saturation: 0.8,
-      grain: 0.09, // post filter: grainy
+      grain: 0.04, // post filter: grainy (in display colour, one grain per chunky pixel)
       vignette: 0.45,
+      pixelHeight: 180, // post filter: drawn about this many lines tall, scaled up with chunky pixels (the lead: 'a bit more pixelated')
+      colorLevels: 24, // post filter: levels per channel, ordered (Bayer 4x4) dithering
       badgeText: '#ffcf7a',
     },
     present: {
@@ -85,6 +87,8 @@ export const T = {
       saturation: 1.05,
       grain: 0, // post filter: clean
       vignette: 0.15,
+      pixelHeight: 0, // post filter: full resolution (crisp)
+      colorLevels: 0, // post filter: no dithering
       badgeText: '#bfe6ff',
     },
   },
@@ -128,7 +132,7 @@ export const T = {
     connectSec: 0.9, // after choosing a moment: "Connecting..." with the signal bars filling...
     staticSec: 0.35, // ...then a burst of static, then the phone flips shut
     blinkSec: 0.8, // one on/off cycle of the selected row's cursor
-    momentTimes: { open_mic: '19:30', street_gig: '15:10', ringtone: '16:45' } as Record<string, string>, // outer screen clock in 2004
+    momentTimes: { open_mic: '21:30', street_gig: '15:10', ringtone: '17:45' } as Record<string, string>, // outer screen clock in each past moment
     foldedWidthPx: 96, // the closed phone
     foldedBottomPx: 64, // the closed phone sits lower than the open one, clear of a host's corner badge (Netlify's is ~50 px tall)
     outerScreen: '#0d1b2a', // the closed phone's small outer screen...
@@ -151,7 +155,7 @@ export const T = {
     endKey: '#c92a2a',
   },
   static: {
-    // The Static's street gig, 2 July 2004 (props in src/world/props/static.ts).
+    // The Static's street gig, 6 August 1988 (props in src/world/props/static.ts).
     stage: '#3b3f47', // low wooden-pallet stage, painted black-ish
     amp: '#1c1c1f',
     ampDead: '#e03131', // the amp's light while it keeps cutting out...
@@ -175,7 +179,7 @@ export const T = {
     banknote: '#69db7c', // a fiver poking out of the tip jar
   },
   mira: {
-    // Mira's open mic, 14 March 2004 (props in src/world/props/mira.ts).
+    // Mira's battle night, 13 December 2002 (props in src/world/props/mira.ts).
     cd: '#d0d8e0', // her dropped demo CD on the bench
     listeningPost: '#8a3fb0',
     sign: '#ffd166', // "OPEN MIC" board on the listening post
@@ -194,8 +198,32 @@ export const T = {
   screens: {
     // Title, "Because you..." card, newspaper and ending (src/ui/). Owner: Teammate A.
     titleVariant: 'lcd' as 'lcd' | 'colour', // the team picks: artifacts/title-variants.png shows both
-    bootSec: 1.2, // the boot progress bar fills in this long (then "Press Enter" blinks)
+    bootSec: 1.2, // the boot progress bar fills in this long (then PRESS START pulses)
+    titleShade: 'rgba(11, 11, 15, 0.55)', // the title darkens the live street behind it, more at the edges
+    logoTiltDeg: 10, // the logo leans up to this much towards the mouse
+    logoSwaySec: 6, // one slow idle sway of the logo
     blinkSec: 1.1, // one on/off cycle of "Press Enter"
+    narrowBelowPx: 700, // windows narrower than this (phones) stack the card and paper and move the phone up
+    // Hand-made UI (like Messenger's, our own colours): off-white paper, thick ink outlines, chunky type,
+    // panels a little rotated. Used by the era badge, prompt, dialogue, card, paper and ending captions.
+    paper: '#fbf6e9',
+    paper2004: '#f3e3c0', // the era badge in 2004: older, yellower paper
+    paperInk: '#1d1a14',
+    outlinePx: 3,
+    note: '#ffe14d', // the "E — ..." prompt is a yellow sticky note
+    chunkyFont: "'Trebuchet MS', 'Arial Rounded MT Bold', system-ui, sans-serif",
+    dialogueMaxPx: 720, // the dialogue never gets wide enough to reach the open phone (bottom-right)
+    bubbles: {
+      // Fixing a CD: ♪ and ♥ bubbles pop over the moment (Messenger's payoff), then float away.
+      count: 8,
+      sec: 1.2, // each bubble's pop, float and fade
+      staggerSec: 0.35, // the last bubble starts this much after the first
+      band: { left: 22, right: 78, top: 26, bottom: 52 }, // % of the window: where the crowd is when you fix a CD
+      sizePx: 44,
+      paper: '#fffdf5',
+      ink: '#1d1a14',
+      heart: '#e03131',
+    },
     backdrop: '#0b0b0f', // behind the title and the ending
     // 'lcd' title: the phone's own green LCD (T.phone.lcd / lcdInk), with a dark bezel
     bezel: '#2b2f35',
@@ -208,7 +236,6 @@ export const T = {
     cdDusty: '#9aa0a6',
     cdHub: '#4b5057',
     // tabloid: card + newspaper
-    tabloidPaper: '#ffffff',
     tabloidInk: '#111111',
     tabloidRed: '#c8102e', // red-top masthead (white text on it: 5.8:1)
     tabloidRedText: '#ffffff',
@@ -394,10 +421,21 @@ export const T = {
       ] },
     },
     whoosh: { sec: 0.9, gain: 0.8, fromHz: 250, toHz: 5000, q: 4 }, // travel: filtered noise sweep
+    // The CD player is the time machine (cd-insert): tray out, disc clicks in, tray in, spin-up, laser seeks,
+    // and the travel whoosh lands at whooshAtSec (later if travel comes early).
+    cdInsert: {
+      whooshAtSec: 1.05,
+      motor: { sec: 0.18, note: 50, toNote: 53, gain: 0.05, noiseHz: 900, noiseGain: 0.12 }, // tray motor whine
+      trays: [0, 0.36], // tray out, tray back in (motor runs, then a clunk)
+      clunk: { sec: 0.07, note: 33, gain: 0.3, noiseHz: 1400, toHz: 500, noiseGain: 0.3 },
+      click: { at: 0.27, sec: 0.02, hz: 5200, q: 3, gain: 0.45, note: 96, toneGain: 0.05 }, // the disc snaps onto the spindle
+      spin: { at: 0.62, sec: 0.75, fromNote: 36, toNote: 74, gain: 0.11, hissFromHz: 400, hissToHz: 3200, hissGain: 0.1 },
+      seek: { notes: [100, 103, 98], at: [0.84, 0.94, 1.02], sec: 0.025, gain: 0.04 }, // the laser finding the track
+    },
     chime: { notes: [76, 81, 88], gapSec: 0.08, sec: 0.5, gain: 0.2, wave: 'sine' }, // action-done
     nope: { notes: [50, 46], gapSec: 0.12, sec: 0.14, gain: 0.2, wave: 'square' }, // action-locked
     fanfare: { notes: [67, 72, 76, 79, 84], gapSec: 0.1, sec: 0.35, gain: 0.18, wave: 'square', delaySec: 0.7 }, // reputation; waits for the travel whoosh
-    beam: { notes: [86, 93], chirps: 14, chirpSec: 0.035, gain: 0.12, wave: 'square', doneNotes: [84, 96], doneGapSec: 0.09, doneSec: 0.08, doneGain: 0.18 }, // infrared handshake, then "got it"
+    beam: { notes: [86, 93], chirps: 30, chirpSec: 0.035, gain: 0.12, wave: 'square', doneNotes: [84, 96], doneGapSec: 0.09, doneSec: 0.08, doneGain: 0.18 }, // infrared handshake, then "got it"
     ambience: {
       fadeSec: 1.2, // crossfade when you travel
       loopSec: 2, // length of the looping noise buffers
@@ -410,7 +448,7 @@ export const T = {
     // are never the lastCue, so they can't hide the story sounds from the checks.
     feel: {
       seed: 31,
-      step: { variants: 4, sec: 0.07, gain: 0.12, fromHz: 1800, toHz: 500, q: 1.2, thumpNote: 40, thumpGain: 0.09, pitchJitter: 0.12, stepSec: 0.32 },
+      step: { variants: 4, sec: 0.07, gain: 0.12, fromHz: 1800, toHz: 500, q: 1.2, thumpNote: 40, thumpGain: 0.09, pitchJitter: 0.12, strideM: 0.9 }, // game: one `footstep` event per strideM walked
       paper: { rustles: 4, gapSec: 0.045, sec: 0.07, gain: 0.3, minHz: 2500, maxHz: 6500, q: 1.5 },
       zoom: { sec: 0.45, gain: 0.25, lowHz: 300, highHz: 1600, q: 2 }, // a soft whoosh: rising in, falling out
       voice: {
@@ -432,6 +470,7 @@ export const T = {
       seed: 77,
       fadeSec: 1.5,
       sampleRate: 24000, // scene layers are made at this rate (all below 12 kHz): half the work of 48 kHz
+      seamSec: 0.3, // each layer's end crossfades into its start over this long, so the loop has no click
       layerRms: 0.25, // every layer is scaled to this loudness; its `gain` then sets how loud it is
       open_mic: { // a pub-ish evening: murmuring people and clinking glasses
         babble: { gain: 0.08, voices: 6, syllableHz: 4, lowHz: 250, highHz: 1100 },
@@ -459,7 +498,7 @@ export const T = {
       fadeSec: 1.5, // crossfade between songs
       todaySwitchSec: 30, // today, with several fixed CDs: next song after this long
       duckGain: 0.3, // music volume while a whoosh, chime or ringtone plays
-      duckCues: ['whoosh', 'chime', 'ringtone', 'beam'],
+      duckCues: ['whoosh', 'chime', 'ringtone', 'beam', 'cd-insert'],
       duckAttackSec: 0.05,
       duckReleaseSec: 0.5,
       past: { lowpassHz: 2500, gain: 0.7 }, // "2004 style": muffled, mono
@@ -515,6 +554,17 @@ export const T = {
     pigeon: '#8a8f99',
     dog: '#b07a45',
     dogHead: '#8f5f33',
+    // The demo's payoff: shared timings (Teammate A's phone screen and bubbles read these too).
+    beamSec: 1.25, // the infrared transfer: the beam sound lasts this long (an IrDA progress bar can match it)
+    spread: {
+      // After your phone rings, the queue catches it: each phone joins one ringtone beat after the last.
+      gapSec: 0.43, // = one beat of the ringtone (140 bpm); phone i starts at (i + 1) * gapSec
+      phones: ['kbit_queue_phone_1', 'kbit_queue_phone_2', 'kbit_queue_phone_3', 'kbit_queue_phone_4'],
+      octaves: [1, 0, -1, 1], // each phone plays it an octave up/down: a cheap tinny speaker, a bassy one...
+      waves: ['triangle', 'sawtooth', 'square', 'triangle'],
+      pans: [-0.6, -0.2, 0.25, 0.65], // spread across the queue, left to right
+      gain: 0.7, // each queue phone, relative to yours (the chorus has to swell)
+    },
   },
 
   ui: {

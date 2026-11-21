@@ -46,5 +46,7 @@ export default defineConfig({
   base: './',
   plugins: [headlineApi()],
   build: { chunkSizeWarningLimit: 1000 }, // three.js alone is ~700 kB
-  test: { include: ['tests/**/*.test.ts'] },
+  // A generous per-test time limit: with several agents running tests at once, slow tests (the random
+  // collision walk, the soundscape click scan) take 4-5 s under load. The assertions are unchanged.
+  test: { include: ['tests/**/*.test.ts'], testTimeout: 30_000 },
 });

@@ -50,8 +50,7 @@
 .phone-outer-time { font-size: 18px; letter-spacing: 1px; }
 .phone-folded-hint { display: block; margin-top: 7px; color: var(--phone-key-ink); font: 700 11px/1 system-ui, sans-serif; }
 
-/* --- travelling: drawn over the LCD so the phone keeps its size --- */
-.phone-lcd { position: relative; }
+/* --- travelling: drawn over the LCD (which is position: relative) so the phone keeps its size --- */
 .phone-connect, .phone-static { display: none; position: absolute; inset: 0; border-radius: 3px; }
 #phone[data-state='connecting'] .phone-connect {
   display: flex;
@@ -100,6 +99,7 @@
   background: var(--phone-hinge);
 }
 .phone-lcd {
+  position: relative;
   padding: 5px 6px 4px;
   border-radius: 3px;
   background: var(--phone-lcd);
@@ -137,7 +137,22 @@
 }
 .phone-battery-level { position: absolute; left: 1px; top: 1px; bottom: 1px; width: 10px; background: var(--phone-ink); }
 
-.phone-title { margin: 3px 0 2px; text-align: center; letter-spacing: 2px; border-bottom: 2px solid var(--phone-ink); }
+.phone-title { position: relative; margin: 3px 0 2px; text-align: center; letter-spacing: 2px; border-bottom: 2px solid var(--phone-ink); }
+.phone-count { position: absolute; right: 0; bottom: 1px; font-size: 10px; letter-spacing: 0; } /* CDs fixed / total */
+
+/* Checklist: a tick box per CD, ticked once it is fixed. currentColor, so it inverts with the selected row. */
+.phone-tick { position: relative; display: inline-block; width: 9px; height: 9px; margin-right: 5px; border: 1px solid currentColor; vertical-align: -1px; }
+.phone-tick.is-done::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: -3px;
+  width: 3px;
+  height: 8px;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
 
 .phone-menu { margin: 0; padding: 0; list-style: none; }
 .phone-row { display: flex; flex-direction: column; padding: 1px 4px; }
@@ -232,6 +247,11 @@
   from { transform: rotateX(0deg); }
   to { transform: rotateX(-175deg); }
 }
+
+/* Narrow screens (html.is-narrow, set by hud.ts): the phone hangs from the top-right, the folded
+   phone beside the era, so neither ever meets the dialogue at the bottom. */
+.is-narrow #phone { top: 76px; bottom: auto; transform: scale(var(--phone-compact-scale)); transform-origin: top right; }
+.is-narrow #phone .phone-folded { top: -60px; bottom: auto; }
 
 @media (prefers-reduced-motion: reduce) {
   #phone[data-state] .phone-body, #phone[data-state] .phone-lid, #phone .phone-static,
