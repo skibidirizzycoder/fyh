@@ -126,8 +126,13 @@ export const T = {
       outlineCreaseTone: 0.03, // (when creases are on) their colour must change this much, so flat unlit markers stay clean
       outlineBreakup: 0.6, // how much the lines fade in the noise's gaps (0 = solid lines)
       outlineNoisePx: 72, // size of the noise patches that break the lines up
-      msaa: 0, // post filter: no anti-aliasing, the pixels stay hard
+      msaa: 4, // post filter: MSAA samples, only for full-resolution moments (2017); chunky pixels never get it
       skyDeepen: 0.3, // sky gradient: the top of the sky is this much darker than the horizon (0 = flat)
+      bloom: 1.0, // post filter: the brightest light (lit windows, neon, markers) glows this strongly (0 = off)
+      bloomThreshold: 0.7, // ... only light brighter than this (linear luminance: markers 0.75; keeps 1988's sunlit walls calm)
+      bloomScale: 0.5, // ... the glow is worked out at half the (chunky) resolution, added per chunky pixel
+      bloomSpread: 1, // ... glow texels between blur taps: one chunky pixel is already wide
+      fxaa: 1, // post filter: FXAA after the ink, only for full-resolution moments (2017)
       badgeText: '#ffcf7a',
     },
     present: {
@@ -155,6 +160,11 @@ export const T = {
       outlineNoisePx: 72, // size of the noise patches that break the lines up
       msaa: 4, // post filter: multisample anti-aliasing samples (smooth edges)
       skyDeepen: 0.3, // sky gradient: the top of the sky is this much darker than the horizon (0 = flat)
+      bloom: 1.2, // post filter: the brightest light (lit windows, neon, markers) glows this strongly (0 = off)
+      bloomThreshold: 0.6, // ... only light brighter than this (linear luminance: the markers are 0.75, skies below 0.6) glows
+      bloomScale: 0.5, // ... the glow is worked out at half resolution
+      bloomSpread: 2, // ... glow texels between blur taps (a soft glow about 30 px wide at 1080p)
+      fxaa: 1, // post filter: FXAA after the ink, so ink lines and edges are smooth too
       badgeText: '#bfe6ff',
     },
   },
@@ -498,7 +508,7 @@ export const T = {
   },
 
   limits: {
-    maxDrawCalls: 60, // smoke fails above this
+    maxDrawCalls: 64, // smoke fails above this (includes up to 4 cheap full-screen post passes: bloom x2, ink, FXAA)
     minLookDistance: 18, // smoke: mean scene colours of any two scenes differ by at least this (0..441)
     maxPixelRatio: 2, // draw at most this many device pixels per CSS pixel (sharp on retina, affordable on phones)
   },

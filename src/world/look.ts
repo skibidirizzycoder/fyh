@@ -38,6 +38,16 @@ export interface Look {
   msaa: number;
   /** Sky gradient: how much darker the top of the sky is than the horizon, which keeps the fog colour (0 = flat). */
   skyDeepen: number;
+  /** Bloom: how strongly the blurred brightest light is added (0 = off). */
+  bloom: number;
+  /** Bloom: only light brighter than this glows (linear luminance; lit walls stay below it). */
+  bloomThreshold: number;
+  /** Bloom: the glow's resolution as a share of the scene's (chunky scenes: of their chunky pixels). */
+  bloomScale: number;
+  /** Bloom: glow texels between two of the blur's taps (bigger = wider glow). */
+  bloomSpread: number;
+  /** FXAA after the ink, at full resolution only (1 = on, 0 = off). */
+  fxaa: number;
 }
 
 /** Outline widths in the look are screen pixels on a screen this many lines tall (the unit, like metres). */
@@ -93,4 +103,9 @@ export function outlineWidth(outlinePx: number, screenHeight: number, scale: num
  */
 export function creaseOffset(width: number): number {
   return width > 0 ? Math.max(1, Math.floor(width / 2)) : 0;
+}
+
+/** MSAA samples for a scene drawn at `scale`: the look's `msaa` (at most `maxSamples`) at full resolution, none for chunky pixels. */
+export function msaaSamples(msaa: number, scale: number, maxSamples: number): number {
+  return scale > 1 ? 0 : Math.max(0, Math.min(msaa, maxSamples));
 }
