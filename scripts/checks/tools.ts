@@ -77,13 +77,22 @@ export async function waitForNews(page: Page): Promise<Snapshot> {
 }
 
 /** Saves a screenshot to artifacts/<name>.png. */
+/** Screenshots wait for a frame from the software GPU; on a busy machine (several agents) that takes long. */
+const SHOT_TIMEOUT_MS = 120_000;
+
 export async function screenshot(page: Page, name: string): Promise<void> {
-  await page.screenshot({ path: `artifacts/${name}.png` });
+  try {
+    await page.screenshot({ path: `artifacts/${name}.png`, timeout: SHOT_TIMEOUT_MS });
+  } catch (e) {
+    throw new Error(`screenshot "${name}" failed (a slow GPU queue? see LESSONS.md): ${String(e).split('\n')[0]}`, { cause: e });
+  }
 }
 
 /** Mean colour [r, g, b] (0-255) of the 3D scene in the middle of the screen, away from the HUD panels. */
 export async function sceneMean(page: Page): Promise<[number, number, number]> {
-  const png = await page.screenshot({ clip: { x: 320, y: 100, width: 640, height: 400 }, animations: 'disabled' });
+  const png = await page.screenshot({ clip: { x: 320, y: 100, width: 640, height: 400 }, animations: 'disabled', timeout: SHOT_TIMEOUT_MS }).catch((e: unknown) => {
+    throw new Error(`sceneMean screenshot failed: ${String(e).split('\n')[0]}`, { cause: e });
+  });
   return page.evaluate(async (b64) => {
     const img = new Image();
     img.src = `data:image/png;base64,${b64}`;
@@ -107,7 +116,9 @@ export async function measureContrast(page: Page, selector: string, name: string
   const box = await page.locator(selector).boundingBox();
   expect(box !== null, `${selector} is not on screen`);
   if (!box) return;
-  const png = await page.screenshot({ clip: box, animations: 'disabled' });
+  const png = await page.screenshot({ clip: box, animations: 'disabled', timeout: SHOT_TIMEOUT_MS }).catch((e: unknown) => {
+    throw new Error(`contrast "${name}" (${selector}) screenshot failed: ${String(e).split('\n')[0]}`, { cause: e });
+  });
   const pixels = await page.evaluate(async (b64) => {
     const img = new Image();
     img.src = `data:image/png;base64,${b64}`;

@@ -4,7 +4,7 @@ import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
-  { ignores: ['dist/', 'dist-test/', 'artifacts/', 'node_modules/'] },
+  { ignores: ['dist/', 'dist-test/', 'artifacts/', 'node_modules/', '**/*.tmp.mjs'] }, // *.tmp.mjs: throwaway scripts
   js.configs.recommended,
   tseslint.configs.strict,
   {

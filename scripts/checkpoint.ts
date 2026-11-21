@@ -17,8 +17,13 @@ import { checkpoints, tagCheckpoint } from './tag.ts';
 const PORT = 4300;
 const NETLIFY = 'npx -y netlify-cli@27.20.1';
 
-/** Deploys the gated production build (dist/) to the linked Netlify site. Skips if not linked. */
+/** Deploys the gated production build (dist/) to the linked Netlify site, only with `--deploy`
+ *  (`npm run checkpoint -- --deploy`). Skips if not linked. */
 function deployLive(tag: string): void {
+  if (!process.argv.includes('--deploy')) {
+    console.log('checkpoint: local only (add -- --deploy to update the live site).');
+    return;
+  }
   if (!existsSync('.netlify/state.json')) {
     console.log('checkpoint: no Netlify link here (.netlify/state.json), so no live deploy.');
     return;
