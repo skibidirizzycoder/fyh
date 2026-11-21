@@ -28,6 +28,12 @@
    `gold_static`, `gold_kbit`, and the HUD element ids (`#title`, `#era`, `#prompt`, `#dialogue`,
    `#card`, `#news`, `#news-offline`, `#ending`, `#phone`).
 6. No pitch work yet. We build first.
+7. **Reference: `docs/reference-messenger.md`** (Messenger by Abeto). Play it for 10 minutes first,
+   then do your "M" tasks below. We learn its principles; we never copy its art.
+8. **AI images: only Claude makes them** (GPT Image via Codex). Need one? Add it to your notes under
+   "Art requests" (name, shape, one sentence). It appears in `public/textures/`. Ready now:
+   `cover_mira`, `cover_static`, `cover_kbit`, `window_2004`, `window_today`, `poster_open_mic`,
+   `poster_gig`, `brick_2004`, `pavement` (`.png`, 512 px).
 
 ## Teammate A: `feat/phone-static`
 
@@ -55,6 +61,12 @@ Two sessions: A4 in one, A5 in the other.
   blinks like a 2004 menu. Checks in `scripts/checks/phone.ts` (read `data-state`, screenshot it).
 - [ ] **A6. The Static after the fix:** the crowd you show with `static_give_mic` gets bigger and
   closer (more people, some with their arms up), plus a dropped set list and a tip jar. Your props only.
+- [ ] **M-A1. Title like Messenger's:** the live 3D street behind a chunky "FLIP PHONE" logo that tilts
+  a little with the mouse, and one big "PRESS START" button (ask Claude for the logo art). Fold into A4.
+- [ ] **M-A2. Hand-made UI:** card, newspaper, dialogue box and ending on off-white paper with thick
+  dark outlines, slightly rotated, chunky type. Our own colours. Fold into A4.
+- [ ] **M-A3. Checklist + payoff:** the phone shows the three CDs with ticks (what's left), and when a
+  CD is fixed, ♪/♥ bubbles pop over that moment's crowd/queue for a second (HTML over the canvas is fine).
 
 ## Teammate B: `feat/sound-kbit`
 
@@ -82,6 +94,12 @@ Two sessions: B3/B5/B6 in one (they all touch `src/audio/`), B4 in the other.
   clinking glasses; street gig = busy summer street and a distant ice-cream van; ringtone = December
   wind, traffic and a bus pulling in; today = quieter, modern traffic. In `src/audio/`, driven by the
   `travel` event (it has `moment`). Checks in `scripts/checks/audio.ts`.
+- [ ] **M-B1. Every action makes a sound** (see the sound list in `docs/reference-messenger.md`):
+  footsteps while walking (2–4 variants, a little random pitch), phone key clicks, a "paper" sound
+  when the card and the newspaper open, a soft whoosh when the camera moves in for dialogue.
+- [ ] **M-B2. Voice blips:** while a dialogue line shows, short blips like a voice (Animal Crossing
+  style), a different pitch per speaker (Mira, the band, K-Bit, the owner). Listen to the `dialogue`
+  events; ask Claude if you need the speaker in the event.
 
 ## Free (anyone: claim it in STATUS.md first)
 
@@ -97,6 +115,10 @@ Two sessions: B3/B5/B6 in one (they all touch `src/audio/`), B4 in the other.
 - [x] C2. The player can't walk through props (collisions). *Helper agent, branch `director/collisions`.*
 - [ ] C5. The shared street and the player look like a real place and a real person (shop front,
   neighbouring buildings, kerb; a low-poly person instead of the cylinder). *Helper agent, `director/street`.*
+- [ ] C6. Props can show AI textures (`texture` field: covers, posters, shop windows, brick, pavement).
+- [ ] M-C1. Toon look: 2–3 tone shading + dark ink outlines, a calm palette per era/moment, floating
+  particles (dust in 2004, snow in December). Decide together with the retro-render test (`director/retro`).
+- [ ] M-C2. The camera eases closer when someone talks, then back; a short push-in when a CD is fixed.
 - ~~C3. The rest of `docs/prompts/05-agentic-workflow.md`~~ **Cut:** `ship` already enforces
   ownership and the gate. We build the game instead.
 - [x] C4. `npm run checkpoint` deploys to https://flip-phone-2004-8a09.netlify.app (ships don't: free-plan credits).

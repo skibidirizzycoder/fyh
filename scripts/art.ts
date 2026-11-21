@@ -7,11 +7,10 @@
 //   npm run art -- cover_mira   make just these (missing) ones
 // Only missing images are made: delete a file to make it again.
 
-import { execFile, execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { appendFileSync, copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
 
 interface ImageSpec { name: string; size: string; prompt: string; background?: 'transparent' | 'opaque' }
 interface ImageList { style: string; images: ImageSpec[] }
@@ -21,7 +20,6 @@ const OUT = 'public/textures';
 const MAX_SIDE = 512; // textures are shrunk to this many pixels (small downloads)
 const AT_ONCE = 4; // images made at the same time
 const SHAPES: Record<string, string> = { '1024x1024': 'square', '1536x1024': 'landscape 3:2', '1024x1536': 'portrait 2:3' };
-const run = promisify(execFile);
 
 /** Removes anything that looks like a secret key from a message before it is shown. */
 function redact(text: string): string {
@@ -35,11 +33,22 @@ function promptFor(spec: ImageSpec, style: string): string {
   return `${style}${alpha} Shape: ${shape}.\n\n${spec.prompt}`;
 }
 
+/** Runs codex with stdin closed (with an open stdin, `codex exec` waits to read more prompt). */
+function codexExec(args: string[]): Promise<string> {
+  return new Promise((done, fail) => {
+    const child = spawn('codex', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '';
+    child.stdout.on('data', (d: Buffer) => { out += d.toString(); });
+    child.on('error', fail);
+    child.on('close', (code) => (code === 0 ? done(out) : fail(new Error(`codex exited with ${code}`))));
+  });
+}
+
 /** Makes one image with the Codex CLI (ChatGPT sign-in) and copies its PNG to `path`. */
 async function viaCodex(spec: ImageSpec, style: string, path: string): Promise<void> {
   const ask = `Use your image generation tool to make exactly one image, then reply only DONE.\n\n${promptFor(spec, style)}`;
   const cwd = mkdtempSync(join(tmpdir(), 'art-'));
-  const { stdout } = await run('codex', ['exec', '--json', '--skip-git-repo-check', '-s', 'read-only', '-C', cwd, ask], { maxBuffer: 64 * 1024 * 1024 });
+  const stdout = await codexExec(['exec', '--json', '--skip-git-repo-check', '-s', 'read-only', '-C', cwd, ask]);
   const thread = /"thread_id"\s*:\s*"([^"]+)"/.exec(stdout)?.[1];
   const dir = thread ? join(homedir(), '.codex', 'generated_images', thread) : '';
   const png = dir && existsSync(dir) ? readdirSync(dir).find((f) => f.endsWith('.png')) : undefined;
