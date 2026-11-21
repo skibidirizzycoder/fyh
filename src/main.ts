@@ -88,6 +88,7 @@ function boot(): void {
     world.highlight(s.target);
     world.animate(s.frame / T.loop.stepsPerSecond);
     post.setLook(lookFor(s.era, s.moment));
+    avatar.lookAt(game.targets().find((t) => t.id === s.target) ?? null); // the head turns towards what E would use
     avatar.sync(s.player, camera, s.frame, { talking: s.dialogueLeft > 0 }); // game time: the camera glides, and frames a dialogue line
     particles.update(s.era, s.moment, s.frame / T.loop.stepsPerSecond, camera); // game time: step() stays exact
     life.update(s.moment ?? s.era, s.frame, s.player);

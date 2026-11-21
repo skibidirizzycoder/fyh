@@ -536,6 +536,7 @@ export const T = {
       hipTwistDeg: 8, shoulderTwistDeg: 7, // hips turn with the forward leg, shoulders the other way
       runBounceM: 0.05, // running: the body lifts off between steps (twice per stride)
       breathM: 0.006, breathSec: 3.6, // standing: the chest rises and falls this much, once every breathSec
+      lookMaxDeg: 40, // the head turns at most this far towards what you could use (E)
       poseEaseSec: 0.2, // the pose follows speed and turning with this lag (game time), so stopping or turning never snaps
     },
     // Each image's plain colour (a face's skin, a fabric's average): the material colour around the image.
