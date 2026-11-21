@@ -379,16 +379,20 @@ describe('round people cheer', () => {
       posePerson(person, { ...gait(1, WALK), cheer: t });
       expect(poseOf(person), `cheer at ${t}`).toEqual(plain);
     }
-    posePerson(person, { ...gait(0, 0), cheer: 0.5 / P.gait.cheer.hops / 2 + 0.25 }); // mid-cheer, mid-hop
+    posePerson(person, { ...gait(0, 0), cheer: 1.5 / P.gait.cheer.hops }); // mid-cheer, top of a hop
     for (const arm of person.arms) expect(arm.rotation.x).toBeGreaterThan(Math.PI / 2); // above the shoulders
     expect(person.rig.position.y).toBeGreaterThan(GAP + P.gait.cheer.hopM * 0.5);
+    expect(bounds(person).max.y).toBeGreaterThan(T.player.height + P.gait.cheer.hopM * 0.9); // hands over the head, in the air
+    posePerson(person, { ...gait(0, 0), cheer: 1 / P.gait.cheer.hops }); // landing between hops: a crouch, feet on the ground
+    expect(person.bones.shin_l.rotation.x).toBeLessThan(-0.5);
+    expect(bounds(person).min.y).toBeCloseTo(GAP, 3);
     expect(cheerAmount(0.5)).toBe(1);
     expect(cheerAmount(0.01)).toBeGreaterThan(0);
     expect(cheerAmount(0.01)).toBeLessThan(0.1); // it eases in
     person.dispose();
   });
 
-  it('the avatar cheers from the frame a CD is fixed, for T.avatar.cheerSec', () => {
+  it('the avatar cheers from the frame a CD is fixed, for T.person.gait.cheer.sec', () => {
     const avatar = createAvatar(new THREE.Scene());
     const camera = new THREE.PerspectiveCamera();
     const arm = (frame: number): number => {
@@ -397,8 +401,8 @@ describe('round people cheer', () => {
     };
     expect(arm(100)).toBeCloseTo(0, 6);
     avatar.cheer(100);
-    expect(arm(100 + T.avatar.cheerSec * T.loop.stepsPerSecond * 0.5)).toBeGreaterThan(Math.PI / 2);
-    expect(arm(100 + T.avatar.cheerSec * T.loop.stepsPerSecond + 1)).toBeCloseTo(0, 6);
+    expect(arm(100 + P.gait.cheer.sec * T.loop.stepsPerSecond * 0.5)).toBeGreaterThan(Math.PI / 2);
+    expect(arm(100 + P.gait.cheer.sec * T.loop.stepsPerSecond + 1)).toBeCloseTo(0, 6);
     avatar.dispose();
   });
 });

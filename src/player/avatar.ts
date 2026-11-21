@@ -75,7 +75,7 @@ export function createAvatar(scene: THREE.Scene): Avatar {
     eased = frame === undefined ? null : { speed, turnRate, look, frame };
     if (moved > 0 && moved < A.teleportM) phase = advancePhase(phase, moved, speed);
     else phase = settlePhase(phase, A.settleRad);
-    const cheer = cheerFrame === null || frame === undefined ? 0 : (frame - cheerFrame) / (A.cheerSec * T.loop.stepsPerSecond);
+    const cheer = cheerFrame === null || frame === undefined ? 0 : (frame - cheerFrame) / (T.person.gait.cheer.sec * T.loop.stepsPerSecond);
     posePerson(person, { phase, speed, turnRate, look, cheer, time: (frame ?? 0) / T.loop.stepsPerSecond });
   }
 
@@ -103,7 +103,7 @@ export function createAvatar(scene: THREE.Scene): Avatar {
     puffs.dispose();
   }
 
-  /** A CD was fixed: the camera pushes in and the player cheers, both from this game frame. */
+  /** A CD was fixed: the camera pushes in and the player cheers (T.person.gait.cheer.sec), both from this game frame. */
   function cheer(frame: number): void {
     follow.cheer(frame);
     cheerFrame = frame;
