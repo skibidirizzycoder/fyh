@@ -11,7 +11,10 @@
     "smoke": "node scripts/smoke.ts",
     "gate": "npm run check && npm run smoke",
     "prepare": "git config core.hooksPath .githooks || echo \"prepare: not a git repository, so the pre-commit hook was not installed\"",
-    "snowflake:ping": "node scripts/snowflake-ping.ts"
+    "snowflake:ping": "node scripts/snowflake-ping.ts",
+    "ship": "node scripts/ship.ts",
+    "checkpoint": "node scripts/checkpoint.ts make",
+    "checkpoint:play": "node scripts/checkpoint.ts play"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

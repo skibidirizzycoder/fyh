@@ -36,6 +36,10 @@ The smoke test checks that the demo route fits in time (measured, not guessed).
 
 ## Who owns what (only edit YOUR files)
 
+**Now:** the up-to-date list is `scripts/lanes.ts` (`npm run ship` enforces it), and the task queues
+are in `docs/BACKLOG.md`. Since then, Mira's moment and the screens (`src/ui/`) moved to Teammate A,
+and today's shop moved to Teammate B. The table below is the original split.
+
 | Person | Builds | Owns these files |
 |---|---|---|
 | **Claude** | The engine: moments (several 2004 scenes), phone logic, reputation levels, events, Mira's CD, today's reputation props (gold discs, posters, plaque), the pitch-length test, merging, deploying | everything not listed below, including `src/core/`, `src/game.ts`, `src/main.ts`, `src/debug.ts`, `src/phone/state.ts`, `src/story/` (except the two CD files below), `src/world/` (except the two props files below), `src/ui/`, `server/`, `scripts/smoke.ts`, `scripts/checks/tools.ts`, the other sections of `src/tuning.ts` |

@@ -91,6 +91,11 @@ Never start the next task on top of untested code. `npm run gate` = check + smok
 - Pin exact dependency versions (`npm install --save-exact`).
 - No secrets in the repo.
 
+## Team
+
+- Your lane's files are listed in `scripts/lanes.ts`. Finished a piece? `npm run ship` (gate, then merge
+  to `main` yourself), then take your next task from `docs/BACKLOG.md`. Never wait idle.
+
 ## Style
 
 - Small functions. A comment says what the code does.

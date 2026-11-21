@@ -32,9 +32,9 @@ to access this endpoint", legacy `SNOWFLAKE.CORTEX.COMPLETE` is blocked for new 
 - The player walks through props.
 - GitHub Pages has no endpoint, so the paper is always the offline edition there.
 
-**Now (hackathon day):** Teammate A builds The Static (`docs/prompts/07-*`); Teammate B builds the
-CD music from `docs/music-shortlist.md` (`docs/prompts/06-*`), after the team picks songs by ear.
-Director next: run `docs/prompts/05-agentic-workflow.md`, then Mira's moment, today's shop and
-per-moment lighting. Bug: used interactables keep their marker and glow.
+**Now (hackathon day):** all three CDs are real and merged (The Static from Teammate A). Teammates
+ship themselves (`npm run ship`, which also tags a checkpoint) and take tasks from `docs/BACKLOG.md`:
+A = Mira's moment, then the screens; B = the CD music (`docs/prompts/06-*`), then today's shop.
+Director: moment looks, collisions, the rest of `docs/prompts/05-*`, Netlify deploy. No pitch work yet.
 
 **Next session:** read `AGENTS.md`, run `npm run gate`, run `npm run snowflake:ping` if `.env` is set.

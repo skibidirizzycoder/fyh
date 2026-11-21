@@ -1,0 +1,72 @@
+# BACKLOG: what to build next (never wait)
+
+## How it works
+
+1. **Finished a task? Ship it yourself:** `npm run ship` (on your branch, with everything committed).
+   It merges `main` into your branch, refuses files outside your lane (`scripts/lanes.ts`), runs the
+   full gate and then fast-forwards `main`. **No permission needed: the gate is the permission.**
+   If it stops, it tells you exactly why and `main` is untouched.
+2. **Then take your next task below, straight away.** Don't wait for a reply or a merge.
+3. **Want to play everyone's work together?** `npm run checkpoint:play` builds the newest *tested*
+   checkpoint in a separate folder and serves it at http://localhost:4300. Your branch isn't touched.
+   Claude tags a checkpoint (`npm run checkpoint`) after each round of ships.
+4. **Queue empty?** Take a Free task (put your name next to it in `STATUS.md` first) and tell the lead.
+5. **Keep these ids.** Other people's tests and the smoke run use them: `mira_take_cd`,
+   `mira_play_cd`, `mira_cd`, `listening_post`, `static_plug_amp`, `static_give_mic`,
+   `static_cable_reel`, `static_mic`, `kbit_*` actions, `rep_open`, `rep_busy`, `rep_landmark`,
+   `boarded_window`, `lit_window`, `open_sign`, `rep_posters`, `rep_plaque`, `gold_mira`,
+   `gold_static`, `gold_kbit`, and the HUD element ids (`#title`, `#era`, `#prompt`, `#dialogue`,
+   `#card`, `#news`, `#news-offline`, `#ending`, `#phone`).
+6. No pitch work yet. We build first.
+
+## Teammate A: `feat/phone-static`
+
+- [x] A1. The flip phone's look
+- [x] A2. The Static's street gig
+- [ ] **A3. Mira's open mic (14 March 2004).** You now own `src/story/cds/mira.json`,
+  `src/world/props/mira.ts` and `scripts/checks/mira.ts`. Make it an open mic night outside the
+  shop: a mic and small amp by the window, string lights, a few bored listeners who turn round (or
+  appear) after step 2, and Mira with a guitar. Rewrite the text in your voice (`situation`, lines,
+  `today`, offline paper). Checks: arrive, step 2 locked first, `walkTo` both, the listeners
+  change, `gold_mira` today, screenshot `mira-fixed`.
+- [ ] **A4. The screens.** You now own `src/ui/**` and `index.html` (its styles):
+  - the title as a 2004 phone boot screen ("Hollow Records", three dusty CDs, press Enter);
+  - the "Because you..." card and the newspaper as a 2000s tabloid front page;
+  - the ending as a wall of gold discs.
+  Keep the element ids above and contrast ≥ 4.5. Make two title variants side by side in one
+  screenshot and let the team pick. Checks in `scripts/checks/ui.ts`: contrast of each screen and
+  screenshots of the title and the ending.
+
+## Teammate B: `feat/sound-kbit`
+
+- [x] B1. All sound effects, made in code
+- [x] B2. DJ K-Bit's bus stop
+- [ ] **B3. The CD music**: `docs/prompts/06-teammate-b-cd-music.md` (in progress).
+- [ ] **B4. Today's shop at each reputation level.** You now own `src/world/props/today.ts`, the
+  `"reputation"` entries in `src/story/content.json` (only those) and `scripts/checks/today.ts`.
+  - Level 0: boarded up and dark.
+  - Level 1: open, with a lit window, the open sign, one customer and music from inside.
+  - Level 2: busy, with posters of the fixed CDs' artists in the window and a queue of 3–4 people.
+  - Level 3: a landmark, with the blue plaque, a crowd and a neon "HOLLOW RECORDS" sign.
+  - Gold discs framed by the door, one per fixed CD.
+  Add new props freely, but keep the ids above. Checks: today at levels 0–3 (fix CDs quickly with
+  `travel` + `interact`), screenshots `today-0` to `today-3`.
+- [ ] **B5. K-Bit polish** (from your notes): a timetable panel and a "BUS" band on the stop, a
+  bigger phone for K-Bit, and an infrared "beam" sound for step 1.
+
+## Free (anyone: claim it in STATUS.md first)
+
+- [ ] F1. **Street life:** decoration that makes your own moment feel alive (pigeons, bins, a bike,
+  a dog), in your CD's props file. Decoration never glows or gets a marker.
+- [ ] F2. **Playtest a checkpoint** (`npm run checkpoint:play`) from start to end. Write each bug
+  in `STATUS.md` under "Bugs", with the steps to reproduce it.
+
+## Claude (director)
+
+- [x] Foundation, merges, used objects stop glowing, `ship` + checkpoints
+- [ ] C1. Each moment gets its own look: open mic = evening with warm lights, street gig = bright
+  summer afternoon, ringtone craze = cold December dusk.
+- [ ] C2. The player can't walk through props (collisions).
+- [ ] C3. The rest of `docs/prompts/05-agentic-workflow.md`: `measure`, AGENTS team sections,
+  `src/contracts.ts`, ownership check in the pre-commit hook, `review-diff`.
+- [ ] C4. Deploy each checkpoint to Netlify, so the team plays it in a browser (needs `netlify login` from the lead).

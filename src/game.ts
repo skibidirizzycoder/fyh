@@ -94,6 +94,11 @@ function targetsNow({ content, state }: Ctx): Target[] {
     .map((p) => ({ id: p.id, x: p.pos[0], z: p.pos[2] }));
 }
 
+/** Ids of interactables whose action is already done (no prompt, no marker, no highlight). */
+export function usedObjects(content: StoryContent, flags: Flags): Set<string> {
+  return new Set(content.actions.filter((a) => flags.includes(a.id)).map((a) => a.objectId));
+}
+
 /** The changes the card explains: what was new on the latest return today, else everything active. */
 function cardChangesNow({ content, state }: Ctx): PresentChange[] {
   const now = presentState(content, state.flags);
@@ -195,8 +200,15 @@ function updatePlay(ctx: Ctx, input: Input): SceneName | null {
       turnLeft: input.isDown('turnLeft'),
       turnRight: input.isDown('turnRight'),
     }, DT);
-    state.target = pickTarget(state.player, targetsNow(ctx));
-    if (input.wasPressed('interact') && state.target) interactWith(ctx, state.target);
+    const pick = (): string | null => {
+      const used = usedObjects(ctx.content, state.flags);
+      return pickTarget(state.player, targetsNow(ctx).filter((t) => !used.has(t.id)));
+    };
+    state.target = pick();
+    if (input.wasPressed('interact') && state.target) {
+      interactWith(ctx, state.target);
+      state.target = pick(); // what you just used stops being a target at once
+    }
   } else {
     state.target = null;
   }

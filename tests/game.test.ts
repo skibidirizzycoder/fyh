@@ -4,6 +4,7 @@ import { createInput } from '../src/core/input.ts';
 import { createGame } from '../src/game.ts';
 import { closedPhone, phoneItems, stepPhone, TODAY } from '../src/phone/state.ts';
 import { content } from '../src/story/content.ts';
+import { PROPS } from '../src/world/layout.ts';
 
 const NO_KEYS = { toggle: false, up: false, down: false, select: false };
 
@@ -73,7 +74,8 @@ describe('the game', () => {
   it('only shows a moment\'s interactables in that moment', () => {
     const { game } = started();
     game.travel('open_mic');
-    expect(game.targets().map((t) => t.id)).toEqual(['mira_cd', 'listening_post']);
+    expect(game.targets().map((t) => t.id)).toEqual(expect.arrayContaining(['mira_cd', 'listening_post']));
+    expect(game.targets().some((t) => t.id.startsWith('static_') || t.id.startsWith('kbit_'))).toBe(false);
     expect(game.interact('static_mic')).toEqual({ ok: false, reason: 'not-here' });
   });
 
@@ -101,6 +103,19 @@ describe('the game', () => {
       game.travel(TODAY);
     }
     expect(game.causes().map((a) => a.id)).toEqual(game.state.flags);
+  });
+
+  it('a used object is no longer targeted, so its prompt and highlight go away', () => {
+    const { game, tap } = started();
+    game.travel('open_mic');
+    const cd = PROPS.find((p) => p.id === 'mira_cd');
+    if (!cd) throw new Error('mira_cd missing');
+    game.state.player = { x: cd.pos[0], z: cd.pos[2] + 1.5, yawDeg: 0 }; // just in front of Mira's CD, facing it
+    tap('KeyF'); // any key: one step
+    expect(game.state.target).toBe('mira_cd');
+    tap('KeyE');
+    expect(game.state.flags).toContain('mira_take_cd');
+    expect(game.state.target).not.toBe('mira_cd');
   });
 
   it('travelling somewhere unknown does nothing', () => {

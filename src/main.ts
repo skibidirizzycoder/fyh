@@ -6,7 +6,7 @@ import { createAudio } from './audio/audio.ts';
 import { createEvents } from './core/events.ts';
 import { createInput } from './core/input.ts';
 import { createLoop } from './core/loop.ts';
-import { createGame } from './game.ts';
+import { createGame, usedObjects } from './game.ts';
 import { createNewsDesk } from './news/desk.ts';
 import { createAvatar } from './player/avatar.ts';
 import { createPhoneView } from './phone/view.ts';
@@ -68,7 +68,7 @@ function boot(): void {
   function render(): void {
     const s = game.state;
     const { shown, hidden } = propOverrides(content, s.flags);
-    world.apply(s.era, s.moment, shown, hidden);
+    world.apply(s.era, s.moment, shown, hidden, usedObjects(content, s.flags));
     world.highlight(s.target);
     world.animate(s.frame / T.loop.stepsPerSecond);
     post.setEra(s.era);
