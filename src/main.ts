@@ -9,6 +9,7 @@ import { createLoop } from './core/loop.ts';
 import { createGame, usedObjects } from './game.ts';
 import { createNewsDesk } from './news/desk.ts';
 import { createAvatar } from './player/avatar.ts';
+import { createStreetLife } from './world/life.ts';
 import { createPhoneView } from './phone/view.ts';
 import { withCdPrompts } from './story/cdplayer.ts';
 import { content } from './story/content.ts';
@@ -58,6 +59,7 @@ function boot(): void {
     if (content.cds.some((c) => c.finalAction === e.actionId)) avatar.cheer(game.state.frame);
   });
   const particles = createParticles(world.scene); // dust, snow or pollen in the air
+  const life = createStreetLife(world.scene, world.views.get('pub_sign')?.mesh); // clock hands, pub sign, pigeons
   const camera = new THREE.PerspectiveCamera(T.camera.fovDeg, 1, T.camera.near, T.camera.far);
   const post = createPostFilter(1, 1, msaaLimit(renderer));
   const hud = createHud(app, withCdPrompts(content), news); // the HUD finds E prompts in `actions`, the CD player's too
@@ -84,6 +86,7 @@ function boot(): void {
     post.setLook(lookFor(s.era, s.moment));
     avatar.sync(s.player, camera, s.frame, { talking: s.dialogueLeft > 0 }); // game time: the camera glides, and frames a dialogue line
     particles.update(s.era, s.moment, s.frame / T.loop.stepsPerSecond, camera); // game time: step() stays exact
+    life.update(s.moment ?? s.era, s.frame, s.player);
     renderer.info.reset();
     post.render(renderer, world.scene, camera, s.frame);
     drawCalls = renderer.info.render.calls;
