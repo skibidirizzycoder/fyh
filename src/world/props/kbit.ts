@@ -1,4 +1,4 @@
-// kbit.ts — props for DJ K-Bit's moment, "5 December 2004": the ringtone craze. Owner: Teammate B.
+// kbit.ts — props for DJ K-Bit's moment, "13 January 2017": the Despacito ringtone. Owner: Teammate B.
 // A bus stop shelter on the left pavement with a queue of people, and DJ K-Bit in headphones
 // next to it, holding out his phone. Everything stays between z = -4 and z = 1, close to where
 // the player starts (0, 3), so the pitch demo is short. standOn/mountOn keep the 0.02 gap.

@@ -328,7 +328,7 @@ export const T = {
     street_gig: { // 2 July: bright summer afternoon
       sky: '#f2c36b', sunColor: '#fff2cc', sunIntensity: 3.1, ambient: 1.05, tint: [1.1, 1.0, 0.8], saturation: 0.9,
     },
-    ringtone: { // 5 December: cold grey dusk (still warmer and grainier than today)
+    ringtone: { // 13 January 2017: cold grey dusk (still warmer and grainier than today)
       sky: '#8791a6', fogNear: 9, fogFar: 32, sunColor: '#ffd9b0', sunIntensity: 1.4, ambient: 0.8,
       tint: [1.04, 0.98, 0.92], saturation: 0.72,
     },
@@ -459,10 +459,16 @@ export const T = {
       // Clips are cut on a measured beat (beatOffsetSec 0). bpm was MEASURED, not heard, and the
       // detector was unsure (see docs/notes/teammate-b.md), so the code beat is off (beat: 0)
       // until someone confirms by ear that it plays in time; then set beat: 1.
+      // `file` is the Creative Commons stand-in (in git, deployed). `real` is used only when your own copy
+      // of the real song is in src/audio/local-songs/<cd>.mp3 (git-ignored, see src/audio/songs.ts): the
+      // part played (startSec, lengthSec: whole bars at bpm) and its tempo. Set them by ear.
       cds: {
-        mira: { file: 'music/mira.mp3', gain: 0.9, bpm: 68, beatOffsetSec: 0, beat: 0, past: { silentUntil: 'mira_play_cd' } },
-        static: { file: 'music/static.mp3', gain: 0.8, bpm: 104.5, beatOffsetSec: 0, beat: 0, past: { brokenUntil: 'static_plug_amp', liveAfter: 'static_give_mic' } },
-        kbit: { file: 'music/kbit.mp3', gain: 0.8, bpm: 163.5, beatOffsetSec: 0, beat: 0, past: { leakUntil: 'kbit_beam_track' } },
+        mira: { file: 'music/mira.mp3', gain: 0.9, bpm: 68, beatOffsetSec: 0, beat: 0, past: { silentUntil: 'mira_play_cd' },
+          real: { song: "Lose Yourself (Eminem)", startSec: 0, lengthSec: 39.3, bpm: 171 } }, // 28 bars: the "one shot" intro
+        static: { file: 'music/static.mp3', gain: 0.8, bpm: 104.5, beatOffsetSec: 0, beat: 0, past: { brokenUntil: 'static_plug_amp', liveAfter: 'static_give_mic' },
+          real: { song: "Sweet Child O' Mine (Guns N' Roses)", startSec: 0, lengthSec: 40.32, bpm: 125 } }, // 21 bars: the riff
+        kbit: { file: 'music/kbit.mp3', gain: 0.8, bpm: 163.5, beatOffsetSec: 0, beat: 0, past: { leakUntil: 'kbit_beam_track' },
+          real: { song: 'Despacito (Luis Fonsi ft. Daddy Yankee)', startSec: 0, lengthSec: 40.45, bpm: 89 } }, // 15 bars: the intro
       },
     },
   },
@@ -481,7 +487,7 @@ export const T = {
     people: ['#5a6fa8', '#a8605a', '#6a9a62', '#9a7ab8', '#c9a227'],
   },
 
-  // --- Teammate B: DJ K-Bit's moment, "5 December 2004" (where props stand: src/world/props/kbit.ts) ---
+  // --- Teammate B: DJ K-Bit's moment, "13 January 2017" (where props stand: src/world/props/kbit.ts) ---
   kbit: {
     shelterGlass: '#7f9fb0',
     shelterFrame: '#3b4048',

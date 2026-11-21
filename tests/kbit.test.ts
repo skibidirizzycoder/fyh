@@ -19,9 +19,10 @@ function intersects(a: Box, b: Box, eps = 1e-6): boolean {
 }
 
 describe('DJ K-Bit story', () => {
-  it('happens in the "ringtone" moment on 5 December 2004', () => {
+  it('happens in the "ringtone" moment on 13 January 2017 (Despacito)', () => {
     expect(kbit.cd.moment).toBe('ringtone');
-    expect(kbit.cd.date).toBe('5 December 2004');
+    expect(kbit.cd.date).toBe('13 January 2017');
+    expect(kbit.cd.title).toBe('Despacito');
     kbit.actions.forEach((a) => expect(a.moment, a.id).toBe(kbit.cd.moment));
   });
 

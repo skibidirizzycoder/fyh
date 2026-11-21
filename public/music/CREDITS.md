@@ -16,3 +16,10 @@ Licences were checked on each track's own page.
 
 These are the ★ picks from `docs/music-shortlist.md`, used because the team had not picked yet.
 Anyone can swap a file: keep the name, update this list and `T.audio.music.cds` in `src/tuning.ts`.
+
+## The songs the CDs cover (not in this repo)
+
+The story's CDs are local covers of "Lose Yourself" (Eminem, 2002), "Sweet Child O' Mine" (Guns N'
+Roses, 1987) and "Despacito" (Luis Fonsi ft. Daddy Yankee, 2017). Those recordings are copyrighted
+and are never committed or deployed: the files above stand in for them. For a local demo you can put
+your own copies in `src/audio/local-songs/` (git-ignored; see the README there).
