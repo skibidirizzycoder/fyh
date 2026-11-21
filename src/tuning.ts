@@ -57,6 +57,26 @@ export const T = {
     markerBobAmount: 0.08,
   },
 
+  // Cel shading and prop textures (src/world/materials.ts), the same in both eras. Owner: director.
+  // A surface is lit (its colour) or in shade (its colour in HSV with the value lowered and the hue
+  // nudged towards blue/purple), with a soft step between. The era's sun and sky then tint both.
+  cel: {
+    sunPosition: [4, 8, 6] as readonly [number, number, number], // the sun shines from here towards the origin
+    litEdge: 0.05, // a face is lit where N·L (sun) is above this...
+    litSoftness: 0.04, // ...with a soft step this wide either side (0 = a hard cut)
+    litGradient: 0.25, // lit faces turned away from the sun are up to this much darker, so box faces read apart
+    sunWeight: 0.3, // scene light = sun colour x intensity x sunWeight...
+    skyWeight: 0.35, // ...+ sky light x skyWeight (1 = the colours exactly as written)
+    shadowValue: 0.68, // shade: HSV value x this
+    shadowHue: 250, // shade: hue (degrees) nudged towards this blue-purple...
+    shadowHueShift: 18, // ...by at most this many degrees
+    shadowSaturation: 1.15, // shade: saturation x this...
+    shadowMinSaturation: 0.12, // ...and at least this, so even greys get a coloured shade
+    textureMixFront: 0.95, // a picture on a front face (cover, poster, window) shows this much image...
+    textureMixTiled: 0.4, // ...a tiled one (brick, pavement) less, so it stays calm; the rest is the prop's era colour
+    textureFilter: 'linear' as 'linear' | 'nearest', // how textures are sampled
+  },
+
   eras: {
     '2004': {
       label: '2004',
