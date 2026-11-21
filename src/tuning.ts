@@ -355,25 +355,58 @@ export const T = {
     notices: ['#f1efe6', '#f3e39a', '#a9d3f0'], // papers pinned on the noticeboard
   },
 
-  // The player's low-poly body (src/player/avatar.ts). Metres; it fits inside T.player.height and radius.
-  // The cap and its brim use T.player.noseColor: the brim is the "nose" that shows which way you face.
+  // The player's walk (src/player/avatar.ts). The body itself is a round person: T.person, look "player".
   avatar: {
-    hoodie: '#e4e0d6', // off-white: stands out in both eras
-    hoodieTrim: '#2c8c7c', // hood, waistband and pocket
-    jeans: '#4a6390', // mid-wash denim
-    shoes: '#f0f0f0',
-    skin: '#e0ac85',
-    headphones: '#1e1e24', // also the eyes
-    hipY: 0.74, // legs hang from here (the soles end up at the ground)...
-    shoulderY: 1.24, // ...and arms from here (above the ground)
-    legX: 0.1, // centre of each leg, from the middle of the body
-    armX: 0.27, // centre of each arm, from the middle of the body
     strideM: 1.3, // metres walked per full step cycle (left + right)
+    settleRad: 0.25, // per drawn frame: when you stop, the legs finish their step at this rate
+    teleportM: 0.5, // a jump bigger than this in one frame (travel, restart) is not walking
+  },
+
+  // Round people (src/player/person.ts): capsule body and limbs, a sphere head with a face, rounded shoes.
+  // Metres, soles at y = 0 (they stand T.world.surfaceGap above the ground); the player's look fits
+  // inside T.player.height and T.player.radius. Each person is at most 5 draw calls (one per material).
+  person: {
+    radialSegments: 12, // facets round a limb (30 degrees each: under the outline crease angle)
+    capSegments: 4, // rows in each rounded end
+    headSegments: [24, 16] as const, // round and up-down facets of the head
+    head: { r: 0.135, y: 1.43 }, // a sphere; the face image covers its front
+    neck: { r: 0.045, bottom: 1.27, top: 1.37 },
+    torso: { r: 0.16, bottom: 0.72, top: 1.36, widen: 1.15, depth: 0.75 }, // a capsule, squashed front to back
+    hips: { r: 0.1, width: 0.1, y: 0.78, depth: 0.8 }, // a sideways capsule of jeans that joins the legs
+    hipY: 0.74, // legs hang from here...
+    legX: 0.09, // ...this far either side of the middle
+    leg: { r: 0.068, top: 0.06, bottom: -0.67 }, // from its hip (top inside the hips, bottom inside the shoe)
+    shoe: { r: 0.055, length: 0.12, squash: 0.8, forward: 0.04 }, // a capsule lying toe-forward on the ground
+    shoulderY: 1.24, // arms hang from here...
+    armX: 0.235, // ...this far either side of the middle
+    armOutDeg: 6, // and lean out this much, so hands clear the hips
+    arm: { r: 0.05, top: 0.03, bottom: -0.45 }, // a sleeve, from its shoulder
+    hand: { r: 0.05, y: -0.49 },
+    hair: { gapM: 0.01, crownDeg: 72, backDeg: 120, backArcDeg: 220 }, // a shell over the crown, longer at the back
+    cap: { gapM: 0.012 }, // a cap covers the crown instead of hair (down to hair.crownDeg)
+    brim: { r: 0.1, h: 0.018, depth: 0.75, y: 1.47, z: -0.165 }, // a flat oval out front: the player's "nose"
+    headphones: { band: 0.012, cupR: 0.045, cupH: 0.035, cupOut: 0.02 }, // band over the cap, cups on the ears
+    // The face image wraps the head's front: this many degrees across and up-down, centred this far
+    // below the crown. Beyond it the image's edge (plain skin) carries on, so the head has no seam.
+    face: { acrossDeg: 150, upDownDeg: 150, centreDeg: 105 },
+    skinUv: [0.05, 0.05] as const, // neck and hands use this spot of the face image: plain skin
+    fabricTileM: 0.45, // one fabric image covers this many metres of sleeve, jumper or leg
+    // The walk: legs and arms swing and the body bobs, as far as the walking speed says (full at full speed).
     legSwingDeg: 28,
     armSwingDeg: 22,
     bobM: 0.03, // the body rises this much mid-stride
-    settleRad: 0.25, // per drawn frame: when you stop, the legs finish their step at this rate
-    teleportM: 0.5, // a jump bigger than this in one frame (travel, restart) is not walking
+    cullMarginM: 0.2, // the drawn-or-not sphere is this much bigger than the standing pose, for swinging limbs
+    // Each image's plain colour (a face's skin, a fabric's average): used until the image loads, and in tests.
+    images: {
+      face_player: '#ce8958', face_npc_a: '#622a17', face_npc_b: '#fcd2b8',
+      fabric_denim: '#4b78a9', fabric_knit: '#db9a0a', fabric_jacket: '#334028',
+    },
+    // Who wears what. cap: true = an orange cap (T.player.noseColor) with a brim.
+    looks: {
+      player: { face: 'face_player', top: 'fabric_knit', legs: 'fabric_denim', shoes: '#f0f0f0', hair: '#2e211a', cap: true, headphones: '#1e1e24' },
+      npc_a: { face: 'face_npc_a', top: 'fabric_jacket', legs: 'fabric_denim', shoes: '#26262b', hair: '#17110e', cap: false, headphones: null },
+      npc_b: { face: 'face_npc_b', top: 'fabric_knit', legs: 'fabric_denim', shoes: '#7a4b2c', hair: '#b88a4a', cap: false, headphones: null },
+    },
   },
 
   // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
