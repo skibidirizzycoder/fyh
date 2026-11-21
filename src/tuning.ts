@@ -163,8 +163,24 @@ export const T = {
     phoneGlow: '#a5f3fc', // their phone screens: everyone's looking down
   },
 
+  // Each 2004 moment's own time of day, on top of the 2004 look (src/world/look.ts).
+  moments: {
+    open_mic: { // 14 March: evening, dusk light
+      sky: '#7a5873', fogNear: 10, fogFar: 34, sunColor: '#ffb27a', sunIntensity: 1.5, ambient: 0.75,
+      tint: [1.12, 0.94, 0.86],
+    },
+    street_gig: { // 2 July: bright summer afternoon
+      sky: '#f2c36b', sunColor: '#fff2cc', sunIntensity: 3.1, ambient: 1.05, tint: [1.1, 1.0, 0.8], saturation: 0.9,
+    },
+    ringtone: { // 5 December: cold grey dusk (still warmer and grainier than today)
+      sky: '#8791a6', fogNear: 9, fogFar: 32, sunColor: '#ffd9b0', sunIntensity: 1.4, ambient: 0.8,
+      tint: [1.04, 0.98, 0.92], saturation: 0.72,
+    },
+  },
+
   limits: {
     maxDrawCalls: 60, // smoke fails above this
+    minLookDistance: 18, // smoke: mean scene colours of any two scenes differ by at least this (0..441)
   },
 
   // --- Teammate B: all sound, generated in code (no sound files) ---

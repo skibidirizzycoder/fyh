@@ -17,6 +17,7 @@ import { T } from './tuning.ts';
 import { createHud, showFallback } from './ui/hud.ts';
 import { buildWorld } from './world/build.ts';
 import { GROUND, PROPS } from './world/layout.ts';
+import { lookFor } from './world/look.ts';
 import { createPostFilter } from './world/post.ts';
 import { installDebugApi } from './debug.ts';
 
@@ -71,7 +72,7 @@ function boot(): void {
     world.apply(s.era, s.moment, shown, hidden, usedObjects(content, s.flags));
     world.highlight(s.target);
     world.animate(s.frame / T.loop.stepsPerSecond);
-    post.setEra(s.era);
+    post.setLook(lookFor(s.era, s.moment));
     avatar.sync(s.player, camera);
     renderer.info.reset();
     post.render(renderer, world.scene, camera, s.frame);

@@ -26,18 +26,31 @@ function stop(message: string): never {
   process.exit(1);
 }
 
-/** Director: gate main and tag it as the next checkpoint. */
+/** Director: merge origin/main into main, gate it, push it and tag it. Retries if main moves meanwhile. */
 function make(): void {
   if (read('git rev-parse --abbrev-ref HEAD') !== 'main') stop('run this on main.');
   if (read('git status --porcelain') !== '') stop('commit your changes first.');
-  run('git fetch origin --tags');
-  run('git merge --ff-only origin/main');
-  run('npm run gate');
-  const smoke = JSON.parse(readFileSync('artifacts/smoke.json', 'utf8')) as { pitchSec?: number };
-  run('git push origin main');
-  const tag = tagCheckpoint(`${read('git log -1 --format=%s')} (gate ok, pitchSec ${smoke.pitchSec ?? '?'})`);
-  if (!tag) stop('could not push a checkpoint tag. Try again.');
-  console.log(`\ncheckpoint: ${tag} is on GitHub. Everyone can play it with: npm run checkpoint:play`);
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    run('git fetch origin --tags');
+    try {
+      run('git merge --no-edit origin/main');
+    } catch {
+      stop('merging origin/main conflicted. Fix the conflicts, commit, then run it again.');
+    }
+    run('npm run gate');
+    try {
+      run('git push origin main');
+    } catch {
+      console.log(`\ncheckpoint: main moved while the gate ran. Try ${attempt + 1} of 3...`);
+      continue;
+    }
+    const smoke = JSON.parse(readFileSync('artifacts/smoke.json', 'utf8')) as { pitchSec?: number };
+    const tag = tagCheckpoint(`${read('git log -1 --format=%s')} (gate ok, pitchSec ${smoke.pitchSec ?? '?'})`);
+    if (!tag) stop('could not push a checkpoint tag. Try again.');
+    console.log(`\ncheckpoint: ${tag} is on GitHub. Everyone can play it with: npm run checkpoint:play`);
+    return;
+  }
+  stop('main kept moving (3 tries). Run it again in a minute.');
 }
 
 /** Anyone: build a checkpoint in its own folder and serve it. */

@@ -13,6 +13,7 @@
 // Writes screenshots to artifacts/ (2004.png, present.png, moment-*.png, ...) and one JSON line.
 
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:net';
 import { chromium, type BrowserContext, type Page } from 'playwright';
 import { build, preview, type PreviewServer } from 'vite';
 import type { Snapshot } from '../src/debug.ts';
@@ -27,12 +28,13 @@ import { checkStatic } from './checks/static.ts';
 import { checkTodayShop } from './checks/today.ts';
 import { checkUi } from './checks/ui.ts';
 import {
-  contrast, expect, hold, interact, measureContrast, phoneTo, placePlayer, restart, screenshot,
+  contrast, expect, hold, interact, measureContrast, phoneTo, placePlayer, restart, sceneMean, screenshot,
   state, step, travel, waitForNews, walkTo, type Check,
 } from './checks/tools.ts';
 
-const PROD = { outDir: 'dist', port: 4173 };
-const TEST = { outDir: 'dist-test', port: 4174 };
+// Ports are picked free at start, so several agents can run smoke on one machine at once.
+const PROD = { outDir: 'dist', port: 0 };
+const TEST = { outDir: 'dist-test', port: 0 };
 const STEP = 1 / T.loop.stepsPerSecond;
 const READ_FRAMES = Math.round(T.pitch.readSec * T.loop.stepsPerSecond);
 const started = Date.now();
@@ -72,7 +74,20 @@ async function buildVariant(mode: string, outDir: string): Promise<void> {
   await build({ mode, logLevel: 'warn', build: { outDir, emptyOutDir: true } });
 }
 
-/** Serves a build folder on a fixed port. */
+/** A port nobody is listening on right now. */
+async function freePort(): Promise<number> {
+  return new Promise((done, fail) => {
+    const probe = createServer();
+    probe.once('error', fail);
+    probe.listen(0, 'localhost', () => {
+      const address = probe.address();
+      const port = typeof address === 'object' && address ? address.port : 0;
+      probe.close(() => done(port));
+    });
+  });
+}
+
+/** Serves a build folder on a given port. */
 async function serve(outDir: string, port: number): Promise<PreviewServer> {
   return preview({ logLevel: 'warn', build: { outDir }, preview: { port, strictPort: true } });
 }
@@ -246,6 +261,31 @@ async function finishGame(page: Page): Promise<number> {
   return s.frame;
 }
 
+/** Each scene (today + every moment) must look measurably different on rendered pixels. */
+async function checkLooks(page: Page): Promise<Record<string, number[]>> {
+  await restart(page);
+  const means: Record<string, [number, number, number]> = {};
+  for (const to of ['present', ...content.cds.map((c) => c.moment)]) {
+    await travel(page, to);
+    await step(page, 1);
+    means[to] = await sceneMean(page);
+  }
+  const names = Object.keys(means);
+  for (const [i, a] of names.entries()) {
+    for (const b of names.slice(i + 1)) {
+      const black: [number, number, number] = [0, 0, 0];
+      const [x, y] = [means[a] ?? black, means[b] ?? black];
+      const dist = Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]);
+      expect(dist >= T.limits.minLookDistance, `${a} and ${b} look too alike (colour distance ${dist.toFixed(1)}, min ${T.limits.minLookDistance})`);
+    }
+  }
+  const warmth = (c: number[]): number => (c[0] ?? 0) - (c[2] ?? 0);
+  for (const m of content.cds.map((c) => c.moment)) {
+    expect(warmth(means[m] ?? []) > warmth(means.present ?? []), `${m} is not warmer than today`);
+  }
+  return means;
+}
+
 /** Plays the whole demo in the test build. */
 async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
   await page.goto(`http://localhost:${TEST.port}/`);
@@ -262,6 +302,7 @@ async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
   const pitch = await playPitchRoute(page);
   await checkToday(page, pitch.s);
   const frames = await finishGame(page);
+  const looks = await checkLooks(page);
   const team: Record<string, unknown> = {};
   for (const [name, check] of Object.entries(TEAM_CHECKS)) {
     try {
@@ -271,7 +312,7 @@ async function playTestBuild(page: Page): Promise<Record<string, unknown>> {
     }
   }
   const news = { headline: pitch.s.news.status === 'ready' ? pitch.s.news.headline : '', apiCalls: api.calls.length, offlineMs };
-  return { headings, pitchSec: pitch.sec, drawCalls: pitch.s.drawCalls, frames, flags: pitch.s.flags, news, team };
+  return { headings, pitchSec: pitch.sec, drawCalls: pitch.s.drawCalls, frames, flags: pitch.s.flags, news, looks, team };
 }
 
 /** Runs everything and prints one JSON line. */
@@ -285,6 +326,8 @@ async function main(): Promise<void> {
     await buildVariant('production', PROD.outDir);
     await buildVariant('test', TEST.outDir);
     assertNoDebugApiShipped();
+    PROD.port = await freePort();
+    TEST.port = await freePort();
     servers.push(await serve(PROD.outDir, PROD.port), await serve(TEST.outDir, TEST.port));
     const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
     await mockNewsApi(context);
