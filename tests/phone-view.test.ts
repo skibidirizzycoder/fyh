@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { content } from '../src/story/content.ts';
 import { phoneItems, TODAY } from '../src/phone/state.ts';
-import { outerScreenText, shortDate } from '../src/phone/view.ts';
+import { outerScreenText, rowHint, shortDate } from '../src/phone/view.ts';
 import { T } from '../src/tuning.ts';
 
 const items = phoneItems(content.cds, []);
@@ -26,5 +26,13 @@ describe('phone outer screen', () => {
   it('shows a live clock and today\'s date today', () => {
     const shown = outerScreenText(TODAY, items, new Date(2026, 10, 21, 9, 5));
     expect(shown).toEqual({ time: '09:05', date: '21 Nov 2026' });
+  });
+});
+
+describe('A7: phone rows', () => {
+  const row = { target: 'open_mic', date: '13 December 2002', label: 'Mira', fixed: false, locked: false };
+  it('shows the date, or how to unlock a moment you can\'t travel to yet', () => {
+    expect(rowHint(row)).toBe('13 December 2002');
+    expect(rowHint({ ...row, locked: true })).toBe(T.phone.lockedHint);
   });
 });

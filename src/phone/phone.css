@@ -158,6 +158,8 @@
 .phone-row { display: flex; flex-direction: column; padding: 1px 4px; }
 .phone-row-label { font-size: 13px; }
 .phone-row-date { font-size: 10px; }
+.phone-row.is-locked { opacity: var(--phone-locked); } /* A7: can't go there yet (put the CD in the player) */
+.phone-star { font-size: 11px; }
 .phone-row.is-selected { background: var(--phone-ink); color: var(--phone-lcd); } /* inverted, like a real LCD */
 /* A blinking cursor on the selected row, like a 2004 menu (the row's colours stay put). */
 .phone-row.is-selected .phone-row-label::before { content: '>'; margin-right: 4px; animation: phone-blink var(--phone-blink) step-end infinite; }

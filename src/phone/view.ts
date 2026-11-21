@@ -149,15 +149,24 @@ function keypad(): { base: HTMLElement; up: HTMLElement; down: HTMLElement } {
   return { base, up, down };
 }
 
-/** One menu row: a tick box (ticked once fixed) and the artist, over the date. "Back to today" has no box. */
+/** The small line under a row: its date, or how to unlock a moment you can't travel to yet. */
+export function rowHint(item: PhoneItem): string {
+  return item.locked && item.target !== TODAY ? T.phone.lockedHint : item.date;
+}
+
+/**
+ * One menu row: a tick box (ticked once fixed) and the artist (★ once fixed), over the date.
+ * "Back to today" has no box. Locked rows are greyed out (Up/Down skip them: state.ts).
+ */
 function menuRow(item: PhoneItem, here: boolean): HTMLElement {
-  const row = make('li', 'phone-row');
+  const row = make('li', item.locked ? 'phone-row is-locked' : 'phone-row');
   row.dataset.target = item.target;
   const top = make('span', 'phone-row-label');
   if (item.target !== TODAY) top.appendChild(make('span', item.fixed ? 'phone-tick is-done' : 'phone-tick'));
   top.append(item.label); // a text node: never parsed as HTML
+  if (item.fixed) top.appendChild(make('span', 'phone-star', ' ★'));
   if (here) top.appendChild(make('span', 'phone-here', ' ◄'));
-  row.append(top, make('span', 'phone-row-date', item.date));
+  row.append(top, make('span', 'phone-row-date', rowHint(item)));
   return row;
 }
 
@@ -165,6 +174,7 @@ function menuRow(item: PhoneItem, here: boolean): HTMLElement {
 export function createPhoneView(root: HTMLElement): PhoneView {
   const el = make('div', '');
   el.id = 'phone';
+  el.style.setProperty('--phone-locked', String(T.phone.lockedOpacity));
   el.dataset.state = 'closed';
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-label', 'Flip phone');
