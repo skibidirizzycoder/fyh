@@ -1,13 +1,17 @@
-// ambience.ts — the background sound of each era, so you can HEAR when you are.
-// 2004: a soft low hum, warm muffled noise and vinyl crackle. Today: quieter, cleaner air.
-// Both beds run all the time; travelling crossfades their volumes.
+// ambience.ts — the background sound, so you can HEAR when and where you are.
+// Era beds: 2004 = a soft low hum, warm muffled noise and vinyl crackle; today = quieter, cleaner air.
+// Scene beds on top (soundscape.ts): pub murmur, summer street, December wind, modern traffic.
+// Beds are built the first time they are needed, then crossfaded when you travel.
 
 import { ERAS, T, type Era } from '../tuning.ts';
-import { crackleSamples, noiseSamples } from './cues.ts';
+import { crackleSamples, noiseSamples, seededRandom } from './cues.ts';
+import { busArrives, sceneLayers, type SceneId } from './soundscape.ts';
 
 export interface Ambience {
   /** Fades to an era's background sound. */
   setEra(era: Era): void;
+  /** Fades to a moment's soundscape (and lets the bus pull in at the bus stop). */
+  setScene(scene: SceneId): void;
   stop(): void;
 }
 
@@ -55,6 +59,38 @@ function buildBed(ctx: BaseAudioContext, bed: GainNode, era: Era, seed: number):
   return sources;
 }
 
+/** Builds a scene's looping layers into a new bed (volume 0). Returns the bed and its sources. */
+function buildScene(ctx: BaseAudioContext, out: AudioNode, scene: SceneId): { bed: GainNode; sources: AudioScheduledSourceNode[] } {
+  const bed = ctx.createGain();
+  bed.gain.value = 0;
+  bed.connect(out);
+  const n = Math.round(T.audio.soundscape.loopSec * ctx.sampleRate);
+  const sources = sceneLayers(scene).map((layer) => {
+    const src = loop(ctx, layer.samples(n, ctx.sampleRate));
+    const g = ctx.createGain();
+    g.gain.value = layer.gain;
+    src.connect(g).connect(bed);
+    src.start();
+    return src;
+  });
+  return { bed, sources };
+}
+
+/** Plays the bus pulling in, once, a moment after you arrive. */
+function playBus(ctx: BaseAudioContext, out: AudioNode): AudioBufferSourceNode {
+  const b = T.audio.soundscape.ringtone.bus;
+  const samples = busArrives(ctx.sampleRate, seededRandom(T.audio.soundscape.seed + 99), b);
+  const buffer = ctx.createBuffer(1, samples.length, ctx.sampleRate);
+  buffer.getChannelData(0).set(samples);
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  const g = ctx.createGain();
+  g.gain.value = b.gain;
+  src.connect(g).connect(out);
+  src.start(ctx.currentTime + b.delaySec);
+  return src;
+}
+
 /** Starts both eras' background beds, with only `era` audible. */
 export function createAmbience(ctx: BaseAudioContext, out: AudioNode, era: Era): Ambience {
   const beds = new Map<Era, GainNode>();
@@ -67,8 +103,26 @@ export function createAmbience(ctx: BaseAudioContext, out: AudioNode, era: Era):
     sources.push(...buildBed(ctx, bed, e, T.audio.ambience.seed + i * 10));
   });
   sources.forEach((s) => s.start());
+  const scenes = new Map<SceneId, GainNode>();
+  let current: SceneId | null = null;
 
   return {
+    setScene(next) {
+      if (next === current) return;
+      current = next;
+      const now = ctx.currentTime;
+      if (!scenes.has(next)) {
+        const built = buildScene(ctx, out, next);
+        scenes.set(next, built.bed);
+        sources.push(...built.sources);
+      }
+      scenes.forEach((bed, id) => {
+        bed.gain.cancelScheduledValues(now);
+        bed.gain.setValueAtTime(bed.gain.value, now);
+        bed.gain.linearRampToValueAtTime(id === next ? 1 : 0, now + T.audio.soundscape.fadeSec);
+      });
+      if (next === 'ringtone') sources.push(playBus(ctx, out));
+    },
     setEra(next) {
       const now = ctx.currentTime;
       beds.forEach((bed, e) => {
@@ -80,6 +134,7 @@ export function createAmbience(ctx: BaseAudioContext, out: AudioNode, era: Era):
     stop() {
       sources.forEach((s) => s.stop());
       beds.forEach((bed) => bed.disconnect());
+      scenes.forEach((bed) => bed.disconnect());
     },
   };
 }
