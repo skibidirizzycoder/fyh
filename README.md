@@ -164,5 +164,6 @@ Run `npm run gate` before every deploy.
 
 ## Credits
 
-All geometry is made in code. There are no third-party models or sounds yet.
-Only CC0 or CC-BY assets may be added; list CC-BY credits here (title, author, licence, link).
+All geometry and sound effects are made in code. Music by other artists (CC BY) is credited in
+[public/music/CREDITS.md](public/music/CREDITS.md) once it is added.
+Only CC0 or CC-BY assets may be added; list each one's title, author, licence and link.

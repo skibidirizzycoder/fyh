@@ -20,6 +20,7 @@ import { content } from '../src/story/content.ts';
 import { T } from '../src/tuning.ts';
 import { checkAudio } from './checks/audio.ts';
 import { checkKbit } from './checks/kbit.ts';
+import { checkMusic } from './checks/music.ts';
 import { checkPhone } from './checks/phone.ts';
 import { checkStatic } from './checks/static.ts';
 import {
@@ -32,7 +33,7 @@ const TEST = { outDir: 'dist-test', port: 4174 };
 const STEP = 1 / T.loop.stepsPerSecond;
 const READ_FRAMES = Math.round(T.pitch.readSec * T.loop.stepsPerSecond);
 const started = Date.now();
-const TEAM_CHECKS: Record<string, Check> = { phone: checkPhone, static: checkStatic, audio: checkAudio, kbit: checkKbit };
+const TEAM_CHECKS: Record<string, Check> = { phone: checkPhone, static: checkStatic, audio: checkAudio, kbit: checkKbit, music: checkMusic };
 
 // Blank the secrets BEFORE Vite loads .env (existing variables win), so even a
 // request that slipped past the browser mock could not reach Snowflake.
