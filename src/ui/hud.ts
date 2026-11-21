@@ -75,15 +75,16 @@ function scatter(n: number): number {
 
 /**
  * ♪ and ♥ bubbles across the band of the screen where the moment's crowd is when you fix its CD
- * (you are facing them). One burst per CD fixed; the layer empties itself when the burst is over.
+ * (you are facing them). One burst per CD fixed; each bubble removes itself when its animation ends
+ * (so pausing the animation, e.g. for a screenshot, keeps it on screen).
  */
 function createBubbles(root: HTMLElement): (fixed: number, playing: boolean) => void {
   const B = T.screens.bubbles;
   const layer = make('div', '');
   layer.id = 'bubbles';
   root.appendChild(layer);
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)');
   let last = 0;
-  let timer: ReturnType<typeof setTimeout> | undefined;
 
   function burst(seed: number): void {
     layer.replaceChildren(...Array.from({ length: B.count }, (_, i) => {
@@ -93,13 +94,15 @@ function createBubbles(root: HTMLElement): (fixed: number, playing: boolean) => 
       bubble.style.left = `${B.band.left + (B.band.right - B.band.left) * across}%`;
       bubble.style.top = `${B.band.top + (B.band.bottom - B.band.top) * scatter(seed * 17 + i * 7)}%`;
       bubble.style.animationDelay = `${(B.staggerSec * scatter(seed * 5 + i * 3)).toFixed(2)}s`;
+      bubble.addEventListener('animationend', () => bubble.remove()); // gone once it has floated away
       return bubble;
     }));
-    clearTimeout(timer);
-    timer = setTimeout(() => layer.replaceChildren(), (B.sec + B.staggerSec) * 1000);
+    // Reduced motion: no animation, so no animationend either. Clear them after the same time.
+    if (still.matches) setTimeout(() => layer.replaceChildren(), (B.sec + B.staggerSec) * 1000);
   }
 
   return (fixed, playing) => {
+    if (!playing && layer.childElementCount > 0) layer.replaceChildren(); // never resume a burst after the title or ending
     layer.hidden = !playing;
     if (playing && fixed > last) burst(fixed);
     last = fixed;

@@ -91,8 +91,23 @@ async function checkBubbles(page: Page): Promise<number> {
     });
   });
   expect(clash !== true, 'a bubble covers the dialogue');
-  await page.waitForTimeout(400); // mid-pop, for the picture
+  // Freeze the burst mid-pop for the picture: a slow machine can take longer than the burst to screenshot.
+  await page.evaluate(() => {
+    for (const a of document.getAnimations()) {
+      const target = (a.effect as KeyframeEffect | null)?.target;
+      if (!(target instanceof HTMLElement) || !target.classList.contains('bubble')) continue;
+      const timing = a.effect?.getTiming();
+      a.pause();
+      a.currentTime = Number(timing?.delay ?? 0) + Number(timing?.duration ?? 0) * 0.35;
+    }
+  });
   await screenshot(page, 'bubbles');
+  await page.evaluate(() => {
+    for (const a of document.getAnimations()) {
+      const target = (a.effect as KeyframeEffect | null)?.target;
+      if (target instanceof HTMLElement && target.classList.contains('bubble')) a.play();
+    }
+  });
   try {
     await page.waitForFunction(() => document.querySelectorAll('#bubbles .bubble').length === 0, null, { polling: POLL_MS, timeout: (B.sec + B.staggerSec) * 1000 + 2000 });
   } catch {
