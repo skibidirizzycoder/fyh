@@ -93,4 +93,14 @@ Worked: Space/Enter start, Q/E ignored on the title, the phone list wraps, no wa
 walls stop you, second steps first give the right "not yet" line, mute survives travel, reputation 1→2→3
 with the right card and paper, the ending after 3 s, play again resets flags, CDs and the shop.
 
+**Round people (director/cdplayer, 17:50):** the player is a round person (`src/player/person.ts`,
+`T.person`): capsule limbs, a sphere head wearing `face_player` (the cel shader's front picture), knit
+jumper and denim fabrics, a cap whose brim is the nose. 5 draw calls (NPC looks 4), one skinned mesh per
+material. It walks, runs (Shift) and idles: knees and elbows bend, the stride moves with distance, the
+body rests on the longer leg, sways, twists, leans into runs and turns, breathes, and every change eases
+over `poseEaseSec` (game steps). The head stays level and glances at the E target (`avatar.lookAt`);
+a fixed CD makes it cheer; dust puffs (`src/player/puffs.ts`) mark run starts and stops. Teammates'
+NPC props are still cylinders: `createPerson(T.person.looks.npc_a, textures, id)` would round them.
+Not run since this work: the full smoke (`npm run gate`); unit checks pass.
+
 **Next session:** read `AGENTS.md`, run `npm run gate`, run `npm run snowflake:ping` if `.env` is set.
