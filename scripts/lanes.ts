@@ -50,9 +50,9 @@ export function matches(path: string, pattern: string): boolean {
   return new RegExp(`^${re}$`).test(path);
 }
 
-/** The lane that works on a branch, if any. */
+/** The lane that works on a branch, if any. `feat/phone-static-screens` (an extra session) counts too. */
 export function laneForBranch(branch: string): Lane | undefined {
-  return LANES.find((l) => l.branch === branch);
+  return LANES.find((l) => branch === l.branch || branch.startsWith(`${l.branch}-`));
 }
 
 /** The paths a lane is NOT allowed to change. */
