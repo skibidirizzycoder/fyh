@@ -18,7 +18,7 @@ import { createHud, showFallback } from './ui/hud.ts';
 import { buildWorld } from './world/build.ts';
 import { GROUND, PROPS } from './world/layout.ts';
 import { lookFor } from './world/look.ts';
-import { createPostFilter } from './world/post.ts';
+import { createPostFilter, msaaLimit } from './world/post.ts';
 import { installDebugApi } from './debug.ts';
 
 /** Makes the WebGL renderer, or returns the reason it failed. */
@@ -51,7 +51,7 @@ function boot(): void {
   const world = buildWorld();
   const avatar = createAvatar(world.scene);
   const camera = new THREE.PerspectiveCamera(T.camera.fovDeg, 1, T.camera.near, T.camera.far);
-  const post = createPostFilter(1, 1);
+  const post = createPostFilter(1, 1, msaaLimit(renderer));
   const hud = createHud(app, content, news);
   const phone = createPhoneView(app);
   let drawCalls = 0;
@@ -59,9 +59,10 @@ function boot(): void {
   function resize(): void {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    renderer.setPixelRatio(window.devicePixelRatio);
+    const ratio = Math.min(window.devicePixelRatio, T.limits.maxPixelRatio);
+    renderer.setPixelRatio(ratio);
     renderer.setSize(w, h, false);
-    post.setSize(w * window.devicePixelRatio, h * window.devicePixelRatio);
+    post.setSize(w * ratio, h * ratio);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }

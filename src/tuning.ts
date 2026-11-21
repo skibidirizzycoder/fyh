@@ -82,6 +82,8 @@ export const T = {
       outlineCreaseTone: 0.03, // (when creases are on) their colour must change this much, so flat unlit markers stay clean
       outlineBreakup: 0.6, // how much the lines fade in the noise's gaps (0 = solid lines)
       outlineNoisePx: 72, // size of the noise patches that break the lines up
+      msaa: 0, // post filter: no anti-aliasing, the pixels stay hard
+      skyDeepen: 0.3, // sky gradient: the top of the sky is this much darker than the horizon (0 = flat)
       badgeText: '#ffcf7a',
     },
     present: {
@@ -107,6 +109,8 @@ export const T = {
       outlineCreaseTone: 0.03, // ... and its colour changes at least this much (flat unlit markers get no inner lines)
       outlineBreakup: 0.6, // how much the lines fade in the noise's gaps (0 = solid lines)
       outlineNoisePx: 72, // size of the noise patches that break the lines up
+      msaa: 4, // post filter: multisample anti-aliasing samples (smooth edges)
+      skyDeepen: 0.3, // sky gradient: the top of the sky is this much darker than the horizon (0 = flat)
       badgeText: '#bfe6ff',
     },
   },
@@ -349,13 +353,14 @@ export const T = {
     },
     ringtone: { // 5 December: cold grey dusk (still warmer and grainier than today)
       sky: '#8791a6', fogNear: 9, fogFar: 32, sunColor: '#ffd9b0', sunIntensity: 1.4, ambient: 0.8,
-      tint: [1.02, 0.98, 0.96], saturation: 0.72, // colder, so it stays apart from open_mic with ink lines on (smoke: looks)
+      tint: [1.0, 0.98, 0.98], saturation: 0.72, // colder, so it stays apart from open_mic with ink lines on (smoke: looks)
     },
   },
 
   limits: {
     maxDrawCalls: 60, // smoke fails above this
     minLookDistance: 18, // smoke: mean scene colours of any two scenes differ by at least this (0..441)
+    maxPixelRatio: 2, // draw at most this many device pixels per CSS pixel (sharp on retina, affordable on phones)
   },
 
   // --- Teammate B: all sound, generated in code (no sound files) ---

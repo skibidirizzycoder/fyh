@@ -1,4 +1,4 @@
-// outline.test.ts — ink outlines: on in both eras, a dark blue-grey ink, about 2 px at 1080p today
+// outline.test.ts — ink outlines (and the post pass's MSAA and sky): on in both eras, a dark blue-grey ink, about 2 px at 1080p today
 // and exactly one chunky pixel in 2004 (src/world/look.ts, drawn in src/world/post.ts).
 import { describe, expect, it } from 'vitest';
 import { Color } from 'three';
@@ -88,5 +88,23 @@ describe('outline look', () => {
       expect(toScenePx(look.outlineNoisePx, 1080, 1), `${era}: noise patches much wider than the lines`)
         .toBeGreaterThan(4 * toScenePx(look.outlinePx, 1080, 1));
     }
+  });
+});
+
+describe('anti-aliasing and sky', () => {
+  it('today is anti-aliased (MSAA); 2004 never is, so its pixels stay hard', () => {
+    expect(lookFor('present', null).msaa).toBeGreaterThan(1);
+    for (const m of [null, ...content.cds.map((c) => c.moment)]) expect(lookFor('2004', m).msaa, String(m)).toBe(0);
+  });
+
+  it('every scene has a soft sky gradient that never goes black', () => {
+    for (const era of ERAS) {
+      expect(T.eras[era].skyDeepen, era).toBeGreaterThan(0);
+      expect(T.eras[era].skyDeepen, era).toBeLessThan(1);
+    }
+  });
+
+  it('the pixel ratio is capped at 2 (sharp on retina, affordable on phones)', () => {
+    expect(T.limits.maxPixelRatio).toBe(2);
   });
 });
