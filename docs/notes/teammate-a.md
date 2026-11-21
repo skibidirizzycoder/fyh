@@ -28,6 +28,11 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
 
 ## Requests for the director
 
+- **Bubbles over the right people (M-A3):** `hud.render(game)` has no camera, so the ♪/♥ bubbles pop
+  in a band across the middle of the screen (where the crowd is when you fix a CD, facing it). If
+  `main.ts` passed the camera (`hud.render(game, camera)`), I can pin each bubble over a person
+  that the fixing step shows (project their prop positions).
+
 - **Netlify:** the live site is behind `main` (no A4/A5): it needs `npm run checkpoint` from your
   linked folder. Its `/api/headline` returns 500 because `SNOWFLAKE_ACCOUNT`/`SNOWFLAKE_TOKEN` are
   not set under Site settings → Environment variables (the game falls back to the offline paper).
@@ -122,3 +127,16 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
 - **Checks:** `tests/static.test.ts` (step 2 shows exactly the exported list, crowd size and raised
   arms, the aisle, only the reel and mic are interactable, inside the street, no z-fighting or
   overlap except the amp light pair that swaps); `scripts/checks/static.ts` checks every payoff prop.
+
+## Task M-A3: checklist + payoff
+
+- **Checklist:** the phone menu is a checklist: a tick box before each CD (ticked once fixed, drawn in
+  CSS with `currentColor`, so it inverts on the selected row) and "1/3" by the TIME TRAVEL title.
+  Replaces the star.
+- **Payoff:** fixing a CD pops `T.screens.bubbles.count` (8) ♪/♥ speech bubbles (off-white, thick ink
+  outline) across the middle of the screen; each pops, floats up and fades in `sec` (1.2 s), with
+  a stagger. Seeded positions, so screenshots are stable. Only a new fix pops them: travelling,
+  restarting or the ending never do. `#bubbles` sits above the world and below the phone.
+- **Checks:** `scripts/checks/phone.ts` (one box per CD, ticks only on fixed CDs, "1/3"),
+  `scripts/checks/ui.ts` `checkBubbles` (count after a fix, clear of the dialogue, gone after the
+  burst, none on travel; screenshot `bubbles`).
