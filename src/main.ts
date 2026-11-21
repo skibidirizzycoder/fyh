@@ -20,6 +20,7 @@ import { buildWorld } from './world/build.ts';
 import { GROUND, PROPS } from './world/layout.ts';
 import { lookFor } from './world/look.ts';
 import { createParticles } from './world/particles.ts';
+import { createFlipTransition } from './fx/flip.ts';
 import { createPostFilter, msaaLimit } from './world/post.ts';
 import { installDebugApi } from './debug.ts';
 
@@ -59,6 +60,7 @@ function boot(): void {
   const post = createPostFilter(1, 1, msaaLimit(renderer));
   const hud = createHud(app, withCdPrompts(content), news); // the HUD finds E prompts in `actions`, the CD player's too
   const phone = createPhoneView(app);
+  if (import.meta.env.MODE !== 'test') createFlipTransition(app, events, content); // tests screenshot right after a jump
   let drawCalls = 0;
 
   function resize(): void {
