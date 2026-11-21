@@ -308,7 +308,14 @@ export const T = {
     },
     chime: { notes: [76, 81, 88], gapSec: 0.08, sec: 0.5, gain: 0.2, wave: 'sine' }, // action-done
     nope: { notes: [50, 46], gapSec: 0.12, sec: 0.14, gain: 0.2, wave: 'square' }, // action-locked
-    fanfare: { notes: [67, 72, 76, 79, 84], gapSec: 0.1, sec: 0.35, gain: 0.18, wave: 'square', delaySec: 0.7 }, // reputation; waits for the travel whoosh
+    // The "remaster" sting (reputation: back today after a fix): the tape rewinds (a warbling squeal rising,
+    // tape hiss), the play key clunks, and the remix comes in crisp. The music holds silent until the clunk.
+    remaster: {
+      delaySec: 0.45, // starts while the travel whoosh fades
+      rewindSec: 0.8, fromNote: 52, toNote: 90, steps: 10, warble: 0.7, gain: 0.06, // squeal: up in wobbly steps
+      hiss: { gain: 0.16, fromHz: 900, toHz: 6500, q: 0.8 },
+      clunk: { sec: 0.07, note: 38, gain: 0.28, noiseHz: 1500, toHz: 450, noiseGain: 0.32 }, // the play key
+    },
     // K-Bit's AirDrop (2017): a quick upward swoosh as it flies over, then a bright two-note "received" ping.
     // Our own sound (not Apple's). The cue keeps its old id, 'beam'.
     beam: { swooshSec: 0.35, swooshGain: 0.35, swooshFromHz: 600, swooshToHz: 5000, swooshQ: 3, pingAt: 0.4, pingNotes: [88, 95], pingGapSec: 0.11, pingSec: 0.32, pingGain: 0.16, wave: 'sine' },
@@ -376,6 +383,7 @@ export const T = {
       duckGain: 0.3, // music volume while a whoosh, chime or ringtone plays
       duckCues: ['whoosh', 'chime', 'ringtone', 'beam', 'cd-insert'],
       duckAttackSec: 0.05,
+      crispSec: 0.03, // after the remaster sting the remix snaps in this fast (no fade)
       duckReleaseSec: 0.5,
       past: { lowpassHz: 2500, gain: 0.7 }, // "2004 style": muffled, mono
       broken: { cutHz: 0.6 }, // the dying amp: the song cuts in and out this many times a second
