@@ -106,6 +106,16 @@ export function buildCue(name: CueName): Cue {
   }
 }
 
+/**
+ * Where in the shared noise buffer a burst starts, in seconds: a fixed point picked from the burst's own
+ * numbers, so different bursts (footstep variants, paper rustles) are different noise, not the same snippet.
+ */
+export function noiseOffset(burst: NoiseBurst, bufferSec: number): number {
+  const room = Math.max(0, bufferSec - burst.sec);
+  const h = Math.sin(burst.fromHz * 12.9898 + burst.toHz * 78.233 + burst.at * 37.719 + burst.sec * 4.581) * 43758.5453;
+  return (h - Math.floor(h)) * room;
+}
+
 /** How long a cue lasts, in seconds. */
 export function cueLength(cue: Cue): number {
   const ends = [...cue.tones, ...cue.noises].map((p) => p.at + p.sec);

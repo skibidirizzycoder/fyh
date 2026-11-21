@@ -3,7 +3,7 @@
 // through a sweeping band-pass filter for noise bursts. Nodes stop themselves.
 
 import { T } from '../tuning.ts';
-import { noteHz, noiseSamples, type Cue, type NoiseBurst, type Tone } from './cues.ts';
+import { noiseOffset, noteHz, noiseSamples, type Cue, type NoiseBurst, type Tone } from './cues.ts';
 
 /** A gain envelope: quick fade in, hold, quick fade out (avoids clicks). */
 function envelope(ctx: BaseAudioContext, start: number, sec: number, peak: number): GainNode {
@@ -38,7 +38,7 @@ function playNoise(ctx: BaseAudioContext, out: AudioNode, t0: number, burst: Noi
   filter.frequency.setValueAtTime(burst.fromHz, start);
   filter.frequency.exponentialRampToValueAtTime(burst.toHz, start + burst.sec);
   src.connect(filter).connect(envelope(ctx, start, burst.sec, burst.gain)).connect(out);
-  src.start(start);
+  src.start(start, noiseOffset(burst, noise.duration)); // each burst its own stretch of noise
   src.stop(start + burst.sec);
 }
 

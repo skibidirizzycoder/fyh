@@ -310,6 +310,7 @@ export const T = {
       seed: 77,
       fadeSec: 1.5,
       sampleRate: 24000, // scene layers are made at this rate (all below 12 kHz): half the work of 48 kHz
+      seamSec: 0.3, // each layer's end crossfades into its start over this long, so the loop has no click
       layerRms: 0.25, // every layer is scaled to this loudness; its `gain` then sets how loud it is
       open_mic: { // a pub-ish evening: murmuring people and clinking glasses
         babble: { gain: 0.08, voices: 6, syllableHz: 4, lowHz: 250, highHz: 1100 },
