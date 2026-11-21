@@ -1,0 +1,71 @@
+// timeline.ts — past actions are flags; the present is a pure function of them.
+// Nothing here keeps hidden state: every function takes the flags and returns
+// a new answer. Flags are the list of action ids done, in the order done.
+
+import type { PastAction, PresentChange, StoryContent } from './types.ts';
+
+export type Flags = readonly string[];
+
+export type ActionResult =
+  | { ok: true; action: PastAction; flags: Flags }
+  | { ok: false; reason: 'unknown' | 'already-done'; flags: Flags }
+  | { ok: false; reason: 'locked'; action: PastAction; missing: string[]; flags: Flags };
+
+/** Finds the action that uses a given interactable object, if any. */
+export function actionForObject(content: StoryContent, objectId: string): PastAction | undefined {
+  return content.actions.find((a) => a.objectId === objectId);
+}
+
+/** Lists the requirements of an action that are not yet done. */
+export function missingRequirements(action: PastAction, flags: Flags): string[] {
+  return action.requires.filter((id) => !flags.includes(id));
+}
+
+/** Tries to do an action. Returns the new flags; never changes the old ones. */
+export function doAction(content: StoryContent, flags: Flags, actionId: string): ActionResult {
+  const action = content.actions.find((a) => a.id === actionId);
+  if (!action) return { ok: false, reason: 'unknown', flags };
+  if (flags.includes(actionId)) return { ok: false, reason: 'already-done', flags };
+  const missing = missingRequirements(action, flags);
+  if (missing.length > 0) return { ok: false, reason: 'locked', action, missing, flags };
+  return { ok: true, action, flags: [...flags, actionId] };
+}
+
+/** True when every requirement of a present-day change is in the flags. */
+export function isChangeActive(change: PresentChange, flags: Flags): boolean {
+  return change.requires.every((id) => flags.includes(id));
+}
+
+/** The present day: which changes are active. A pure function of the flags. */
+export function presentState(content: StoryContent, flags: Flags): Record<string, boolean> {
+  return Object.fromEntries(content.changes.map((c) => [c.id, isChangeActive(c, flags)]));
+}
+
+/**
+ * Every past action that led to `ids`, following requirements back to the start.
+ * Returned in snowball order: earliest cause first.
+ */
+export function causesOf(content: StoryContent, ids: readonly string[]): PastAction[] {
+  const ordered: PastAction[] = [];
+  const visit = (id: string): void => {
+    const action = content.actions.find((a) => a.id === id);
+    if (!action || ordered.includes(action)) return;
+    action.requires.forEach(visit); // causes before effects
+    ordered.push(action);
+  };
+  ids.forEach(visit);
+  return ordered;
+}
+
+/** Prop ids made visible or hidden by done actions and active changes. */
+export function propOverrides(content: StoryContent, flags: Flags): { shown: Set<string>; hidden: Set<string> } {
+  const shown = new Set<string>();
+  const hidden = new Set<string>();
+  const apply = (fx: { show: string[]; hide: string[] }): void => {
+    fx.show.forEach((id) => shown.add(id));
+    fx.hide.forEach((id) => hidden.add(id));
+  };
+  content.actions.filter((a) => flags.includes(a.id)).forEach((a) => apply(a.effects));
+  content.changes.filter((c) => isChangeActive(c, flags)).forEach((c) => apply(c.effects));
+  return { shown, hidden };
+}

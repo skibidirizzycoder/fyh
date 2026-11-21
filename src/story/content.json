@@ -1,0 +1,80 @@
+{
+  "intro": "Hollow Records closed in 2004. It has been boarded up ever since. Your old flip phone buzzes. Press Q to flip it open.",
+  "travelLines": {
+    "2004": "The screen flickers... 2004. The shop is still open, just.",
+    "present": "Snap. The phone closes and the street is today again."
+  },
+  "alreadyDoneLine": "You've already done that here.",
+  "notHereLine": "There's nothing to use here in this era.",
+  "actions": [
+    {
+      "id": "take_cd",
+      "objectId": "cd",
+      "label": "picked up Mira's dropped demo CD",
+      "prompt": "Pick up the CD",
+      "requires": [],
+      "line": "A scratched demo CD: 'MIRA - first songs'. Someone dropped it.",
+      "lockedLine": "",
+      "effects": {
+        "show": [],
+        "hide": [
+          "cd"
+        ]
+      }
+    },
+    {
+      "id": "play_cd",
+      "objectId": "listening_post",
+      "label": "played it at the shop's listening post",
+      "prompt": "Use the listening post",
+      "requires": [
+        "take_cd"
+      ],
+      "line": "You slip the CD in. The owner stops sweeping. 'Who IS this?'",
+      "lockedLine": "The listening post is free. You have nothing to play.",
+      "effects": {
+        "show": [
+          "owner_flyer_stack"
+        ],
+        "hide": []
+      }
+    },
+    {
+      "id": "pin_flyer",
+      "objectId": "noticeboard",
+      "label": "pinned her gig flyer where everyone walks past",
+      "prompt": "Pin a flyer",
+      "requires": [
+        "play_cd"
+      ],
+      "line": "The owner hands you a flyer for Mira's first gig. You pin it up.",
+      "lockedLine": "An empty noticeboard. Nothing worth pinning... yet.",
+      "effects": {
+        "show": [
+          "flyer"
+        ],
+        "hide": []
+      }
+    }
+  ],
+  "changes": [
+    {
+      "id": "shop_saved",
+      "label": "Hollow Records is open",
+      "requires": [
+        "pin_flyer"
+      ],
+      "line": "Mira's first record sold out in 2005. She bought the shop and kept it open.",
+      "effects": {
+        "show": [
+          "open_sign",
+          "lit_window"
+        ],
+        "hide": [
+          "boarded_window"
+        ]
+      }
+    }
+  ],
+  "ending": "Something old, into something modern. Press Enter to play again."
+}

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flip Phone</title>
+    <style>
+      /* Colours are CSS variables set from src/tuning.ts at start-up. */
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+      body { font-family: var(--font); color: var(--text); }
+      #app, canvas { display: block; width: 100%; height: 100%; }
+      [hidden] { display: none !important; }
+      .panel { position: absolute; background: var(--panel); border-radius: 8px; padding: 10px 16px; font-size: 18px; line-height: 1.4; }
+      .dim { color: var(--text-dim); }
+      .accent { color: var(--accent); font-weight: 600; }
+      .overlay { inset: 20% 15%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+      .overlay h1 { font-size: 48px; margin: 0 0 12px; }
+      #era { top: 16px; left: 16px; font-size: 28px; font-weight: 800; letter-spacing: 2px; }
+      #era[data-era='2004'] { color: var(--era-2004); font-family: 'Courier New', monospace; }
+      #era[data-era='present'] { color: var(--era-present); }
+      #prompt { bottom: 110px; left: 50%; transform: translateX(-50%); color: var(--accent); font-weight: 700; }
+      #dialogue { bottom: 24px; left: 50%; transform: translateX(-50%); max-width: 70%; text-align: center; }
+      #card { top: 16px; right: 16px; max-width: 340px; }
+      #card h2 { margin: 0 0 6px; font-size: 20px; }
+      #card ol { margin: 0 0 8px; padding-left: 22px; }
+      #fallback { color: #fff; background: #000; padding: 24px; white-space: pre-wrap; font: 18px/1.5 system-ui, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
