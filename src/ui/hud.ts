@@ -2,8 +2,8 @@
 // Each frame, render() makes the page match the game state.
 //   #title    a 2004 phone booting up: Hollow Records, three dusty CDs, "Press Enter"
 //             (two looks, T.screens.titleVariant: 'lcd' green mono screen or 'colour' screen)
-//   #card     "Because you..." as a tabloid inside story
-//   #news     today's paper as a 2000s red-top front page
+//   #card     "Because you..." as a tabloid inside story  } both inside #today-papers: apart on
+//   #news     today's paper as a 2000s red-top front page } wide screens, stacked on narrow ones
 //   #ending   a wall of framed gold discs, one per CD
 // Colours come from tuning.ts via CSS variables. Story text only ever goes in via textContent.
 
@@ -88,17 +88,19 @@ export function createHud(root: HTMLElement, content: StoryContent, news: NewsDe
     <div id="era" class="panel"></div>
     <div id="prompt" class="panel"></div>
     <div id="dialogue" class="panel"></div>
-    <div id="card" class="tabloid-card">
-      <p class="tabloid-sticker">EXCLUSIVE</p>
-      <h2 class="tabloid-head">Because you...</h2>
-      <ol id="card-causes"></ol>
-      <p id="card-change"></p>
-    </div>
-    <div id="news" class="tabloid">
-      <p class="tabloid-masthead"><span>THE CORNER GAZETTE</span><span class="tabloid-price">25p</span></p>
-      <h3 id="news-headline"></h3>
-      <p id="news-article"></p>
-      <p id="news-offline">offline edition</p>
+    <div id="today-papers">
+      <div id="card" class="tabloid-card">
+        <p class="tabloid-sticker">EXCLUSIVE</p>
+        <h2 class="tabloid-head">Because you...</h2>
+        <ol id="card-causes"></ol>
+        <p id="card-change"></p>
+      </div>
+      <div id="news" class="tabloid">
+        <p class="tabloid-masthead"><span>THE CORNER GAZETTE</span><span class="tabloid-price">25p</span></p>
+        <h3 id="news-headline"></h3>
+        <p id="news-article"></p>
+        <p id="news-offline">offline edition</p>
+      </div>
     </div>
     <div id="ending" class="screen"></div>
   `);
@@ -114,6 +116,12 @@ export function createHud(root: HTMLElement, content: StoryContent, news: NewsDe
   };
   parts.title.appendChild(bootScreen(content.cds, T.screens.titleVariant));
   parts.ending.append(...endingScreen(content));
+
+  // Phones and other narrow windows get their own layout (hud.css and phone.css read this class).
+  const narrow = window.matchMedia(`(max-width: ${T.screens.narrowBelowPx - 1}px)`);
+  const fit = (): void => { document.documentElement.classList.toggle('is-narrow', narrow.matches); };
+  narrow.addEventListener('change', fit);
+  fit();
 
   return {
     render(game) {

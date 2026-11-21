@@ -18,7 +18,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center; /* "safe": a screen taller than the window scrolls instead of losing its top */
+  overflow-y: auto;
   padding: 24px;
   box-sizing: border-box;
   background: var(--backdrop);
@@ -32,7 +33,7 @@
   box-sizing: border-box;
   border-radius: 14px;
 }
-.boot p, .boot h1, .boot figure { margin: 0; }
+:where(.boot) p, :where(.boot) h1, :where(.boot) figure { margin: 0; } /* :where keeps this weak, so the lines below win */
 .boot-status { display: flex; align-items: flex-end; justify-content: space-between; height: 16px; font-size: 13px; margin-bottom: 14px; }
 .boot-signal { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
 .boot-signal i { display: block; width: 4px; background: currentColor; }
@@ -43,15 +44,15 @@
 .boot-battery { position: relative; display: block; width: 22px; height: 11px; border: 2px solid currentColor; box-sizing: border-box; }
 .boot-battery i { position: absolute; left: 1px; top: 1px; bottom: 1px; width: 13px; background: currentColor; }
 .boot-maker { font-size: 34px; letter-spacing: 8px; }
-.boot-tagline { font-size: 14px; margin-top: 2px !important; }
-.boot-shop { font-size: 30px; font-weight: 900; letter-spacing: 3px; margin-top: 20px !important; }
-.boot-shop-sub { font-size: 14px; margin-top: 2px !important; }
+.boot-tagline { font-size: 14px; margin-top: 2px; }
+.boot-shop { font-size: 30px; font-weight: 900; letter-spacing: 3px; margin-top: 20px; }
+.boot-shop-sub { font-size: 14px; margin-top: 2px; }
 .boot-cds { display: flex; justify-content: center; gap: 28px; margin: 16px 0 14px; }
 .boot-cd { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; }
 .boot-bar { width: 70%; height: 12px; margin: 0 auto 12px; border: 2px solid currentColor; box-sizing: border-box; padding: 1px; }
 .boot-bar i { display: block; height: 100%; width: 100%; background: currentColor; transform-origin: left; animation: boot-fill var(--boot-sec) steps(12) both; }
 .boot-start { font-size: 20px; font-weight: 800; animation: boot-blink var(--blink-sec) step-end var(--boot-sec) infinite; }
-.boot-keys { font-size: 12px; margin-top: 10px !important; }
+.boot-keys { font-size: 12px; margin-top: 10px; }
 
 @keyframes boot-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes boot-blink { 50% { visibility: hidden; } }
@@ -101,6 +102,9 @@
     conic-gradient(from 30deg, var(--gold), var(--gold-deep), var(--gold), var(--gold-deep), var(--gold));
   box-shadow: 0 0 0 2px var(--gold-deep);
 }
+
+/* Card and paper share a wrapper that only takes part in layout on narrow screens (see the end). */
+#today-papers { display: contents; }
 
 /* --- "Because you...": a tabloid inside story --- */
 .tabloid-card {
@@ -186,6 +190,28 @@
 .gold-caption { color: var(--caption); font: 15px/1.35 Arial, sans-serif; }
 .gold-caption b { display: block; font-size: 18px; }
 .ending-text { max-width: 620px; margin: 30px 0 0; color: var(--caption); font: 18px/1.45 Arial, sans-serif; }
+
+/* --- narrow screens (html.is-narrow, below T.screens.narrowBelowPx): nothing overlaps ---
+   era top-left, the folded phone top-right (phone.css), the card and paper stacked below them in
+   one scrolling column (hidden while the phone is open, which takes their place), dialogue full width. */
+.is-narrow #era { font-size: 20px; letter-spacing: 1px; }
+.is-narrow #dialogue { left: 12px; right: 12px; max-width: none; transform: none; font-size: 16px; }
+.is-narrow #today-papers {
+  position: absolute;
+  top: 128px;
+  left: 12px;
+  right: 12px;
+  bottom: 170px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 10px; /* room for the sticker */
+  overflow: hidden auto;
+}
+.is-narrow #today-papers > * { position: relative; inset: auto; width: auto; flex: none; }
+.is-narrow .tabloid-sticker { right: 6px; }
+.is-narrow #app:has(> #phone:not([data-state='closed'])) #today-papers { display: none; }
+.is-narrow .ending-title { font-size: 44px; letter-spacing: 8px; }
 
 @media (prefers-reduced-motion: reduce) {
   .boot-bar i, .boot-start { animation: none; }
