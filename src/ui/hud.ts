@@ -7,6 +7,7 @@
 //   #ending   a wall of framed gold discs, one per CD
 //   #bubbles  ♪/♥ bubbles that pop over the moment when a CD is fixed, for about a second
 // Colours come from tuning.ts via CSS variables. Story text only ever goes in via textContent.
+// Everything in play is "hand-made": off-white paper, thick ink outlines, chunky type, a slight tilt.
 
 import './hud.css';
 import type { Game } from '../game.ts';
@@ -229,15 +230,8 @@ function setCssColours(): void {
   const css = document.documentElement.style;
   const S = T.screens;
   const vars: Record<string, string> = {
-    '--panel': T.ui.panel,
     '--text': T.ui.text,
-    '--text-dim': T.ui.textDim,
-    '--accent': T.ui.accent,
     '--font': T.ui.fontFamily,
-    '--era-2004': T.eras['2004'].badgeText,
-    '--era-present': T.eras.present.badgeText,
-    '--paper': T.news.paper,
-    '--ink': T.news.ink,
     '--offline-ink': T.news.offlineInk,
     '--lcd': T.phone.lcd,
     '--lcd-ink': T.phone.lcdInk,
@@ -251,7 +245,6 @@ function setCssColours(): void {
     '--colour-accent': S.colourAccent,
     '--cd-dusty': S.cdDusty,
     '--cd-hub': S.cdHub,
-    '--tabloid-paper': S.tabloidPaper,
     '--tabloid-ink': S.tabloidInk,
     '--tabloid-red': S.tabloidRed,
     '--tabloid-red-text': S.tabloidRedText,
@@ -262,6 +255,13 @@ function setCssColours(): void {
     '--frame': S.frame,
     '--mat': S.mat,
     '--caption': S.caption,
+    '--paper-hand': S.paper,
+    '--paper-2004': S.paper2004,
+    '--paper-ink': S.paperInk,
+    '--outline': `${S.outlinePx}px solid ${S.paperInk}`,
+    '--note': S.note,
+    '--chunky': S.chunkyFont,
+    '--dialogue-max': `${S.dialogueMaxPx}px`,
     '--bubble-sec': `${S.bubbles.sec}s`,
     '--bubble-size': `${S.bubbles.sizePx}px`,
     '--bubble-paper': S.bubbles.paper,

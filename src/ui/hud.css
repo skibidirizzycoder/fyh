@@ -2,13 +2,28 @@
    Colours and timings come from tuning.ts as CSS variables (set by hud.ts). Text areas keep one
    solid background each, so smoke's contrast check (measured on rendered pixels) means something. */
 
-/* --- in-game panels --- */
-.panel { position: absolute; background: var(--panel); border-radius: 8px; padding: 10px 16px; font-size: 18px; line-height: 1.4; }
-#era { top: 16px; left: 16px; font-size: 28px; font-weight: 800; letter-spacing: 2px; }
-#era[data-era='2004'] { color: var(--era-2004); font-family: 'Courier New', monospace; }
-#era[data-era='present'] { color: var(--era-present); }
-#prompt { bottom: 110px; left: 50%; transform: translateX(-50%); color: var(--accent); font-weight: 700; }
-#dialogue { bottom: 24px; left: 50%; transform: translateX(-50%); max-width: 70%; text-align: center; }
+/* --- in-game panels: hand-made paper (off-white, thick ink outline, hard shadow, a slight tilt) --- */
+.panel {
+  position: absolute;
+  padding: 10px 16px;
+  border: var(--outline);
+  border-radius: 10px;
+  background: var(--paper-hand);
+  color: var(--paper-ink);
+  box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.35);
+  font: 700 18px/1.4 var(--chunky);
+}
+#era { top: 16px; left: 16px; font-size: 28px; font-weight: 800; letter-spacing: 2px; transform: rotate(-2deg); }
+#era[data-era='2004'] { background: var(--paper-2004); font-family: 'Courier New', monospace; }
+#prompt { bottom: 110px; left: 50%; transform: translateX(-50%) rotate(1deg); background: var(--note); font-weight: 800; }
+#dialogue {
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-0.6deg);
+  width: max-content;
+  max-width: min(70%, var(--dialogue-max));
+  text-align: center;
+}
 
 /* --- full screens: title and ending sit above everything --- */
 .screen {
@@ -113,10 +128,12 @@
   right: 16px;
   width: 330px;
   padding-bottom: 10px;
-  background: var(--tabloid-paper);
+  border: var(--outline);
+  background: var(--paper-hand);
   color: var(--tabloid-ink);
   font: 15px/1.35 Arial, Helvetica, sans-serif;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-shadow: 5px 6px 0 rgba(0, 0, 0, 0.35);
+  transform: rotate(1.5deg);
 }
 .tabloid-head {
   margin: 0 0 8px;
@@ -152,10 +169,12 @@
   top: 90px;
   width: 330px;
   padding-bottom: 10px;
-  background: var(--tabloid-paper);
+  border: var(--outline);
+  background: var(--paper-hand);
   color: var(--tabloid-ink);
   font: 14px/1.4 Arial, Helvetica, sans-serif;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-shadow: 5px 6px 0 rgba(0, 0, 0, 0.35);
+  transform: rotate(-1.2deg);
 }
 .tabloid-masthead {
   display: flex;
@@ -203,7 +222,8 @@
 #ending { background: var(--wall); }
 .ending-title { margin: 0 0 26px; color: var(--gold); font: 900 64px/1 Impact, 'Arial Black', sans-serif; letter-spacing: 14px; }
 .gold-wall { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; }
-.gold-frame { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.gold-frame { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; transform: rotate(-2deg); }
+.gold-frame:nth-child(even) { transform: rotate(2deg); } /* hung by hand */
 .gold-mount {
   display: grid;
   place-items: center;
@@ -213,15 +233,23 @@
   border: 10px solid var(--frame);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
 }
-.gold-caption { color: var(--caption); font: 15px/1.35 Arial, sans-serif; }
+.gold-caption {
+  padding: 6px 12px;
+  border: var(--outline);
+  border-radius: 8px;
+  background: var(--paper-hand);
+  color: var(--paper-ink);
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.35);
+  font: 700 15px/1.35 var(--chunky);
+}
 .gold-caption b { display: block; font-size: 18px; }
-.ending-text { max-width: 620px; margin: 30px 0 0; color: var(--caption); font: 18px/1.45 Arial, sans-serif; }
+.ending-text { max-width: 620px; margin: 30px 0 0; color: var(--caption); font: 700 18px/1.45 var(--chunky); }
 
 /* --- narrow screens (html.is-narrow, below T.screens.narrowBelowPx): nothing overlaps ---
    era top-left, the folded phone top-right (phone.css), the card and paper stacked below them in
    one scrolling column (hidden while the phone is open, which takes their place), dialogue full width. */
 .is-narrow #era { font-size: 20px; letter-spacing: 1px; }
-.is-narrow #dialogue { left: 12px; right: 12px; max-width: none; transform: none; font-size: 16px; }
+.is-narrow #dialogue { left: 12px; right: 12px; width: auto; max-width: none; transform: rotate(-0.6deg); font-size: 16px; }
 .is-narrow #today-papers {
   position: absolute;
   top: 128px;
@@ -234,7 +262,7 @@
   padding-top: 10px; /* room for the sticker */
   overflow: hidden auto;
 }
-.is-narrow #today-papers > * { position: relative; inset: auto; width: auto; flex: none; }
+.is-narrow #today-papers > * { position: relative; inset: auto; width: auto; flex: none; margin: 0 6px; }
 .is-narrow .tabloid-sticker { right: 6px; }
 .is-narrow #app:has(> #phone:not([data-state='closed'])) #today-papers { display: none; }
 .is-narrow .ending-title { font-size: 44px; letter-spacing: 8px; }
