@@ -193,7 +193,10 @@ export const T = {
   screens: {
     // Title, "Because you..." card, newspaper and ending (src/ui/). Owner: Teammate A.
     titleVariant: 'lcd' as 'lcd' | 'colour', // the team picks: artifacts/title-variants.png shows both
-    bootSec: 1.2, // the boot progress bar fills in this long (then "Press Enter" blinks)
+    bootSec: 1.2, // the boot progress bar fills in this long (then PRESS START pulses)
+    titleShade: 'rgba(11, 11, 15, 0.55)', // the title darkens the live street behind it, more at the edges
+    logoTiltDeg: 10, // the logo leans up to this much towards the mouse
+    logoSwaySec: 6, // one slow idle sway of the logo
     blinkSec: 1.1, // one on/off cycle of "Press Enter"
     narrowBelowPx: 700, // windows narrower than this (phones) stack the card and paper and move the phone up
     // Hand-made UI (like Messenger's, our own colours): off-white paper, thick ink outlines, chunky type,
