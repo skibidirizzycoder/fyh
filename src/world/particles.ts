@@ -77,7 +77,7 @@ export function motePosition(s: MoteSeed, kind: MoteKind, t: number, corner: Vec
 }
 
 /** The soft round dot every mote is drawn with: white in the middle, fading to clear at the edge. */
-function softDot(): THREE.CanvasTexture {
+export function softDot(): THREE.CanvasTexture {
   const px = T.particles.spritePx;
   const canvas = document.createElement('canvas');
   canvas.width = px;
