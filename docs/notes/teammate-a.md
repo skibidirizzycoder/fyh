@@ -194,6 +194,8 @@ filling), `artifacts/mira-arrive.png` (the folded phone bottom-right: 19:30, 14 
 
 ## The shop TV (lead's request, 2026-11-21)
 
+- **When it plays (lead, 2026-11-21):** only once a moment's objective is done (its CD's final action),
+  from the chorus; every time travel hides and pauses it; today and the ending it stays off.
 - The real songs now play from their **official YouTube videos** on a small "shop TV" (`src/ui/tv.ts`,
   `T.tv`): Lose Yourself (EminemMusic), Sweet Child O' Mine (GunsNRosesVEVO), Despacito (LuisFonsiVEVO).
   The TV follows the music rules (`audio.nowPlaying()`): volume by mode, the broken amp cuts in and out.
