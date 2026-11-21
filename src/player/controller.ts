@@ -22,6 +22,7 @@ export interface MoveInput {
   back: boolean;
   turnLeft: boolean;
   turnRight: boolean;
+  run?: boolean; // Shift: walking speed times T.player.runMultiplier
 }
 
 /** Where the player starts: standing still. */
@@ -47,8 +48,9 @@ export function stepPlayer(p: PlayerState, input: MoveInput, dt: number, obstacl
   const turnWanted = ((input.turnLeft ? 1 : 0) - (input.turnRight ? 1 : 0)) * P.turnSpeedDeg;
   const turnRate = ease(p.turnRate ?? 0, turnWanted, P.turnSpeedDeg, P.turnAccelSec, P.turnDecelSec, dt);
   const yawDeg = wrapDegrees(p.yawDeg + turnRate * dt);
-  const speedWanted = ((input.forward ? 1 : 0) - (input.back ? 1 : 0)) * P.speed;
-  const speed = ease(p.speed ?? 0, speedWanted, P.speed, P.accelSec, P.decelSec, dt);
+  const top = P.speed * (input.run ? P.runMultiplier : 1);
+  const speedWanted = ((input.forward ? 1 : 0) - (input.back ? 1 : 0)) * top;
+  const speed = ease(p.speed ?? 0, speedWanted, top, P.accelSec, P.decelSec, dt);
   const f = forwardFromYaw(yawDeg);
   const to = { x: p.x + f.x * speed * dt, z: p.z + f.z * speed * dt };
   return { ...moveTo(p, to, obstacles), yawDeg, speed, turnRate };

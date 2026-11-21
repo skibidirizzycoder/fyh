@@ -93,3 +93,17 @@ describe('controller', () => {
     expect(pickTarget(p, [{ id: 'b', x: 0, z: -2 }, { id: 'a', x: 0, z: -1 }])).toBe('a');
   });
 });
+
+describe('running', () => {
+  it('holding Shift runs runMultiplier times faster, easing in over the same accelSec', () => {
+    const dt = 1 / T.loop.stepsPerSecond;
+    let walk = startPlayer();
+    let run = startPlayer();
+    for (let i = 0; i < Math.ceil(T.player.accelSec / dt) + 2; i++) {
+      walk = stepPlayer(walk, { forward: true, back: false, turnLeft: false, turnRight: false }, dt);
+      run = stepPlayer(run, { forward: true, back: false, turnLeft: false, turnRight: false, run: true }, dt);
+    }
+    expect(walk.speed).toBeCloseTo(T.player.speed, 6);
+    expect(run.speed).toBeCloseTo(T.player.speed * T.player.runMultiplier, 6);
+  });
+});

@@ -272,6 +272,7 @@ function stepWalking(ctx: Ctx, input: Input): void {
     back: input.isDown('back'),
     turnLeft: input.isDown('turnLeft'),
     turnRight: input.isDown('turnRight'),
+    run: input.isDown('run'),
   }, DT, obstaclesNow(ctx));
   const pick = (): string | null => {
     const used = usedObjects(ctx.content, state.flags);

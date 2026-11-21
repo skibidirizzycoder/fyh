@@ -11,6 +11,7 @@ export const T = {
 
   player: {
     speed: 3, // metres per second
+    runMultiplier: 1.7, // holding Shift runs this much faster (same ease-in and ease-out times)
     accelSec: 0.2, // W/S eases in: from standing to full speed in this long...
     decelSec: 0.15, // ...and eases out: from full speed to standing after you let go
     turnSpeedDeg: 150, // degrees per second (A/D)
@@ -44,9 +45,9 @@ export const T = {
   },
 
   camera: {
-    fovDeg: 60,
-    distance: 4.5, // behind the player
-    height: 2.6, // above the ground
+    fovDeg: 50, // a bit tighter, like Messenger's (about 45): the player and the street feel closer
+    distance: 4.2, // behind the player (about 2.5 body-heights, like Messenger)
+    height: 2.4, // above the ground (about 1.5 body-heights)
     lookHeight: 1.2, // point on the player the camera aims at
     near: 0.1,
     far: 60,
