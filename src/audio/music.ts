@@ -30,7 +30,7 @@ interface Voice {
   lfo: OscillatorNode | null;
 }
 
-type CdMusic = { gain: number; bpm: number; beatOffsetSec: number };
+type CdMusic = { gain: number; bpm: number; beatOffsetSec: number; beat: number };
 const M = T.audio.music;
 const CDS = M.cds as Readonly<Record<string, CdMusic>>;
 const OPEN_HZ = 20000; // a low-pass this high (or a high-pass this low) does nothing
@@ -42,7 +42,7 @@ function targets(mode: MusicMode, cd: string, level: number): { lp: number; hp: 
   const pick = (a: readonly number[]): number => a[Math.min(level, a.length - 1)] ?? 0;
   switch (mode) {
     case 'today':
-      return { lp: OPEN_HZ, hp: CLOSED_HZ, gain: g * pick(M.today.levelGain), beat: pick(M.today.beatGain) };
+      return { lp: OPEN_HZ, hp: CLOSED_HZ, gain: g * pick(M.today.levelGain), beat: pick(M.today.beatGain) * (CDS[cd]?.beat ?? 0) };
     case '2004-live':
       return { lp: M.live.lowpassHz, hp: CLOSED_HZ, gain: g * M.live.gain, beat: 0 };
     case '2004-leak':

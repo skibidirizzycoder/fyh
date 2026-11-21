@@ -241,10 +241,13 @@ export const T = {
       leak: { lowpassHz: 4000, highpassHz: 1500, gain: 0.12 }, // tinny spill from K-Bit's headphones
       today: { levelGain: [0, 0.7, 0.85, 1], beatGain: [0, 0.3, 0.45, 0.6] }, // by reputation level 0-3
       beat: { kickHz: 130, kickEndHz: 45, kickSec: 0.25, kickGain: 0.9, hatSec: 0.04, hatGain: 0.22, seed: 909 },
+      // Clips are cut on a measured beat (beatOffsetSec 0). bpm was MEASURED, not heard, and the
+      // detector was unsure (see docs/notes/teammate-b.md), so the code beat is off (beat: 0)
+      // until someone confirms by ear that it plays in time; then set beat: 1.
       cds: {
-        mira: { file: '', gain: 0.9, bpm: 76, beatOffsetSec: 0, past: { silentUntil: 'mira_play_cd' } },
-        static: { file: '', gain: 0.8, bpm: 150, beatOffsetSec: 0, past: { brokenUntil: 'static_plug_amp', liveAfter: 'static_give_mic' } },
-        kbit: { file: '', gain: 0.8, bpm: 120, beatOffsetSec: 0, past: { leakUntil: 'kbit_beam_track' } },
+        mira: { file: 'music/mira.mp3', gain: 0.9, bpm: 68, beatOffsetSec: 0, beat: 0, past: { silentUntil: 'mira_play_cd' } },
+        static: { file: 'music/static.mp3', gain: 0.8, bpm: 104.5, beatOffsetSec: 0, beat: 0, past: { brokenUntil: 'static_plug_amp', liveAfter: 'static_give_mic' } },
+        kbit: { file: 'music/kbit.mp3', gain: 0.8, bpm: 163.5, beatOffsetSec: 0, beat: 0, past: { leakUntil: 'kbit_beam_track' } },
       },
     },
   },
