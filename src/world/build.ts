@@ -78,7 +78,7 @@ export function buildWorld(): WorldView {
   const people = createPeople([...PROPS].filter((p) => !p.decor).map(placed), personTextures);
   people.meshes.forEach((m) => scene.add(m));
   const drawnByPerson = headsOfPeople(PROPS);
-  const decor = buildDecor(PROPS.filter((p) => p.decor), decorMaterial, shapes);
+  const decor = buildDecor(PROPS.filter((p) => p.decor).map(placed), decorMaterial, shapes); // a moment's decor where it stands (areas.ts)
   decor.forEach((d) => scene.add(d.mesh));
   let disposed = false;
   let atlas: THREE.Texture | null = null;
