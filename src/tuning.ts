@@ -129,7 +129,7 @@ export const T = {
     blinkSec: 0.8, // one on/off cycle of the selected row's cursor
     momentTimes: { open_mic: '19:30', street_gig: '15:10', ringtone: '16:45' } as Record<string, string>, // outer screen clock in 2004
     foldedWidthPx: 96, // the closed phone
-    foldedBottomPx: 16, // the closed phone sits lower than the open one (it is short)
+    foldedBottomPx: 64, // the closed phone sits lower than the open one, clear of a host's corner badge (Netlify's is ~50 px tall)
     outerScreen: '#0d1b2a', // the closed phone's small outer screen...
     outerText: '#9be7ff', // ...blue-backlit text
     widthPx: 220, // whole phone; stays under 300 px
