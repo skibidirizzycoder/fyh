@@ -5,8 +5,8 @@
     "title": "first songs",
     "moment": "open_mic",
     "date": "14 March 2004",
-    "situation": "Open mic night, and nobody has heard of Mira.",
-    "today": "Mira's 'first songs' went gold. She still plays the shop every Christmas."
+    "situation": "Open mic night outside the shop. Mira is up next, but the crowd is glued to their phones and she has lost her nerve.",
+    "today": "Mira's 'first songs' went gold. She still opens the shop's open mic night every March."
   },
   "actions": [
     {
@@ -15,7 +15,7 @@
       "label": "picked up Mira's dropped demo CD",
       "prompt": "Pick up the CD",
       "requires": [],
-      "line": "A scratched demo CD: 'MIRA - first songs'. Someone dropped it.",
+      "line": "A scratched demo CD on the bench: 'MIRA - first songs', in silver marker. She must have dropped it.",
       "lockedLine": "",
       "effects": { "show": [], "hide": ["mira_cd"] }
     },
@@ -23,15 +23,26 @@
       "id": "mira_play_cd",
       "objectId": "listening_post",
       "label": "played it at the shop's listening post",
-      "prompt": "Play the CD",
+      "prompt": "Play it at the listening post",
       "requires": ["mira_take_cd"],
-      "line": "The owner stops sweeping. 'Who IS this?' He pins her flyer up and books her for tonight.",
-      "lockedLine": "The listening post is free. You have nothing to play.",
-      "effects": { "show": ["mira_flyer"], "hide": [] }
+      "line": "The owner turns the listening post right up. Phones go down. 'Who IS this?' Mira grins, grabs the mic and plays it live.",
+      "lockedLine": "The listening post is free, but you've got nothing worth playing. Didn't someone drop a CD by the bench?",
+      "effects": {
+        "show": [
+          "mira_flyer",
+          "mira_live", "mira_live_head", "mira_live_guitar", "mira_live_neck",
+          "mira_gathered_1", "mira_gathered_2", "mira_gathered_3"
+        ],
+        "hide": [
+          "mira_waiting", "mira_waiting_head", "mira_waiting_guitar", "mira_waiting_neck",
+          "mira_bored_1", "mira_bored_2", "mira_bored_3",
+          "mira_bored_phone_1", "mira_bored_phone_2", "mira_bored_phone_3"
+        ]
+      }
     }
   ],
   "offline": {
-    "headline": "Mira's Debut Turns Gold, Twenty Years Later",
-    "article": "Singer Mira's 2004 demo, first played at Hollow Records' listening post, has finally gone gold. She says she owes it all to the shop on the corner."
+    "headline": "The Open Mic Nobody Was Watching",
+    "article": "On 14 March 2004 a stranger played Mira's dropped demo at Hollow Records' listening post, and a bored open-mic crowd put their phones away to listen. Her debut 'first songs' has just gone gold, and its disc hangs by the shop door."
   }
 }
