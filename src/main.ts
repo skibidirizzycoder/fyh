@@ -19,6 +19,7 @@ import { createHud, showFallback } from './ui/hud.ts';
 import { buildWorld } from './world/build.ts';
 import { GROUND, PROPS } from './world/layout.ts';
 import { lookFor } from './world/look.ts';
+import { createParticles } from './world/particles.ts';
 import { createPostFilter } from './world/post.ts';
 import { installDebugApi } from './debug.ts';
 
@@ -53,6 +54,7 @@ function boot(): void {
   const game = createGame(content, input, { news, events });
   const world = buildWorld();
   const avatar = createAvatar(world.scene);
+  const particles = createParticles(world.scene); // dust, snow or pollen in the air
   const camera = new THREE.PerspectiveCamera(T.camera.fovDeg, 1, T.camera.near, T.camera.far);
   const post = createPostFilter(1, 1);
   const hud = createHud(app, withCdPrompts(content), news); // the HUD finds E prompts in `actions`, the CD player's too
@@ -77,6 +79,7 @@ function boot(): void {
     world.animate(s.frame / T.loop.stepsPerSecond);
     post.setLook(lookFor(s.era, s.moment));
     avatar.sync(s.player, camera);
+    particles.update(s.era, s.moment, s.frame / T.loop.stepsPerSecond, camera); // game time: step() stays exact
     renderer.info.reset();
     post.render(renderer, world.scene, camera, s.frame);
     drawCalls = renderer.info.render.calls;
