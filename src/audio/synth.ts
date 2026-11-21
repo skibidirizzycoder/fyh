@@ -50,9 +50,9 @@ export function makeNoiseBuffer(ctx: BaseAudioContext, seconds: number, seed: nu
   return buffer;
 }
 
-/** Schedules every tone and noise burst of a cue, starting now. */
-export function playCue(ctx: BaseAudioContext, out: AudioNode, cue: Cue, noise: AudioBuffer): void {
-  const t0 = ctx.currentTime;
+/** Schedules every tone and noise burst of a cue, starting `delaySec` from now. */
+export function playCue(ctx: BaseAudioContext, out: AudioNode, cue: Cue, noise: AudioBuffer, delaySec = 0): void {
+  const t0 = ctx.currentTime + delaySec;
   cue.tones.forEach((tone) => playTone(ctx, out, t0, tone));
   cue.noises.forEach((burst) => playNoise(ctx, out, t0, burst, noise));
 }
