@@ -14,9 +14,13 @@ the record shop, with a "Because you..." card. A newspaper is shown on every ret
 `server/headline.ts` turns the flags into facts, asks Snowflake Cortex and returns
 `{ headline, article }`. It runs in Vite dev/preview and as a Netlify Function.
 
-**Blocked on credentials:** `.env` has empty `SNOWFLAKE_ACCOUNT` and `SNOWFLAKE_TOKEN`.
-`npm run snowflake:ping` has not yet returned a real headline. Fill in `.env`, run it, and
-check `ms`: real calls over 3 s will always show the offline edition.
+**Blocked on the Snowflake account (not the code):** `.env` is filled in and the token works
+(the user has a network policy for this IP). But it is a **trial account**, and every LLM route
+is refused: `inference:complete` and `/v1/chat/completions` return 403 "account is not allowed
+to access this endpoint", legacy `SNOWFLAKE.CORTEX.COMPLETE` is blocked for new accounts, and
+`AI_COMPLETE` is "not available for trial accounts". Once the account is upgraded, run
+`npm run snowflake:ping`. New accounts may need the server switched from the legacy
+`inference:complete` endpoint to `AI_COMPLETE` (SQL API) or `/v1/chat/completions`.
 
 **Known gaps:**
 - No sound.
