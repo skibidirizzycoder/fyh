@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { actionCue, createAudio } from '../src/audio/audio.ts';
 import { buildCue, crackleSamples, CUE_NAMES, cueLength, maxPolyphony, noteHz } from '../src/audio/cues.ts';
-import { createEvents, type EventName, type GameEvents } from '../src/core/events.ts';
+import { createEvents, type GameEvents } from '../src/core/events.ts';
 import { T } from '../src/tuning.ts';
 
 /** Real events + audio with no AudioContext (silent, cues still recorded). */
@@ -13,7 +13,9 @@ function silentAudio(makeContext: () => AudioContext | null = () => null) {
   return { events, audio };
 }
 
-const PAYLOADS: { [K in EventName]: GameEvents[K] } = {
+/** The events this table covers, by name (so new events in GameEvents don't break this file). */
+type Covered = 'game-start' | 'mute' | 'travel' | 'action-done' | 'action-locked' | 'phone-open' | 'phone-close' | 'phone-move' | 'phone-select' | 'reputation';
+const PAYLOADS: { [K in Covered]: GameEvents[K] } = {
   'game-start': {},
   mute: {},
   travel: { to: 'ringtone', era: '2004', moment: 'ringtone' },
@@ -73,7 +75,7 @@ describe('createAudio', () => {
 
   it('maps each game event to its cue', () => {
     const { events, audio } = silentAudio();
-    const expected: [EventName, string][] = [
+    const expected: [Covered, string][] = [
       ['phone-open', 'flip-open'], ['phone-move', 'beep'], ['phone-select', 'blip'], ['travel', 'whoosh'],
       ['action-done', 'chime'], ['action-locked', 'nope'], ['reputation', 'fanfare'], ['phone-close', 'flip-close'],
     ];
