@@ -6,6 +6,8 @@
 //   tabloid with a CD fixed today, the card and the paper are tabloid pages whose red headers,
 //           headline and lists are readable
 //   ending  with every CD fixed, the ending is a wall with one gold disc per CD, readable captions
+//   narrow  in a phone-size window (390x844) the era, folded phone, card + paper, prompt and dialogue
+//           never overlap, and the open phone takes the papers' place without covering the dialogue
 // Contrast is measured on rendered pixels of single text lines/blocks (cheap, and it isolates the
 // weakest pairs, e.g. yellow on the colour screen's blue).
 
@@ -13,11 +15,14 @@ import type { Page } from 'playwright';
 import { content } from '../../src/story/content.ts';
 import { T } from '../../src/tuning.ts';
 import type { Snapshot } from '../../src/debug.ts';
-import { expect, hold, interact, measureContrast, restart, screenshot, state, step, travel } from './tools.ts';
+import { expect, hold, interact, measureContrast, restart, screenshot, state, step, tap, travel } from './tools.ts';
 
 const VARIANTS = ['lcd', 'colour'] as const;
 const BOOT_LINES = ['.boot-maker', '.boot-shop', '.boot-start', '.boot-keys']; // biggest to smallest text
 const POLL_MS = 100;
+const NARROW = { width: 390, height: 844 }; // a phone in portrait (F2 playtest, bug 4)
+
+interface Box { x: number; y: number; width: number; height: number }
 
 /** Fixes one CD directly (no walking: the other checks prove walking works). */
 async function fixCd(page: Page, cdId: string): Promise<void> {
@@ -42,6 +47,58 @@ async function waitForPaper(page: Page): Promise<Snapshot> {
     expect(false, `the paper was never printed: ${JSON.stringify(why)}`);
   }
   return state(page);
+}
+
+/** Fails if any two of these elements overlap while visible. */
+async function expectApart(page: Page, selectors: readonly string[], when: string): Promise<number> {
+  const shown: { selector: string; box: Box }[] = [];
+  for (const selector of selectors) {
+    const el = page.locator(selector);
+    const box = (await el.isVisible()) ? await el.boundingBox() : null;
+    if (box) shown.push({ selector, box });
+  }
+  for (const [i, a] of shown.entries()) {
+    for (const b of shown.slice(i + 1)) {
+      const apart = a.box.x + a.box.width <= b.box.x || b.box.x + b.box.width <= a.box.x
+        || a.box.y + a.box.height <= b.box.y || b.box.y + b.box.height <= a.box.y;
+      expect(apart, `${when}: ${a.selector} overlaps ${b.selector}`);
+    }
+  }
+  return shown.length;
+}
+
+/** Waits (real time) until the phone shows this look. */
+async function waitForPhone(page: Page, look: string): Promise<void> {
+  await page.waitForFunction((l) => document.getElementById('phone')?.dataset.state === l, look, { polling: POLL_MS, timeout: 5000 });
+}
+
+/** A phone-size window: today with the card and the paper, then with the phone open. */
+async function checkNarrow(page: Page): Promise<number> {
+  const wide = page.viewportSize();
+  await page.setViewportSize(NARROW);
+  try {
+    await page.waitForFunction(() => document.documentElement.classList.contains('is-narrow'), null, { polling: POLL_MS, timeout: 3000 });
+    await restart(page);
+    await fixCd(page, 'mira');
+    await travel(page, 'present');
+    await waitForPaper(page);
+    await step(page, 1);
+    expect((await page.locator('#card').isVisible()) && (await page.locator('#news').isVisible()), 'narrow: the card or the paper is not shown');
+    const panels = await expectApart(page, ['#era', '#phone .phone-folded', '#today-papers', '#prompt', '#dialogue'], 'narrow, today');
+    await expectApart(page, ['#card', '#news'], 'narrow, today');
+    await screenshot(page, 'narrow-today');
+
+    await tap(page, 'KeyQ');
+    await waitForPhone(page, 'open');
+    expect(!(await page.locator('#news').isVisible()), 'narrow: the paper still shows under the open phone');
+    await expectApart(page, ['#era', '#phone', '#prompt', '#dialogue'], 'narrow, phone open');
+    await screenshot(page, 'narrow-phone');
+    await tap(page, 'KeyQ');
+    await waitForPhone(page, 'closed');
+    return panels;
+  } finally {
+    if (wide) await page.setViewportSize(wide);
+  }
 }
 
 /** Draws every title look side by side in a temporary layer, measures and screenshots them. */
@@ -133,6 +190,7 @@ export async function checkUi(page: Page): Promise<Record<string, unknown>> {
   await checkTitle(page);
   await checkTabloid(page);
   const discs = await checkEnding(page);
+  const narrowPanels = await checkNarrow(page);
   await restart(page); // leave a playing game for the next check
-  return { titleVariant: T.screens.titleVariant, discs, ms: Date.now() - started };
+  return { titleVariant: T.screens.titleVariant, discs, narrowPanels, ms: Date.now() - started };
 }

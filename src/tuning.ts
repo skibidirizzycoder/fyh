@@ -195,6 +195,7 @@ export const T = {
     titleVariant: 'lcd' as 'lcd' | 'colour', // the team picks: artifacts/title-variants.png shows both
     bootSec: 1.2, // the boot progress bar fills in this long (then "Press Enter" blinks)
     blinkSec: 1.1, // one on/off cycle of "Press Enter"
+    narrowBelowPx: 700, // windows narrower than this (phones) stack the card and paper and move the phone up
     backdrop: '#0b0b0f', // behind the title and the ending
     // 'lcd' title: the phone's own green LCD (T.phone.lcd / lcdInk), with a dark bezel
     bezel: '#2b2f35',

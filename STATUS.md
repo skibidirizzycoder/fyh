@@ -50,8 +50,8 @@ Director: moment looks, collisions, the rest of `docs/prompts/05-*`, Netlify dep
    "offline" would be quiet).
 3. **E does nothing, silently,** with nothing in front of you or at an object you already used. So
    `notHereLine` and `alreadyDoneLine` can never show when playing (only via the debug API).
-4. **Phone-size screen (390×844):** the open phone covers the dialogue, and the newspaper covers the card
-   Low priority: the game needs a keyboard anyway.
+4. ~~**Phone-size screen (390×844):** the open phone covers the dialogue, and the newspaper covers the card
+   Low priority: the game needs a keyboard anyway.~~ **Fixed (Teammate A):** narrow windows stack the card and paper under the era and folded phone, and the open phone hangs from the top-right; smoke checks it at 390×844 (`narrow-today.png`, `narrow-phone.png`).
 5. **(Teammate B, needs an event)** After the ending, "Press Enter to play again" goes to the title, which
    still plays the last game's music until Enter. Music resets on `game-start`; a `title` event would let it
    stop on the title.
